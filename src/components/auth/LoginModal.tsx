@@ -9,9 +9,9 @@ import {
   Building2,
   X,
   ArrowRight,
-  Sparkles,
   AlertCircle,
-  MapPin
+  MapPin,
+  CheckCircle2
 } from 'lucide-react';
 
 interface LoginModalProps {
@@ -34,7 +34,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     if (success) {
       onClose();
     } else {
-      setError('Akun tidak ditemukan atau tidak aktif. Silakan pilih dari Akun Demo Cepat di bawah.');
+      setError('Kredensial tidak cocok. Silakan pilih akun demo cepat di bawah ini untuk pengujian peran.');
     }
   };
 
@@ -47,182 +47,190 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     switch (roleCode) {
       case 'SUPER_ADMIN':
         return {
-          icon: <ShieldCheck className="w-4 h-4 text-red-500" />,
-          label: 'Akses Penuh Level 1',
-          bg: 'bg-red-50 border-red-200 text-red-800'
+          label: 'Super Admin',
+          tag: 'Akses Penuh',
+          style: 'bg-red-50 text-red-800 border-red-200'
         };
       case 'ADMIN_HOD_TC':
         return {
-          icon: <Layers className="w-4 h-4 text-blue-500" />,
-          label: 'Stage 1 Reviewer',
-          bg: 'bg-blue-50 border-blue-200 text-blue-800'
+          label: 'HOD Training Center',
+          tag: 'Reviewer Tahap 1',
+          style: 'bg-blue-50 text-blue-800 border-blue-200'
         };
       case 'ADMIN_PJO':
         return {
-          icon: <UserCheck className="w-4 h-4 text-amber-500" />,
-          label: 'Stage 2 Final Auth',
-          bg: 'bg-amber-50 border-amber-200 text-amber-800'
+          label: 'PJO Operasional',
+          tag: 'Otorisasi Final',
+          style: 'bg-amber-50 text-amber-900 border-amber-200'
         };
       case 'DEPARTMENT_USER':
         return {
-          icon: <Building2 className="w-4 h-4 text-emerald-500" />,
-          label: 'Pengaju Departemen',
-          bg: 'bg-emerald-50 border-emerald-200 text-emerald-800'
+          label: 'Department User',
+          tag: 'Pengaju Departemen',
+          style: 'bg-emerald-50 text-emerald-800 border-emerald-200'
         };
       default:
         return {
-          icon: null,
           label: 'Staff',
-          bg: 'bg-slate-50 border-slate-200 text-slate-800'
+          tag: 'General Access',
+          style: 'bg-slate-50 text-slate-800 border-slate-200'
         };
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 max-w-xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-100">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-xl w-full overflow-hidden text-slate-900">
         
         {/* Modal Header */}
-        <div className="relative bg-gradient-to-r from-slate-950 via-zinc-900 to-amber-950/50 p-6 border-b border-slate-800">
+        <div className="bg-slate-900 text-white p-6 border-b border-slate-800 relative">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+            className="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            aria-label="Tutup"
           >
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-md">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center">
               RAJA
             </div>
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
                 PT. RODA JAYA SAKTI
               </span>
-              <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                <MapPin className="w-2.5 h-2.5 text-amber-400" />
-                <span>Site Morowali & Head Office Makassar</span>
-              </div>
+              <h3 className="text-base font-bold text-white">
+                Portal Pelatihan & Sertifikasi Kerja
+              </h3>
             </div>
           </div>
-
-          <h3 className="text-lg font-bold text-white mt-1">
-            Masuk Portal Internal THR & Sertifikasi Tambang
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Pilih salah satu peran demo untuk menguji alur otorisasi berurutan (*Strict Sequential Approval*).
+          <p className="text-xs text-slate-400 mt-2">
+            Akses internal resmi bagi Super Admin, HOD Training Center, PJO, dan Perwakilan Departemen Aktif.
           </p>
         </div>
 
         {/* Modal Body */}
         <div className="p-6 space-y-6">
-          {error && (
-            <div className="p-3 bg-red-950/60 border border-red-800/80 rounded-xl text-xs text-red-300 flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Quick 1-Click Demo Logins */}
+          
+          {/* Quick Demo Role Selector */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center space-x-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Pilih Cepat Akun Demo (1-Click Login):</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Pilih Akun Demo (1-Click Login)
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">Siap Langsung Masuk</span>
+              <span className="text-[10px] text-slate-500 font-medium">
+                4 Peran Fungsional Terkonfirmasi
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="space-y-2">
               {availableUsers.map((user) => {
                 const badge = getRoleBadge(user.role_code);
+                const initials = user.full_name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .slice(0, 2)
+                  .join('');
 
                 return (
                   <button
                     key={user.id}
-                    type="button"
                     onClick={() => handleDemoSelect(user.id)}
-                    className="p-3 text-left rounded-xl border border-slate-800 bg-slate-950/60 hover:border-amber-500/60 hover:bg-slate-800/60 transition-all group flex items-start space-x-2.5 cursor-pointer"
+                    className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center justify-between group cursor-pointer"
                   >
-                    <div className="mt-0.5">{badge.icon}</div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
-                        {user.full_name}
+                    <div className="flex items-center space-x-3">
+                      <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                        {initials}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-medium">
-                        {user.role_name || user.role_code.replace(/_/g, ' ')}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono truncate">
-                        {user.email}
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-bold text-slate-900 group-hover:text-slate-950">
+                            {user.full_name}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${badge.style}`}>
+                            {badge.tag}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                          {user.email} {user.department_name ? `• ${user.department_name}` : ''}
+                        </div>
                       </div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all self-center" />
+
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition-transform group-hover:translate-x-0.5" />
                   </button>
                 );
               })}
             </div>
           </div>
 
+          {/* Divider */}
           <div className="relative flex items-center justify-center">
-            <span className="absolute inset-x-0 h-px bg-slate-800" />
-            <span className="relative bg-slate-900 px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              atau login dengan kredensial
+            <div className="border-t border-slate-200 w-full" />
+            <span className="bg-white px-3 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+              atau gunakan email terdaftar
             </span>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Manual Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-lg flex items-start space-x-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Alamat Email Kerja (@rodajayasakti.id atau @ptraja.com)
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Alamat Email Perusahaan
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                 <input
                   type="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="contoh: hod.training@ptraja.com"
-                  className="w-full text-xs pl-9 pr-3 py-2.5 border border-slate-700 bg-slate-950 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="nama@rodajayasakti.id"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Password
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Kata Sandi
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full text-xs pl-9 pr-3 py-2.5 border border-slate-700 bg-slate-950 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="••••••••"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900"
                 />
               </div>
             </div>
 
-            <div className="pt-2 flex justify-between items-center">
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-xs text-slate-400 hover:text-white font-semibold cursor-pointer"
-              >
-                Batal / Kembali ke Profil
-              </button>
-
-              <button
-                type="submit"
-                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-extrabold shadow-md transition-all flex items-center space-x-1.5 cursor-pointer"
-              >
-                <span>Masuk ke Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer mt-1"
+            >
+              Masuk dengan Kredensial
+            </button>
           </form>
+
+          {/* Security Footnote */}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Row Level Security (RLS) Aktif</span>
+            </span>
+            <span>Site Morowali & Makassar</span>
+          </div>
+
         </div>
       </div>
     </div>
