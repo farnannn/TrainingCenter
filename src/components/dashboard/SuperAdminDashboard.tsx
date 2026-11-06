@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
-import { CompanyProfileHero } from '../company/CompanyProfileHero';
 import { KpiAnalyticsCharts } from '../charts/KpiAnalyticsCharts';
 import {
   ShieldCheck,
@@ -37,13 +36,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
 
   return (
     <div className="space-y-8">
-      {/* 1. Corporate Profile Hero Banner (Visi, Misi, Tata Nilai RAJA) */}
-      <CompanyProfileHero />
-
-      {/* 2. Interactive KPI Charts & Analytics Visuals */}
-      <KpiAnalyticsCharts />
-
-      {/* 3. Executive Control Header */}
+      {/* 1. Executive Control Header */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white p-6 rounded-2xl shadow-sm border border-slate-800">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
@@ -113,6 +106,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
           <span className="text-[10px] text-slate-500">Terminal State</span>
         </div>
       </div>
+
+      {/* Interactive KPI Performance Analytics */}
+      <KpiAnalyticsCharts />
 
       {/* 5. Department Assignments & Administrative Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
