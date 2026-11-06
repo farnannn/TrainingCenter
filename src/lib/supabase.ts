@@ -1,9 +1,14 @@
 // ==============================================================================
-// SUPABASE CLIENT CONFIGURATION & POSTGRES INTERFACE
+// SUPABASE CLIENT & LIVE POSTGRESQL INTERFACE
 // ==============================================================================
 
-// Reads environment variables or falls back to simulated database engine
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+import { createClient } from '@supabase/supabase-js';
+
+export const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || '';
+export const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
 
 export const isLiveSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+export const supabase = isLiveSupabaseConfigured
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;

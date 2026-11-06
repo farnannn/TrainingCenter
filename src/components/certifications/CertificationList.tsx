@@ -93,3 +93,4 @@ export const CertificationList: React.FC = () => {
     </div>
   );
 };
+

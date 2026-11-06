@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from './context/AuthContext';
+import { PublicCompanyLanding } from './components/public/PublicCompanyLanding';
 import { RoleSwitcher } from './components/layout/RoleSwitcher';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
@@ -16,8 +17,13 @@ import { KpiOverview } from './components/kpi/KpiOverview';
 import { AuditLogViewer } from './components/audit/AuditLogViewer';
 
 export const App: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
+
+  // If user is not logged in, display the public Company Profile & KPI dashboard!
+  if (!isAuthenticated || !currentUser) {
+    return <PublicCompanyLanding />;
+  }
 
   const renderDashboardByRole = () => {
     switch (currentUser.role_code) {
@@ -79,7 +85,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
-      {/* Top Banner Role Switcher for seamless test demo switching */}
+      {/* Top Banner Role Switcher for fast testing across roles */}
       <RoleSwitcher />
 
       {/* Main App Navbar */}

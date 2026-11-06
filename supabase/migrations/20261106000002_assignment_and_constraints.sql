@@ -348,3 +348,4 @@ DROP TRIGGER IF EXISTS trg_app_origin_preserve ON public.training_applications;
 CREATE TRIGGER trg_app_origin_preserve
 BEFORE UPDATE ON public.training_applications
 FOR EACH ROW EXECUTE FUNCTION public.trg_preserve_application_origin();
+

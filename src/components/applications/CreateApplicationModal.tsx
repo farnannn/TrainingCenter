@@ -281,3 +281,4 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
     </div>
   );
 };
+

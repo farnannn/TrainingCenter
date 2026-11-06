@@ -4,6 +4,7 @@ import { mockStore } from '../../lib/mockStore';
 import { TrainingApplication } from '../../lib/types';
 import { HodPjoActionModal } from '../applications/HodPjoActionModal';
 import { ApplicationDetailModal } from '../applications/ApplicationDetailModal';
+import { KpiAnalyticsCharts } from '../charts/KpiAnalyticsCharts';
 import {
   UserCheck,
   FileCheck,
@@ -192,6 +193,11 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
         )}
       </div>
 
+      {/* Real-time KPI Analytics Charts for Executive PJO Oversight */}
+      <div className="pt-2">
+        <KpiAnalyticsCharts />
+      </div>
+
       {/* Action Modal */}
       <HodPjoActionModal
         isOpen={Boolean(selectedReviewApp)}
@@ -217,3 +223,4 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
     </div>
   );
 };
+

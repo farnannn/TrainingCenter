@@ -3,12 +3,16 @@ import { UserProfile, Role, Department, Notification } from '../lib/types';
 import { mockStore, INITIAL_USERS } from '../lib/mockStore';
 
 interface AuthContextType {
+  isAuthenticated: boolean;
   currentUser: UserProfile;
   availableUsers: UserProfile[];
   roles: Role[];
   departments: Department[];
   notifications: Notification[];
   unreadCount: number;
+  login: (email: string, password?: string) => boolean;
+  loginAsUser: (userId: string) => void;
+  logout: () => void;
   switchUser: (userId: string) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
@@ -18,7 +22,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Default to Super Admin for full discovery, but easily switchable
+  // Unauthenticated by default: Visitors see the public company profile dashboard first!
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUserId, setCurrentUserId] = useState<string>('00000000-0000-0000-0000-000000000001');
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -39,9 +44,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role_name: role?.name,
     });
 
-    const userNotifs = mockStore.notifications.filter((n) => n.user_id === user.id);
-    setNotifications([...userNotifs]);
-  }, [currentUserId, refreshTrigger]);
+    if (isAuthenticated) {
+      const userNotifs = mockStore.notifications.filter((n) => n.user_id === user.id);
+      setNotifications([...userNotifs]);
+    } else {
+      setNotifications([]);
+    }
+  }, [isAuthenticated, currentUserId, refreshTrigger]);
+
+  const login = (email: string, _password?: string): boolean => {
+    const user = mockStore.users.find(
+      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.is_active
+    );
+    if (user) {
+      setCurrentUserId(user.id);
+      setIsAuthenticated(true);
+      refreshState();
+      return true;
+    }
+    return false;
+  };
+
+  const loginAsUser = (userId: string) => {
+    const user = mockStore.users.find((u) => u.id === userId && u.is_active);
+    if (user) {
+      setCurrentUserId(user.id);
+      setIsAuthenticated(true);
+      refreshState();
+    }
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+  };
 
   const switchUser = (userId: string) => {
     setCurrentUserId(userId);
@@ -71,12 +106,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider
       value={{
+        isAuthenticated,
         currentUser,
         availableUsers: mockStore.users,
         roles: mockStore.roles,
         departments: mockStore.departments,
         notifications,
         unreadCount,
+        login,
+        loginAsUser,
+        logout,
         switchUser,
         markNotificationRead,
         markAllNotificationsRead,

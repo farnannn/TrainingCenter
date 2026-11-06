@@ -401,3 +401,4 @@ runner.test('Scenario 12: KPI values update from completed training data', () =>
 });
 
 runner.report();
+

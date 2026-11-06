@@ -1,6 +1,8 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
+import { CompanyProfileHero } from '../company/CompanyProfileHero';
+import { KpiAnalyticsCharts } from '../charts/KpiAnalyticsCharts';
 import {
   ShieldCheck,
   Building,
@@ -34,8 +36,14 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
   const rejected = apps.filter((a) => a.current_status === 'REJECTED').length;
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Banner */}
+    <div className="space-y-8">
+      {/* 1. Corporate Profile Hero Banner (Visi, Misi, Tata Nilai RAJA) */}
+      <CompanyProfileHero />
+
+      {/* 2. Interactive KPI Charts & Analytics Visuals */}
+      <KpiAnalyticsCharts />
+
+      {/* 3. Executive Control Header */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white p-6 rounded-2xl shadow-sm border border-slate-800">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
@@ -52,14 +60,14 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
           <div className="flex gap-2">
             <button
               onClick={() => onNavigate('assignments')}
-              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5"
+              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center space-x-1.5 cursor-pointer"
             >
               <Building className="w-4 h-4" />
               <span>Manage Dept Users</span>
             </button>
             <button
               onClick={() => onNavigate('audit_logs')}
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition-all"
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
             >
               Audit Trail
             </button>
@@ -67,7 +75,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
+      {/* 4. KPI Status Counter Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase">Total Apps</span>
@@ -106,9 +114,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
         </div>
       </div>
 
-      {/* Two Column Layout: Department Assignments & Active Applications */}
+      {/* 5. Department Assignments & Administrative Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Department Representatives Status */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
           <div className="flex justify-between items-center">
             <div>
@@ -122,7 +129,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
             </div>
             <button
               onClick={() => onNavigate('assignments')}
-              className="text-xs text-sky-600 hover:text-sky-800 font-semibold flex items-center space-x-1"
+              className="text-xs text-sky-600 hover:text-sky-800 font-semibold flex items-center space-x-1 cursor-pointer"
             >
               <span>Manage</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -157,7 +164,6 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
           </div>
         </div>
 
-        {/* System Administration Shortcuts & Rejection Reopen Notice */}
         <div className="space-y-4">
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
             <h3 className="text-sm font-bold text-slate-900 mb-1 flex items-center space-x-2">
@@ -178,7 +184,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
                 </div>
                 <button
                   onClick={() => onNavigate('applications')}
-                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-semibold shadow-xs"
+                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-semibold shadow-xs cursor-pointer"
                 >
                   View Apps
                 </button>
@@ -193,7 +199,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
                 </div>
                 <button
                   onClick={() => onNavigate('kpi')}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-semibold shadow-xs"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-semibold shadow-xs cursor-pointer"
                 >
                   Configure
                 </button>
@@ -201,7 +207,6 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
             </div>
           </div>
 
-          {/* Quick Workforce Overview */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
             <div>
               <span className="text-[10px] text-slate-400 uppercase font-semibold">Master Headcount</span>
@@ -214,7 +219,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
             </div>
             <button
               onClick={() => onNavigate('employees')}
-              className="text-xs font-semibold text-sky-600 hover:text-sky-800"
+              className="text-xs font-semibold text-sky-600 hover:text-sky-800 cursor-pointer"
             >
               View Roster →
             </button>

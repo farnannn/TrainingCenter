@@ -203,3 +203,4 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
     </div>
   );
 };
+

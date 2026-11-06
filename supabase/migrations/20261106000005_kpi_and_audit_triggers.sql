@@ -199,3 +199,4 @@ DROP TRIGGER IF EXISTS trg_training_record_kpi_update ON public.training_records
 CREATE TRIGGER trg_training_record_kpi_update
 AFTER INSERT OR UPDATE ON public.training_records
 FOR EACH ROW EXECUTE FUNCTION public.trg_auto_recalculate_kpi();
+

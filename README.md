@@ -161,3 +161,4 @@ npm run dev
 ```
 
 Open `http://localhost:5173` to interact with the responsive dashboard, test the approval workflow, and switch between test accounts using the top switcher banner.
+

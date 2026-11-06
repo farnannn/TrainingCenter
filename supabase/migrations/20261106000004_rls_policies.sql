@@ -464,3 +464,4 @@ CREATE POLICY "audit_logs_superadmin_select"
     ON public.audit_logs FOR SELECT
     TO authenticated
     USING (public.current_user_role_code() = 'SUPER_ADMIN');
+

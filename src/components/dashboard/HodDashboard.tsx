@@ -4,6 +4,7 @@ import { mockStore } from '../../lib/mockStore';
 import { TrainingApplication } from '../../lib/types';
 import { HodPjoActionModal } from '../applications/HodPjoActionModal';
 import { ApplicationDetailModal } from '../applications/ApplicationDetailModal';
+import { KpiAnalyticsCharts } from '../charts/KpiAnalyticsCharts';
 import {
   Layers,
   FileCheck,
@@ -64,6 +65,9 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
           </div>
         </div>
       </div>
+
+      {/* KPI Visual Analytics */}
+      <KpiAnalyticsCharts />
 
       {/* Highlights / Queue Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -210,3 +214,4 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
     </div>
   );
 };
+

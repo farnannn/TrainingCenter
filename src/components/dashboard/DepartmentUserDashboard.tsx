@@ -4,6 +4,7 @@ import { mockStore } from '../../lib/mockStore';
 import { TrainingApplication } from '../../lib/types';
 import { CreateApplicationModal } from '../applications/CreateApplicationModal';
 import { ApplicationDetailModal } from '../applications/ApplicationDetailModal';
+import { KpiAnalyticsCharts } from '../charts/KpiAnalyticsCharts';
 import {
   Building2,
   PlusCircle,
@@ -221,6 +222,11 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
         )}
       </div>
 
+      {/* KPI Performance Insights */}
+      <div className="pt-2">
+        <KpiAnalyticsCharts />
+      </div>
+
       {/* Modals */}
       <CreateApplicationModal
         isOpen={showCreateModal}
@@ -243,3 +249,4 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
     </div>
   );
 };
+

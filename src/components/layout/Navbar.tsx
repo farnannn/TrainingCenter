@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Bell, CheckCheck, Briefcase, Award } from 'lucide-react';
+import { Bell, CheckCheck, Briefcase, Award, LogOut, Globe } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-  const { currentUser, notifications, unreadCount, markNotificationRead, markAllNotificationsRead } = useAuth();
+  const { currentUser, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, logout } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
+
+  if (!currentUser) return null;
 
   const getRoleBadgeStyle = (roleCode: string) => {
     switch (roleCode) {
@@ -22,32 +24,32 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Logo & System Title */}
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 bg-gradient-to-br from-sky-600 to-blue-800 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
-              <Award className="w-6 h-6" />
+            <div className="h-10 w-10 bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 rounded-xl flex items-center justify-center text-slate-950 font-black text-xs shadow-md shadow-amber-500/20">
+              RAJA
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-slate-900 text-lg tracking-tight">PT RAJA</span>
-                <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded">
-                  THR DASHBOARD
+                <span className="font-extrabold text-slate-900 text-base tracking-tight">PT. RODA JAYA SAKTI</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded">
+                  THR PORTAL
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500">Training Management & Operational Certification</p>
+              <p className="text-[11px] text-slate-500">Site Morowali & Makassar • Training & Certification Governance</p>
             </div>
           </div>
 
-          {/* User Status & Notifications */}
-          <div className="flex items-center space-x-4">
+          {/* User Status, Notifications & Actions */}
+          <div className="flex items-center space-x-3 sm:space-x-4">
             {/* Notification Bell */}
             <div className="relative">
               <button
                 onClick={() => setShowNotifs(!showNotifs)}
-                className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
+                className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
                 title="Notifications"
               >
                 <Bell className="w-5 h-5" />
@@ -68,7 +70,7 @@ export const Navbar: React.FC = () => {
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllNotificationsRead}
-                        className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center space-x-1"
+                        className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center space-x-1 cursor-pointer"
                       >
                         <CheckCheck className="w-3.5 h-3.5" />
                         <span>Mark all read</span>
@@ -131,6 +133,16 @@ export const Navbar: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Return to Public / Logout Button */}
+            <button
+              onClick={logout}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer flex items-center space-x-1"
+              title="Keluar / Kembali ke Profil Perusahaan"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-xs font-semibold hidden md:inline">Keluar</span>
+            </button>
           </div>
         </div>
       </div>
