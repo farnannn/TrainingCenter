@@ -547,6 +547,141 @@ class DataStore {
       is_read: false,
       created_at: '2026-11-01T08:30:00Z',
     });
+
+    // Seed initial completed Certifications & Historical Training Records
+    this.certifications.push(
+      // Rudi Hartono (EMP-MOD-003 - Pit Foreman)
+      {
+        id: '95000000-0000-0000-0000-000000000001',
+        employee_id: '40000000-0000-0000-0000-000000000003',
+        certificate_number: 'CERT-RAJA-POP-202601',
+        certificate_name: 'Pengawas Operasional Pertama (POP) Pertambangan Minerba',
+        issuing_body: 'BNSP / LSP PERHAPI',
+        certification_level: 'POP Certified',
+        issue_date: '2026-02-09',
+        duration_label: '5 Days (40 Hours)',
+        venue: 'Training Center PT. RAJA — Site Morowali',
+        is_lifetime: false,
+        status: 'ACTIVE',
+        created_at: '2026-02-09T16:00:00Z',
+      },
+      {
+        id: '95000000-0000-0000-0000-000000000002',
+        employee_id: '40000000-0000-0000-0000-000000000003',
+        certificate_number: 'CERT-RAJA-AFA-202602',
+        certificate_name: 'Applied Failure Analysis (AFA) & Heavy Fleet Supervision',
+        issuing_body: 'PT. Roda Jaya Sakti Training Center',
+        certification_level: 'Advanced Supervisor',
+        issue_date: '2026-01-20',
+        duration_label: '3 Days (24 Hours)',
+        venue: 'Workshop Heavy Equipment — Site Morowali',
+        is_lifetime: true,
+        status: 'ACTIVE',
+        created_at: '2026-01-20T16:00:00Z',
+      },
+      {
+        id: '95000000-0000-0000-0000-000000000003',
+        employee_id: '40000000-0000-0000-0000-000000000003',
+        certificate_number: 'CERT-RAJA-PTOT-202509',
+        certificate_name: 'Pedoman Teknis Operasional Tambang (PTOT) & Good Mining Practice',
+        issuing_body: 'Dirjen Minerba / Internal TC',
+        certification_level: 'Certified Foreman',
+        issue_date: '2025-09-14',
+        duration_label: '2 Days (16 Hours)',
+        venue: 'Meeting Room HO Makassar — Platinum',
+        is_lifetime: true,
+        status: 'ACTIVE',
+        created_at: '2025-09-14T16:00:00Z',
+      },
+      {
+        id: '95000000-0000-0000-0000-000000000004',
+        employee_id: '40000000-0000-0000-0000-000000000003',
+        certificate_number: 'CERT-RAJA-SMKP-202506',
+        certificate_name: 'Sistem Manajemen Keselamatan Pertambangan (SMKP) Kepmen 1827 K/2018',
+        issuing_body: 'HSE & Training Center PT. RAJA',
+        certification_level: 'Safety Auditor Level 1',
+        issue_date: '2025-06-10',
+        duration_label: '2 Days (16 Hours)',
+        venue: 'Main Hall Morowali Operations',
+        is_lifetime: false,
+        status: 'ACTIVE',
+        created_at: '2025-06-10T16:00:00Z',
+      },
+      // Budi Santoso (EMP-MOD-001 - Excavator Operator)
+      {
+        id: '95000000-0000-0000-0000-000000000005',
+        employee_id: '40000000-0000-0000-0000-000000000001',
+        certificate_number: 'CERT-RAJA-EXC-202601',
+        certificate_name: 'Product Knowledge, Maintenance & Pengoperasian Excavator Komatsu PC400 / CAT 349D',
+        issuing_body: 'PT. Roda Jaya Sakti Training Center',
+        certification_level: 'Senior Operator Class A',
+        issue_date: '2026-01-28',
+        duration_label: '3 Days (24 Hours)',
+        venue: 'Pit Simulation & Workshop APS Morowali',
+        is_lifetime: false,
+        status: 'ACTIVE',
+        created_at: '2026-01-28T16:00:00Z',
+      },
+      {
+        id: '95000000-0000-0000-0000-000000000006',
+        employee_id: '40000000-0000-0000-0000-000000000001',
+        certificate_number: 'CERT-RAJA-KMX-202510',
+        certificate_name: 'KOMTRAX & VHMS Heavy Equipment Telemetry Diagnostics',
+        issuing_body: 'Plant & Training Center PT. RAJA',
+        certification_level: 'Certified Operator',
+        issue_date: '2025-10-07',
+        duration_label: '2 Days (16 Hours)',
+        venue: 'Training Room Site Morowali',
+        is_lifetime: true,
+        status: 'ACTIVE',
+        created_at: '2025-10-07T16:00:00Z',
+      },
+      // Agus Setiawan (EMP-MOD-002 - Haul Truck Driver)
+      {
+        id: '95000000-0000-0000-0000-000000000007',
+        employee_id: '40000000-0000-0000-0000-000000000002',
+        certificate_number: 'CERT-RAJA-DDT-202602',
+        certificate_name: 'Defensive Driving Training (DDT) & Heavy Hauler Safety 6x4',
+        issuing_body: 'HSE & Training Center PT. RAJA',
+        certification_level: 'SIMPER HD Full Active',
+        issue_date: '2026-02-14',
+        duration_label: '2 Days (16 Hours)',
+        venue: 'Hauling Road Sector B — Site Morowali',
+        is_lifetime: false,
+        status: 'ACTIVE',
+        created_at: '2026-02-14T16:00:00Z',
+      },
+      // Hendra Wijaya (EMP-MED-002 - Geotechnical Specialist)
+      {
+        id: '95000000-0000-0000-0000-000000000008',
+        employee_id: '40000000-0000-0000-0000-000000000005',
+        certificate_number: 'CERT-RAJA-GEO-202601',
+        certificate_name: 'Slope Stability & Geotechnical Radar Monitoring',
+        issuing_body: 'LSP PERHAPI / Geotechnical Institute',
+        certification_level: 'Geotech Specialist',
+        issue_date: '2026-01-18',
+        duration_label: '3 Days (24 Hours)',
+        venue: 'Training Room HO Makassar — Platinum',
+        is_lifetime: true,
+        status: 'ACTIVE',
+        created_at: '2026-01-18T16:00:00Z',
+      },
+      // Dewi Lestari (EMP-MED-001 - Short-term Mine Planner)
+      {
+        id: '95000000-0000-0000-0000-000000000009',
+        employee_id: '40000000-0000-0000-0000-000000000004',
+        certificate_number: 'CERT-RAJA-MNP-202511',
+        certificate_name: 'Short-Term Nickel Pit Fleet Dispatch & Mine Planning Optimization',
+        issuing_body: 'PT. Roda Jaya Sakti Engineering Academy',
+        certification_level: 'Certified Mine Planner',
+        issue_date: '2025-11-22',
+        duration_label: '3 Days (24 Hours)',
+        venue: 'Engineering Office Site Morowali',
+        is_lifetime: true,
+        status: 'ACTIVE',
+        created_at: '2025-11-22T16:00:00Z',
+      }
+    );
   }
 
   // ============================================================================
@@ -1254,7 +1389,8 @@ class DataStore {
 
         if (res.issue_certificate && res.passed) {
           rec.certificate_issued = true;
-          this.certifications.push({
+          const daysCount = Math.max(1, Math.round((res.hours || sched.total_hours || 8) / 8));
+          this.certifications.unshift({
             id: crypto.randomUUID(),
             employee_id: res.employee_id,
             record_id: rec.id,
@@ -1262,7 +1398,9 @@ class DataStore {
             certificate_name: app ? app.training_title : 'Certified Competency',
             issuing_body: app ? app.training_provider : 'PT RAJA Training Center',
             certification_level: 'Certified',
-            issue_date: new Date().toISOString().split('T')[0],
+            issue_date: sched.end_date || new Date().toISOString().split('T')[0],
+            duration_label: `${daysCount} ${daysCount > 1 ? 'Days' : 'Day'} (${res.hours || sched.total_hours} Hours)`,
+            venue: sched.venue || (app ? app.training_location : 'Training Center Morowali'),
             is_lifetime: false,
             status: 'ACTIVE',
             created_at: new Date().toISOString(),
@@ -1276,6 +1414,168 @@ class DataStore {
     this.recalculateKpis(year);
 
     return sched;
+  }
+
+  updateEmployeePhoto(employeeId: string, photoUrl: string) {
+    const emp = this.employees.find((e) => e.id === employeeId);
+    if (emp) {
+      emp.photo_url = photoUrl;
+    }
+  }
+
+  // ============================================================================
+  // EMPLOYEE MANAGEMENT & BULK CSV UPLOAD ENGINE
+  // ============================================================================
+  addEmployee(
+    actorId: string,
+    payload: {
+      nik: string;
+      full_name: string;
+      department_id: string;
+      position: string;
+      job_level: string;
+      employment_status?: 'PERMANENT' | 'CONTRACT' | 'INTERN';
+      email?: string;
+    }
+  ): Employee {
+    const actor = this.users.find((u) => u.id === actorId);
+    if (!actor || !actor.is_active) {
+      throw new Error('Unauthorized: User not active.');
+    }
+
+    // Department User can only add employees to their own active department
+    if (actor.role_code === 'DEPARTMENT_USER') {
+      const activeDeptId = this.getUserActiveDeptId(actor.id);
+      if (!activeDeptId || activeDeptId !== payload.department_id) {
+        throw new Error('Forbidden: Department User hanya dapat menambahkan karyawan di departemennya sendiri.');
+      }
+    } else if (actor.role_code === 'ADMIN_PJO') {
+      throw new Error('Forbidden: PJO tidak memiliki akses modifikasi master data karyawan.');
+    }
+
+    const cleanNik = payload.nik.trim().toUpperCase();
+    if (!cleanNik || !payload.full_name.trim()) {
+      throw new Error('NIK dan Nama Lengkap wajib diisi.');
+    }
+
+    const exists = this.employees.find((e) => e.nik.toUpperCase() === cleanNik);
+    if (exists) {
+      throw new Error(`Karyawan dengan NIK ${cleanNik} sudah terdaftar (${exists.full_name}).`);
+    }
+
+    const dept = this.departments.find((d) => d.id === payload.department_id);
+    if (!dept) {
+      throw new Error('Departemen tidak valid.');
+    }
+
+    const newEmp: Employee = {
+      id: crypto.randomUUID(),
+      nik: cleanNik,
+      full_name: payload.full_name.trim(),
+      email: payload.email || `${cleanNik.toLowerCase().replace(/[^a-z0-9]/g, '')}@ptraja.com`,
+      phone_number: '+62811000999',
+      department_id: dept.id,
+      department_name: dept.name,
+      position: payload.position.trim() || 'Operator Tambang',
+      job_level: payload.job_level.trim() || 'Staff / Operator',
+      hire_date: new Date().toISOString().split('T')[0],
+      employment_status: payload.employment_status || 'PERMANENT',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+
+    this.employees.push(newEmp);
+
+    this.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      actor_id: actor.id,
+      actor_name: actor.full_name,
+      table_name: 'employees',
+      record_id: newEmp.id,
+      action: 'INSERT',
+      new_values: { nik: newEmp.nik, full_name: newEmp.full_name, department: dept.code },
+      created_at: new Date().toISOString(),
+    });
+
+    return newEmp;
+  }
+
+  bulkUploadEmployees(
+    actorId: string,
+    rows: Array<{
+      nik?: string;
+      full_name: string;
+      department_code?: string;
+      department_id?: string;
+      position?: string;
+      job_level?: string;
+      employment_status?: string;
+    }>
+  ): { added: Employee[]; skipped: string[] } {
+    const actor = this.users.find((u) => u.id === actorId);
+    if (!actor || !actor.is_active) {
+      throw new Error('Unauthorized: User not active.');
+    }
+
+    const actorDeptId = actor.role_code === 'DEPARTMENT_USER' ? this.getUserActiveDeptId(actor.id) : null;
+    const added: Employee[] = [];
+    const skipped: string[] = [];
+
+    rows.forEach((row, idx) => {
+      const name = (row.full_name || '').trim();
+      if (!name) return;
+
+      // Determine target department
+      let targetDeptId = row.department_id || '';
+      if (!targetDeptId && row.department_code) {
+        const foundDept = this.departments.find(
+          (d) => d.code.toUpperCase() === row.department_code!.trim().toUpperCase()
+        );
+        if (foundDept) targetDeptId = foundDept.id;
+      }
+
+      if (actor.role_code === 'DEPARTMENT_USER') {
+        targetDeptId = actorDeptId || '';
+      } else if (!targetDeptId) {
+        targetDeptId = this.departments[0].id;
+      }
+
+      const dept = this.departments.find((d) => d.id === targetDeptId);
+      if (!dept) {
+        skipped.push(`Baris ${idx + 1} (${name}): Departemen tidak ditemukan`);
+        return;
+      }
+
+      const generatedNik =
+        row.nik && row.nik.trim()
+          ? row.nik.trim().toUpperCase()
+          : `RAJA-${dept.code}-${Math.floor(100 + Math.random() * 900)}`;
+
+      if (this.employees.some((e) => e.nik.toUpperCase() === generatedNik)) {
+        skipped.push(`${generatedNik} (${name}): NIK sudah terdaftar`);
+        return;
+      }
+
+      const statusRaw = (row.employment_status || 'PERMANENT').trim().toUpperCase();
+      const empStatus: 'PERMANENT' | 'CONTRACT' | 'INTERN' =
+        statusRaw === 'CONTRACT' || statusRaw === 'INTERN' ? statusRaw : 'PERMANENT';
+
+      try {
+        const emp = this.addEmployee(actorId, {
+          nik: generatedNik,
+          full_name: name,
+          department_id: dept.id,
+          position: row.position || 'Specialist / Operator',
+          job_level: row.job_level || 'Operator',
+          employment_status: empStatus,
+        });
+        added.push(emp);
+      } catch (err: any) {
+        skipped.push(`${name}: ${err.message}`);
+      }
+    });
+
+    return { added, skipped };
   }
 
   // ============================================================================

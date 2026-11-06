@@ -5,30 +5,30 @@ import { TrainingApplication } from '../../lib/types';
 import { CreateApplicationModal } from '../applications/CreateApplicationModal';
 import { ApplicationDetailModal } from '../applications/ApplicationDetailModal';
 import { KpiAnalyticsCharts } from '../charts/KpiAnalyticsCharts';
+import { Button } from '../ui/Button';
+import { KpiCard } from '../ui/KpiCard';
+import { StatusBadge } from '../ui/StatusBadge';
 import {
   Building2,
-  PlusCircle,
+  Plus,
   Users,
   Award,
   Clock,
   RotateCcw,
   CheckCircle2,
   Eye,
-  AlertCircle
 } from 'lucide-react';
 
 interface DepartmentUserDashboardProps {
   onNavigate: (tab: string) => void;
 }
 
-export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = ({ onNavigate }) => {
+export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = () => {
   const { currentUser, refreshState } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedApp, setSelectedApp] = useState<TrainingApplication | null>(null);
 
-  // Department-scoped applications
   const deptApps = mockStore.getVisibleApplications(currentUser.id);
-  // Department-scoped employees
   const deptEmployees = mockStore.getVisibleEmployees(currentUser.id);
 
   // Revision alert: Applications in DRAFT that have approval history indicating return by HOD or PJO
@@ -43,7 +43,10 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
   ).length;
 
   const approvedCount = deptApps.filter(
-    (a) => a.current_status === 'APPROVED' || a.current_status === 'SCHEDULED' || a.current_status === 'COMPLETED'
+    (a) =>
+      a.current_status === 'APPROVED' ||
+      a.current_status === 'SCHEDULED' ||
+      a.current_status === 'COMPLETED'
   ).length;
 
   const deptCertsCount = mockStore.certifications.filter((c) => {
@@ -53,166 +56,187 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white p-6 rounded-2xl shadow-sm">
+      {/* 1. Department Representative Header Banner */}
+      <div className="bg-[#18232B] bg-topography text-white p-6 rounded-[12px] border border-[#263640]">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
-            <div className="flex items-center space-x-2 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-[#E88932] text-xs font-mono font-semibold uppercase tracking-wider">
               <Building2 className="w-4 h-4" />
-              <span>Department Representative • {currentUser.department_name}</span>
+              <span>Perwakilan Departemen Aktif • {currentUser.department_name}</span>
             </div>
-            <h2 className="text-xl font-extrabold mt-1">Department Training Portal</h2>
-            <p className="text-xs text-emerald-100 mt-1 max-w-2xl">
-              Designated single active training representative for {currentUser.department_name}. Submit and manage training applications for departmental staff.
+            <h2 className="text-xl font-heading font-bold mt-1">
+              Portal Pengajuan & Monitoring Pelatihan Departemen
+            </h2>
+            <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+              Perwakilan aktif tunggal untuk {currentUser.department_name}. Ajukan dan pantau progres persetujuan pelatihan personel departemen Anda.
             </p>
           </div>
 
-          <button
+          <Button
+            variant="primary"
+            size="md"
+            icon={<Plus className="w-4 h-4" />}
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg text-xs shadow-md transition-all flex items-center space-x-1.5"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>Create Training Application</span>
-          </button>
+            Ajukan Training Baru
+          </Button>
         </div>
       </div>
 
-      {/* Revision Alerts Banner (if any application returned) */}
+      {/* 2. Revision Alerts Banner (if any application returned) */}
       {returnedForRevisionApps.length > 0 && (
-        <div className="p-4 bg-amber-50 rounded-xl border border-amber-300 text-amber-900 shadow-xs space-y-2">
-          <div className="flex items-center space-x-2 font-bold text-xs">
-            <RotateCcw className="w-4 h-4 text-amber-600 animate-spin-reverse" />
-            <span>Action Required: {returnedForRevisionApps.length} Application(s) Returned for Revision</span>
+        <div className="p-4 bg-[#D5A33D]/12 rounded-[12px] border border-[#D5A33D]/40 text-[#18232B] space-y-2">
+          <div className="flex items-center gap-2 font-heading font-bold text-xs text-[#8C6412]">
+            <RotateCcw className="w-4 h-4 text-[#D5A33D]" />
+            <span>
+              Tindak Lanjut Diperlukan: {returnedForRevisionApps.length} Pengajuan Dikembalikan untuk Revisi
+            </span>
           </div>
-          <p className="text-xs text-amber-800">
-            HOD Training Center or PJO has returned the following applications with feedback. Please inspect comments, make requested adjustments, and resubmit.
+          <p className="text-xs text-[#263640]">
+            HOD Training Center atau PJO telah mengembalikan pengajuan berikut disertai catatan evaluasi. Silakan periksa catatan, perbarui data, dan kirim ulang.
           </p>
 
-          <div className="divide-y divide-amber-200/60 mt-2">
+          <div className="divide-y divide-[#D5A33D]/25 mt-2">
             {returnedForRevisionApps.map((app) => (
-              <div key={app.id} className="py-2 flex justify-between items-center text-xs">
+              <div
+                key={app.id}
+                className="py-2.5 flex flex-wrap justify-between items-center gap-2 text-xs"
+              >
                 <div>
-                  <span className="font-bold text-slate-900">{app.application_number}</span> - {app.training_title}
+                  <span className="font-mono font-bold text-[#18232B]">
+                    {app.application_number}
+                  </span>{' '}
+                  — <span className="font-medium">{app.training_title}</span>
                   {app.hod_comments && (
-                    <div className="text-[11px] text-amber-900 italic">"HOD: {app.hod_comments}"</div>
+                    <div className="text-[11px] text-[#8C6412] italic mt-0.5">
+                      "HOD: {app.hod_comments}"
+                    </div>
                   )}
                   {app.pjo_comments && (
-                    <div className="text-[11px] text-amber-900 italic">"PJO: {app.pjo_comments}"</div>
+                    <div className="text-[11px] text-[#8C6412] italic mt-0.5">
+                      "PJO: {app.pjo_comments}"
+                    </div>
                   )}
                 </div>
-                <button
+                <Button
+                  variant="revision"
+                  size="sm"
                   onClick={() => setSelectedApp(app)}
-                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold shadow-2xs"
                 >
-                  Edit & Resubmit
-                </button>
+                  Edit & Kirim Ulang
+                </Button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center space-x-1">
-            <Users className="w-3.5 h-3.5 text-slate-500" />
-            <span>Department Personnel</span>
-          </span>
-          <div className="text-2xl font-extrabold text-slate-900 mt-1">{deptEmployees.length}</div>
-          <span className="text-[10px] text-slate-500">Active roster members</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-blue-600 uppercase flex items-center space-x-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Under Review</span>
-          </span>
-          <div className="text-2xl font-extrabold text-blue-800 mt-1">{underReviewCount}</div>
-          <span className="text-[10px] text-slate-500">In HOD or PJO review</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-emerald-600 uppercase flex items-center space-x-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Approved / Completed</span>
-          </span>
-          <div className="text-2xl font-extrabold text-emerald-800 mt-1">{approvedCount}</div>
-          <span className="text-[10px] text-slate-500">Authorized programs</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-amber-600 uppercase flex items-center space-x-1">
-            <Award className="w-3.5 h-3.5" />
-            <span>Dept Certifications</span>
-          </span>
-          <div className="text-2xl font-extrabold text-amber-800 mt-1">{deptCertsCount}</div>
-          <span className="text-[10px] text-slate-500">Issued to team members</span>
-        </div>
+      {/* 3. Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          title="Personel Departemen"
+          value={deptEmployees.length}
+          comparison="Karyawan Aktif"
+          trend="neutral"
+          subtitle={currentUser.department_name || 'Roster'}
+          icon={<Users className="w-4 h-4" />}
+          tone="default"
+        />
+        <KpiCard
+          title="Dalam Proses Review"
+          value={underReviewCount}
+          comparison="HOD / PJO Stage"
+          trend="neutral"
+          subtitle="Menunggu Verifikasi"
+          icon={<Clock className="w-4 h-4" />}
+          tone="info"
+        />
+        <KpiCard
+          title="Disetujui / Selesai"
+          value={approvedCount}
+          comparison="Otorisasi Penuh"
+          trend="up"
+          trendIsGood={true}
+          subtitle="Program Terverifikasi"
+          icon={<CheckCircle2 className="w-4 h-4" />}
+          tone="success"
+        />
+        <KpiCard
+          title="Sertifikasi Departemen"
+          value={deptCertsCount}
+          comparison="Terbit & Aktif"
+          trend="up"
+          trendIsGood={true}
+          subtitle="Lisensi Tim"
+          icon={<Award className="w-4 h-4" />}
+          tone="orange"
+        />
       </div>
 
-      {/* Applications Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-            {currentUser.department_name} Training Applications ({deptApps.length})
+      {/* 4. Applications Table */}
+      <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
+        <div className="px-6 py-4 bg-[#F4F6F5] border-b border-[#E2E8E8] flex flex-wrap justify-between items-center gap-3">
+          <h3 className="text-xs font-heading font-bold text-[#18232B] uppercase tracking-wider">
+            Daftar Pengajuan Training {currentUser.department_name} ({deptApps.length})
           </h3>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus className="w-3.5 h-3.5" />}
             onClick={() => setShowCreateModal(true)}
-            className="text-xs text-emerald-700 hover:text-emerald-900 font-bold flex items-center space-x-1"
           >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>New Submission</span>
-          </button>
+            Buat Pengajuan
+          </Button>
         </div>
 
         {deptApps.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">
-            No training applications submitted yet for your department. Click "Create Training Application" to begin.
+          <div className="p-8 text-center text-xs text-[#5A6B75]">
+            Belum ada pengajuan pelatihan untuk departemen Anda. Klik "Ajukan Training Baru" untuk memulai.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+              <thead className="bg-[#F4F6F5]/60 text-[#5A6B75] font-medium border-b border-[#E2E8E8]">
                 <tr>
-                  <th className="px-6 py-3">Application Number & Title</th>
-                  <th className="px-6 py-3">Participants</th>
-                  <th className="px-6 py-3">Schedule Window</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th className="px-6 py-3">Nomor & Judul Pelatihan</th>
+                  <th className="px-6 py-3">Peserta</th>
+                  <th className="px-6 py-3">Rentang Jadwal</th>
+                  <th className="px-6 py-3">Status Saat Ini</th>
+                  <th className="px-6 py-3 text-right">Tindakan</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#E2E8E8]">
                 {deptApps.map((app) => (
-                  <tr key={app.id} className="hover:bg-slate-50">
+                  <tr key={app.id} className="hover:bg-[#F4F6F5]/50 transition-colors">
                     <td className="px-6 py-3.5">
-                      <div className="font-mono text-[11px] font-bold text-emerald-800">
+                      <div className="font-mono text-[11px] font-semibold text-[#E88932]">
                         {app.application_number}
                       </div>
-                      <div className="text-slate-900 font-bold text-xs">{app.training_title}</div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="text-[#18232B] font-heading font-semibold text-xs mt-0.5">
+                        {app.training_title}
+                      </div>
+                      <div className="text-[11px] text-[#5A6B75]">
                         {app.training_category} • {app.training_type}
                       </div>
                     </td>
-                    <td className="px-6 py-3.5 font-semibold text-slate-700">
-                      {app.participants?.length || 0} Team Members
+                    <td className="px-6 py-3.5 font-mono font-medium text-[#263640] tabular-nums">
+                      {app.participants?.length || 0} Personel
                     </td>
-                    <td className="px-6 py-3.5 text-slate-600">
-                      {app.proposed_start_date} to {app.proposed_end_date}
+                    <td className="px-6 py-3.5 font-mono text-[#5A6B75] tabular-nums">
+                      {app.proposed_start_date} s/d {app.proposed_end_date}
                     </td>
                     <td className="px-6 py-3.5">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-slate-100 text-slate-800">
-                        {app.current_status.replace(/_/g, ' ')}
-                      </span>
+                      <StatusBadge status={app.current_status} />
                     </td>
                     <td className="px-6 py-3.5 text-right">
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<Eye className="w-3.5 h-3.5" />}
                         onClick={() => setSelectedApp(app)}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold inline-flex items-center space-x-1"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>View Progress</span>
-                      </button>
+                        Lihat Progres
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -222,10 +246,8 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
         )}
       </div>
 
-      {/* KPI Performance Insights */}
-      <div className="pt-2">
-        <KpiAnalyticsCharts />
-      </div>
+      {/* 5. KPI Performance Insights */}
+      <KpiAnalyticsCharts />
 
       {/* Modals */}
       <CreateApplicationModal
@@ -249,4 +271,3 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
     </div>
   );
 };
-

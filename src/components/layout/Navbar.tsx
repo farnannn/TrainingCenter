@@ -1,150 +1,220 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Bell, CheckCheck, Briefcase, Award, LogOut, Globe } from 'lucide-react';
+import { Button } from '../ui/Button';
+import {
+  Bell,
+  CheckCheck,
+  Briefcase,
+  LogOut,
+  Menu,
+  ShieldCheck,
+  Layers,
+  UserCheck,
+  Building2,
+} from 'lucide-react';
 
-export const Navbar: React.FC = () => {
-  const { currentUser, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, logout } = useAuth();
+interface NavbarProps {
+  onOpenMobileMenu?: () => void;
+  currentTab?: string;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, currentTab }) => {
+  const {
+    currentUser,
+    notifications,
+    unreadCount,
+    markNotificationRead,
+    markAllNotificationsRead,
+    logout,
+  } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
 
   if (!currentUser) return null;
 
-  const getRoleBadgeStyle = (roleCode: string) => {
-    switch (roleCode) {
-      case 'SUPER_ADMIN':
-        return 'bg-red-100 text-red-800 border-red-300';
-      case 'ADMIN_HOD_TC':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'ADMIN_PJO':
-        return 'bg-amber-100 text-amber-800 border-amber-300';
-      case 'DEPARTMENT_USER':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+  const getPageTitle = (tab?: string) => {
+    switch (tab) {
+      case 'dashboard':
+        return 'Executive & Operational Dashboard';
+      case 'applications':
+        return 'Manajemen Pengajuan Training';
+      case 'approval_queue':
+        return currentUser.role_code === 'ADMIN_PJO'
+          ? 'Antrean Otorisasi Final PJO (Stage 2)'
+          : 'Antrean Evaluasi HOD Training Center (Stage 1)';
+      case 'schedules':
+        return 'Historical & Jadwal Pelaksanaan Training';
+      case 'certifications':
+        return 'Registri Data Sertifikasi & Lisensi';
+      case 'kpi':
+        return 'KPI Training Center & Realisasi Target';
+      case 'assignments':
+        return 'Manajemen Perwakilan Departemen Aktif';
+      case 'employees':
+        return 'Direktori Personel & Riwayat Kompetensi';
+      case 'audit_logs':
+        return 'Forensic Audit Trail & System Logs';
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-300';
+        return 'THR — Training Historical & Reporting';
     }
   };
 
+  const getRoleBadge = (roleCode: string) => {
+    switch (roleCode) {
+      case 'SUPER_ADMIN':
+        return {
+          icon: <ShieldCheck className="w-3.5 h-3.5 text-[#B94C45]" />,
+          style: 'bg-[#B94C45]/10 text-[#B94C45] border-[#B94C45]/25',
+        };
+      case 'ADMIN_HOD_TC':
+        return {
+          icon: <Layers className="w-3.5 h-3.5 text-[#527FA1]" />,
+          style: 'bg-[#527FA1]/10 text-[#527FA1] border-[#527FA1]/25',
+        };
+      case 'ADMIN_PJO':
+        return {
+          icon: <UserCheck className="w-3.5 h-3.5 text-[#E88932]" />,
+          style: 'bg-[#E88932]/12 text-[#B86214] border-[#E88932]/30',
+        };
+      case 'DEPARTMENT_USER':
+        return {
+          icon: <Building2 className="w-3.5 h-3.5 text-[#397C69]" />,
+          style: 'bg-[#397C69]/10 text-[#397C69] border-[#397C69]/25',
+        };
+      default:
+        return {
+          icon: null,
+          style: 'bg-[#F4F6F5] text-[#263640] border-[#E2E8E8]',
+        };
+    }
+  };
+
+  const badge = getRoleBadge(currentUser.role_code);
+
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          {/* Logo & System Title */}
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 rounded-xl flex items-center justify-center text-slate-950 font-black text-xs shadow-md shadow-amber-500/20">
-              RAJA
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-slate-900 text-base tracking-tight">PT. RODA JAYA SAKTI</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded">
-                  THR PORTAL
+    <header className="bg-white border-b border-[#E2E8E8] sticky top-0 z-30 h-16 px-4 sm:px-6 flex items-center justify-between">
+      {/* Left: Mobile Drawer Trigger + Active View Title */}
+      <div className="flex items-center gap-3 min-w-0">
+        {onOpenMobileMenu && (
+          <button
+            onClick={onOpenMobileMenu}
+            className="lg:hidden p-2 rounded-[8px] text-[#263640] hover:bg-[#F4F6F5] border border-[#E2E8E8] cursor-pointer"
+            aria-label="Buka Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
+        <div className="min-w-0">
+          <h1 className="text-sm sm:text-base font-heading font-bold text-[#18232B] truncate">
+            {getPageTitle(currentTab)}
+          </h1>
+          <p className="text-[11px] text-[#5A6B75] truncate hidden sm:block">
+            PT. Roda Jaya Sakti • Site Morowali & Head Office Makassar
+          </p>
+        </div>
+      </div>
+
+      {/* Right: Notifications, Role Pill & Logout */}
+      <div className="flex items-center gap-3">
+        {/* Notification Bell */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifs(!showNotifs)}
+            className="relative p-2 text-[#263640] hover:bg-[#F4F6F5] rounded-[8px] border border-[#E2E8E8] transition-colors cursor-pointer"
+            title="Notifikasi Sistem"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#E88932] text-white text-[10px] font-mono font-bold rounded-full flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifs && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-[12px] shadow-xl border border-[#E2E8E8] z-50 overflow-hidden">
+              <div className="px-4 py-3 bg-[#F4F6F5] border-b border-[#E2E8E8] flex items-center justify-between">
+                <span className="font-heading font-semibold text-xs text-[#18232B]">
+                  Notifikasi Alur Kerja ({unreadCount} baru)
                 </span>
-              </div>
-              <p className="text-[11px] text-slate-500">Site Morowali & Makassar • Training & Certification Governance</p>
-            </div>
-          </div>
-
-          {/* User Status, Notifications & Actions */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            {/* Notification Bell */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifs(!showNotifs)}
-                className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
-                title="Notifications"
-              >
-                <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                    {unreadCount}
-                  </span>
+                  <button
+                    onClick={markAllNotificationsRead}
+                    className="text-xs text-[#E88932] hover:underline font-medium flex items-center gap-1 cursor-pointer"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    <span>Tandai dibaca</span>
+                  </button>
                 )}
-              </button>
+              </div>
 
-              {/* Notification Dropdown */}
-              {showNotifs && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">
-                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                    <span className="font-semibold text-xs text-slate-700 uppercase tracking-wider">
-                      Workflow Notifications ({unreadCount} new)
-                    </span>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllNotificationsRead}
-                        className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center space-x-1 cursor-pointer"
-                      >
-                        <CheckCheck className="w-3.5 h-3.5" />
-                        <span>Mark all read</span>
-                      </button>
-                    )}
+              <div className="max-h-80 overflow-y-auto divide-y divide-[#E2E8E8]">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-[#5A6B75] text-xs">
+                    Belum ada notifikasi untuk akun Anda.
                   </div>
-
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                    {notifications.length === 0 ? (
-                      <div className="p-6 text-center text-slate-400 text-xs">
-                        No notifications for your account.
+                ) : (
+                  notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      onClick={() => markNotificationRead(n.id)}
+                      className={`p-3.5 text-xs cursor-pointer transition-colors hover:bg-[#F4F6F5] ${
+                        !n.is_read ? 'bg-[#E88932]/5' : ''
+                      }`}
+                    >
+                      <div className="flex justify-between items-start gap-2 mb-1">
+                        <span className="font-heading font-semibold text-[#18232B]">
+                          {n.title}
+                        </span>
+                        <span className="text-[10px] font-mono text-[#5A6B75] shrink-0">
+                          {new Date(n.created_at).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
                       </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => markNotificationRead(n.id)}
-                          className={`p-3 text-xs cursor-pointer transition-colors hover:bg-slate-50 ${
-                            !n.is_read ? 'bg-sky-50/60 font-medium' : 'text-slate-600'
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="font-semibold text-slate-800">{n.title}</span>
-                            <span className="text-[10px] text-slate-400">
-                              {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                          <p className="text-slate-600 leading-snug">{n.message}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                      <p className="text-[#5A6B75] leading-relaxed">{n.message}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Active Role & Department Badge */}
+        <div className="hidden md:flex items-center gap-2.5 pl-3 border-l border-[#E2E8E8]">
+          <div className="text-right">
+            <div className="text-xs font-heading font-semibold text-[#18232B]">
+              {currentUser.full_name}
+            </div>
+            <div className="flex items-center justify-end gap-1.5 mt-0.5">
+              <span
+                className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded border ${badge.style}`}
+              >
+                {badge.icon}
+                <span>{currentUser.role_name}</span>
+              </span>
+              {currentUser.department_name && (
+                <span className="text-[10px] font-mono text-[#5A6B75] flex items-center gap-0.5">
+                  <Briefcase className="w-3 h-3" />
+                  <span>{currentUser.department_name}</span>
+                </span>
               )}
             </div>
-
-            {/* User Profile Pill */}
-            <div className="flex items-center space-x-3 pl-2 border-l border-slate-200">
-              <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700 text-sm ring-2 ring-slate-100">
-                {currentUser.full_name.charAt(0)}
-              </div>
-              <div className="hidden sm:block text-left">
-                <div className="text-xs font-bold text-slate-900 leading-none">
-                  {currentUser.full_name}
-                </div>
-                <div className="flex items-center space-x-1 mt-1">
-                  <span
-                    className={`inline-block text-[10px] px-1.5 py-0.5 rounded border font-semibold ${getRoleBadgeStyle(
-                      currentUser.role_code
-                    )}`}
-                  >
-                    {currentUser.role_name || currentUser.role_code}
-                  </span>
-                  {currentUser.department_name && (
-                    <span className="text-[10px] text-slate-500 font-medium flex items-center">
-                      <Briefcase className="w-2.5 h-2.5 mr-0.5" />
-                      {currentUser.department_name.split(' ')[0]}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Return to Public / Logout Button */}
-            <button
-              onClick={logout}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer flex items-center space-x-1"
-              title="Keluar / Kembali ke Profil Perusahaan"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="text-xs font-semibold hidden md:inline">Keluar</span>
-            </button>
           </div>
         </div>
+
+        {/* Logout Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          icon={<LogOut className="w-3.5 h-3.5 text-[#B94C45]" />}
+          onClick={logout}
+          title="Keluar dan kembali ke halaman awal"
+        >
+          Keluar
+        </Button>
       </div>
     </header>
   );

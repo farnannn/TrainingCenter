@@ -73,6 +73,8 @@ export interface Employee {
   email?: string;
   phone_number?: string;
   hire_date?: string;
+  project_site?: string;
+  photo_url?: string;
   employment_status: 'PERMANENT' | 'CONTRACT' | 'INTERN';
   is_active: boolean;
   created_at: string;
@@ -256,6 +258,8 @@ export interface Certification {
   certification_level: string;
   issue_date: string;
   expiry_date?: string;
+  duration_label?: string;
+  venue?: string;
   is_lifetime: boolean;
   status: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'REVOKED';
   verified_by?: string;

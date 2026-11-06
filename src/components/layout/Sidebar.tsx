@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { RajaLogo } from '../ui/RajaLogo';
 import {
   LayoutDashboard,
   FileText,
@@ -7,145 +8,261 @@ import {
   Award,
   BarChart3,
   Users,
-  ShieldCheck,
   Building,
-  CheckCircle,
   FileCheck,
-  History
+  History,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  X,
 } from 'lucide-react';
 
 interface SidebarProps {
   currentTab: string;
   onSelectTab: (tab: string) => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => {
-  const { currentUser } = useAuth();
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentTab,
+  onSelectTab,
+  collapsed = false,
+  onToggleCollapse,
+  mobileOpen = false,
+  onCloseMobile,
+}) => {
+  const { currentUser, logout } = useAuth();
   const role = currentUser.role_code;
 
   const navItems = [
     {
       id: 'dashboard',
-      label: 'Dashboard Overview',
-      icon: <LayoutDashboard className="w-4 h-4" />,
+      label: 'Dashboard',
+      icon: <LayoutDashboard className="w-4 h-4 shrink-0" />,
       roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'ADMIN_PJO', 'DEPARTMENT_USER'],
     },
     {
       id: 'applications',
-      label:
-        role === 'DEPARTMENT_USER'
-          ? 'Dept Applications'
-          : role === 'ADMIN_PJO'
-          ? 'Applications (Company)'
-          : 'All Applications',
-      icon: <FileText className="w-4 h-4" />,
+      label: 'Pengajuan Training',
+      icon: <FileText className="w-4 h-4 shrink-0" />,
       roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'ADMIN_PJO', 'DEPARTMENT_USER'],
     },
     {
       id: 'approval_queue',
-      label: role === 'ADMIN_PJO' ? 'PJO Final Review Queue' : 'HOD Review Queue',
-      icon: <FileCheck className="w-4 h-4" />,
+      label: role === 'ADMIN_PJO' ? 'Otorisasi PJO (Queue)' : 'Review HOD (Queue)',
+      icon: <FileCheck className="w-4 h-4 shrink-0" />,
       roles: ['ADMIN_HOD_TC', 'ADMIN_PJO'],
     },
     {
       id: 'schedules',
-      label: 'Training Schedules',
-      icon: <CalendarDays className="w-4 h-4" />,
+      label: 'Historical & Jadwal',
+      icon: <CalendarDays className="w-4 h-4 shrink-0" />,
       roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'DEPARTMENT_USER'],
     },
     {
       id: 'certifications',
-      label: 'Certifications',
-      icon: <Award className="w-4 h-4" />,
+      label: 'Data Sertifikasi',
+      icon: <Award className="w-4 h-4 shrink-0" />,
       roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'ADMIN_PJO', 'DEPARTMENT_USER'],
     },
     {
       id: 'kpi',
-      label: 'KPI & Performance',
-      icon: <BarChart3 className="w-4 h-4" />,
+      label: 'KPI Training Center',
+      icon: <BarChart3 className="w-4 h-4 shrink-0" />,
       roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'ADMIN_PJO'],
     },
     {
       id: 'assignments',
-      label: 'Dept Representatives',
-      icon: <Building className="w-4 h-4" />,
+      label: 'Penugasan Departemen',
+      icon: <Building className="w-4 h-4 shrink-0" />,
       roles: ['SUPER_ADMIN'],
     },
     {
       id: 'employees',
-      label: role === 'DEPARTMENT_USER' ? 'Dept Employees' : 'All Employees',
-      icon: <Users className="w-4 h-4" />,
+      label: role === 'DEPARTMENT_USER' ? 'Personel Departemen' : 'Data Karyawan',
+      icon: <Users className="w-4 h-4 shrink-0" />,
       roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'DEPARTMENT_USER'],
     },
     {
       id: 'audit_logs',
-      label: 'Security & Audit Logs',
-      icon: <ShieldCheck className="w-4 h-4" />,
+      label: 'Audit Trail',
+      icon: <History className="w-4 h-4 shrink-0" />,
       roles: ['SUPER_ADMIN'],
     },
   ];
 
   const visibleItems = navItems.filter((item) => item.roles.includes(role));
 
-  return (
-    <aside className="w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-6rem)] p-4 flex flex-col justify-between">
-      <div className="space-y-6">
-        <div>
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
-            Navigation Menu
+  const initials = currentUser.full_name
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('');
+
+  const handleNavClick = (id: string) => {
+    onSelectTab(id);
+    if (onCloseMobile) onCloseMobile();
+  };
+
+  const renderSidebarContent = (isMobile = false) => {
+    const isCollapsed = !isMobile && collapsed;
+
+    return (
+      <div className="flex flex-col h-full bg-[#18232B] text-white select-none">
+        {/* Top Brand Section */}
+        <div className="h-16 px-4 flex items-center justify-between border-b border-[#263640] shrink-0">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            {isCollapsed ? (
+              <RajaLogo variant="compact" />
+            ) : (
+              <RajaLogo variant="on-dark" heightClass="h-7" />
+            )}
           </div>
-          <nav className="space-y-1">
-            {visibleItems.map((item) => {
-              const isActive = currentTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onSelectTab(item.id)}
-                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-sky-50 text-sky-700 font-bold border border-sky-100 shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
+
+          {isMobile && onCloseMobile && (
+            <button
+              onClick={onCloseMobile}
+              className="p-1.5 rounded-[8px] text-slate-400 hover:text-white hover:bg-[#263640] cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+
+          {!isMobile && onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              title={isCollapsed ? 'Perluas Sidebar' : 'Kecilkan Sidebar'}
+              className="p-1.5 rounded-[8px] text-slate-400 hover:text-white hover:bg-[#263640] transition-colors cursor-pointer"
+            >
+              {isCollapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Navigation Links */}
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+          {!isCollapsed && (
+            <div className="px-3 pb-2 text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
+              Menu Utama
+            </div>
+          )}
+
+          {visibleItems.map((item) => {
+            const isActive = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                title={isCollapsed ? item.label : undefined}
+                className={`w-full relative flex items-center ${
+                  isCollapsed ? 'justify-center px-2' : 'px-3 gap-3'
+                } h-[40px] rounded-[8px] text-xs font-medium transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#263640] text-white font-semibold'
+                    : 'text-slate-300 hover:bg-[#263640]/60 hover:text-white'
+                }`}
+              >
+                {/* Safety Orange Active Indicator Bar */}
+                {isActive && (
+                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-[#E88932]" />
+                )}
+
+                <span
+                  className={
+                    isActive ? 'text-[#E88932]' : 'text-slate-400 group-hover:text-white'
+                  }
                 >
-                  <span className={isActive ? 'text-sky-600' : 'text-slate-400'}>{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+                  {item.icon}
+                </span>
+
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Workflow Quick Status Helper */}
-        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-2">
-          <div className="font-bold text-slate-800 flex items-center space-x-1.5">
-            <CheckCircle className="w-3.5 h-3.5 text-sky-600" />
-            <span>Workflow Sequence</span>
+        {/* Bottom User Profile & Logout Section */}
+        <div className="p-3 border-t border-[#263640] bg-[#141E25] shrink-0">
+          <div
+            className={`flex items-center ${
+              isCollapsed ? 'justify-center' : 'justify-between gap-2.5'
+            }`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-[8px] bg-[#263640] border border-[#E88932]/40 text-[#E88932] font-heading font-bold text-xs flex items-center justify-center shrink-0">
+                {initials}
+              </div>
+
+              {!isCollapsed && (
+                <div className="min-w-0">
+                  <div className="text-xs font-heading font-semibold text-white truncate">
+                    {currentUser.full_name}
+                  </div>
+                  <div className="text-[10px] font-mono text-[#E88932] truncate">
+                    {currentUser.role_name}
+                  </div>
+                  <div className="text-[10px] text-slate-400 truncate">
+                    {currentUser.department_name || 'All Departments (Central)'}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!isCollapsed && (
+              <button
+                onClick={logout}
+                title="Keluar dari Portal"
+                className="p-2 rounded-[8px] text-slate-400 hover:text-white hover:bg-[#B94C45]/20 hover:text-[#E88932] transition-colors shrink-0 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          <div className="space-y-1 text-[10px] text-slate-500 font-medium">
-            <div className="flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-              <span>1. Draft & Submit (Dept User)</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-              <span>2. Review Stage 1 (HOD TC)</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-              <span>3. Final Auth Stage 2 (PJO)</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span>4. Schedule & Execution</span>
-            </div>
-          </div>
+
+          {isCollapsed && (
+            <button
+              onClick={logout}
+              title="Keluar dari Portal"
+              className="mt-2 w-full flex items-center justify-center p-2 rounded-[8px] text-slate-400 hover:text-white hover:bg-[#263640] transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
+    );
+  };
 
-      <div className="text-[10px] text-slate-400 text-center border-t border-slate-100 pt-3">
-        PT RAJA Enterprise v1.0 • Supabase PG
-      </div>
-    </aside>
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        className={`hidden lg:block shrink-0 transition-all duration-200 border-r border-[#263640] ${
+          collapsed ? 'w-[72px]' : 'w-[256px]'
+        }`}
+      >
+        <div className="sticky top-0 h-screen">{renderSidebarContent(false)}</div>
+      </aside>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="fixed inset-0 bg-[#18232B]/70 backdrop-blur-xs"
+            onClick={onCloseMobile}
+          />
+          <div className="relative z-10 w-[268px] max-w-[85vw] h-full shadow-2xl">
+            {renderSidebarContent(true)}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
-

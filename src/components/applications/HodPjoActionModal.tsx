@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TrainingApplication, ApprovalDecision } from '../../lib/types';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
+import { Button } from '../ui/Button';
 import { CheckCircle2, RotateCcw, XCircle, AlertCircle, X } from 'lucide-react';
 
 interface HodPjoActionModalProps {
@@ -45,86 +46,97 @@ export const HodPjoActionModal: React.FC<HodPjoActionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in duration-200">
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#18232B]/70 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-[14px] shadow-2xl border border-[#E2E8E8] max-w-lg w-full overflow-hidden">
+        <div className="px-6 py-4 bg-[#18232B] text-white border-b border-[#263640] flex justify-between items-center">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">
-              {mode === 'HOD' ? 'HOD Training Center Review' : 'PJO Final Authorization'}
+            <h3 className="text-sm font-heading font-bold">
+              {mode === 'HOD'
+                ? 'HOD Training Center Review (Stage 1)'
+                : 'PJO Final Authorization (Stage 2)'}
             </h3>
-            <p className="text-xs text-slate-500 font-mono">
+            <p className="text-xs text-[#E88932] font-mono mt-0.5">
               {application.application_number} • {application.department_name}
             </p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-white p-1 rounded-[8px] cursor-pointer"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+            <div className="p-3 bg-[#B94C45]/10 border border-[#B94C45]/30 rounded-[8px] text-xs text-[#B94C45] flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-1">
-            <div className="font-semibold text-slate-800">{application.training_title}</div>
-            <div className="text-slate-500 text-[11px]">
-              Type: {application.training_type} | Budget: IDR {application.estimated_budget.toLocaleString('id-ID')}
+          <div className="bg-[#F4F6F5] p-3.5 rounded-[10px] border border-[#E2E8E8] text-xs space-y-1">
+            <div className="font-heading font-semibold text-[#18232B]">
+              {application.training_title}
+            </div>
+            <div className="text-[#5A6B75] font-mono text-[11px]">
+              Tipe: {application.training_type} | Anggaran: IDR{' '}
+              {application.estimated_budget.toLocaleString('id-ID')}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2">
-              Select Decision *
+            <label className="block text-xs font-medium text-[#263640] mb-2">
+              Pilih Keputusan *
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2.5">
               <button
                 type="button"
                 onClick={() => setDecision('APPROVE')}
-                className={`py-2 px-3 rounded-lg border text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition-all ${
+                className={`py-2.5 px-3 rounded-[10px] border text-xs font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
                   decision === 'APPROVE'
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-800 ring-1 ring-emerald-400'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'bg-[#397C69]/12 border-[#397C69] text-[#296050] font-semibold'
+                    : 'border-[#E2E8E8] text-[#5A6B75] hover:bg-[#F4F6F5]'
                 }`}
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <CheckCircle2 className="w-4 h-4 text-[#397C69]" />
                 <span>Approve</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setDecision('RETURN_FOR_REVISION')}
-                className={`py-2 px-3 rounded-lg border text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition-all ${
+                className={`py-2.5 px-3 rounded-[10px] border text-xs font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
                   decision === 'RETURN_FOR_REVISION'
-                    ? 'bg-amber-50 border-amber-500 text-amber-800 ring-1 ring-amber-400'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'bg-[#D5A33D]/15 border-[#D5A33D] text-[#8C6412] font-semibold'
+                    : 'border-[#E2E8E8] text-[#5A6B75] hover:bg-[#F4F6F5]'
                 }`}
               >
-                <RotateCcw className="w-4 h-4 text-amber-600" />
+                <RotateCcw className="w-4 h-4 text-[#D5A33D]" />
                 <span>Revision</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setDecision('REJECT')}
-                className={`py-2 px-3 rounded-lg border text-xs font-semibold flex flex-col items-center justify-center space-y-1 transition-all ${
+                className={`py-2.5 px-3 rounded-[10px] border text-xs font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
                   decision === 'REJECT'
-                    ? 'bg-red-50 border-red-500 text-red-800 ring-1 ring-red-400'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'bg-[#B94C45]/12 border-[#B94C45] text-[#93332D] font-semibold'
+                    : 'border-[#E2E8E8] text-[#5A6B75] hover:bg-[#F4F6F5]'
                 }`}
               >
-                <XCircle className="w-4 h-4 text-red-600" />
+                <XCircle className="w-4 h-4 text-[#B94C45]" />
                 <span>Reject</span>
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Comments / Justification {decision !== 'APPROVE' && <span className="text-red-500">* (Mandatory)</span>}
+            <label className="block text-xs font-medium text-[#263640] mb-1">
+              Catatan Evaluasi / Alasan{' '}
+              {decision !== 'APPROVE' && (
+                <span className="text-[#B94C45] font-semibold">* (Wajib Diisi)</span>
+              )}
             </label>
             <textarea
               rows={3}
@@ -133,37 +145,33 @@ export const HodPjoActionModal: React.FC<HodPjoActionModalProps> = ({
               onChange={(e) => setComments(e.target.value)}
               placeholder={
                 decision === 'APPROVE'
-                  ? 'Optional feedback or endorsement notes...'
-                  : 'Mandatory reason for return or rejection...'
+                  ? 'Catatan persetujuan opsional...'
+                  : 'Tuliskan alasan revisi atau penolakan secara spesifik...'
               }
-              className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full text-xs px-3 py-2 bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932] text-[#18232B]"
             />
           </div>
 
-          <div className="pt-3 border-t border-slate-200 flex justify-end space-x-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-            <button
+          <div className="pt-3 border-t border-[#E2E8E8] flex justify-end gap-2.5">
+            <Button type="button" variant="outline" size="md" onClick={onClose}>
+              Batal
+            </Button>
+            <Button
               type="submit"
-              className={`px-5 py-2 text-white rounded-lg text-xs font-semibold shadow-sm transition-all ${
+              variant={
                 decision === 'APPROVE'
-                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  ? 'approve'
                   : decision === 'RETURN_FOR_REVISION'
-                  ? 'bg-amber-600 hover:bg-amber-700'
-                  : 'bg-red-600 hover:bg-red-700'
-              }`}
+                  ? 'revision'
+                  : 'reject'
+              }
+              size="md"
             >
-              Confirm Decision
-            </button>
+              Konfirmasi Keputusan
+            </Button>
           </div>
         </form>
       </div>
     </div>
   );
 };
-
