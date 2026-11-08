@@ -48,7 +48,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [editDeptId, setEditDeptId] = useState('');
   const [editCategory, setEditCategory] = useState('Safety');
-  const [editType, setEditType] = useState<'INTERNAL' | 'EXTERNAL' | 'CERTIFICATION' | 'IN_HOUSE'>('INTERNAL');
+  const [editType, setEditType] = useState<string>('INTERNAL');
   const [editProvider, setEditProvider] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editStartDate, setEditStartDate] = useState('');
@@ -534,11 +534,11 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                     onChange={(e) => setEditCategory(e.target.value)}
                     className="w-full h-[38px] px-3 text-xs bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932]"
                   >
-                    <option value="Safety">Safety / HSE</option>
-                    <option value="Technical">Technical & Operations</option>
-                    <option value="Certification">National Certification / POP</option>
-                    <option value="Compliance">Regulatory Compliance</option>
-                    <option value="Leadership">Supervisory & Leadership</option>
+                    {mockStore.trainingCategories.map((c) => (
+                      <option key={c.id} value={c.code}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -548,13 +548,14 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                   </label>
                   <select
                     value={editType}
-                    onChange={(e) => setEditType(e.target.value as any)}
+                    onChange={(e) => setEditType(e.target.value)}
                     className="w-full h-[38px] px-3 text-xs bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932]"
                   >
-                    <option value="INTERNAL">INTERNAL</option>
-                    <option value="EXTERNAL">EXTERNAL</option>
-                    <option value="CERTIFICATION">CERTIFICATION</option>
-                    <option value="IN_HOUSE">IN_HOUSE</option>
+                    {mockStore.trainingTypes.map((tt) => (
+                      <option key={tt.id} value={tt.code}>
+                        {tt.code} — {tt.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

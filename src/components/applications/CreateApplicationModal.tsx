@@ -20,14 +20,18 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
     currentUser.department_id || departments[0]?.id || '20000000-0000-0000-0000-000000000001'
   );
   const [trainingTitle, setTrainingTitle] = useState('');
-  const [trainingCategory, setTrainingCategory] = useState('Safety');
+  const [trainingCategory, setTrainingCategory] = useState(
+    mockStore.trainingCategories[0]?.code || 'Safety'
+  );
   const [trainingObjectives, setTrainingObjectives] = useState('');
   const [trainingProvider, setTrainingProvider] = useState('');
   const [trainingLocation, setTrainingLocation] = useState('Training Center Site Pit 1');
   const [proposedStartDate, setProposedStartDate] = useState('2026-11-25');
   const [proposedEndDate, setProposedEndDate] = useState('2026-11-27');
   const [estimatedBudget, setEstimatedBudget] = useState<number>(5000000);
-  const [trainingType, setTrainingType] = useState<'INTERNAL' | 'EXTERNAL' | 'CERTIFICATION' | 'IN_HOUSE'>('INTERNAL');
+  const [trainingType, setTrainingType] = useState<string>(
+    mockStore.trainingTypes[0]?.code || 'INTERNAL'
+  );
   const [description, setDescription] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [autoSubmit, setAutoSubmit] = useState(true);
@@ -150,11 +154,11 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
                 onChange={(e) => setTrainingCategory(e.target.value)}
                 className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
               >
-                <option value="Safety">Safety / HSE</option>
-                <option value="Technical">Technical & Operations</option>
-                <option value="Certification">National Certification / POP</option>
-                <option value="Compliance">Regulatory Compliance</option>
-                <option value="Leadership">Supervisory & Leadership</option>
+                {mockStore.trainingCategories.map((c) => (
+                  <option key={c.id} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -164,13 +168,14 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
               </label>
               <select
                 value={trainingType}
-                onChange={(e) => setTrainingType(e.target.value as any)}
+                onChange={(e) => setTrainingType(e.target.value)}
                 className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
               >
-                <option value="INTERNAL">Internal Training Center</option>
-                <option value="EXTERNAL">External Training Institution</option>
-                <option value="CERTIFICATION">Professional Certification Body (BNSP/ESDM)</option>
-                <option value="IN_HOUSE">In-House Certified Workshop</option>
+                {mockStore.trainingTypes.map((tt) => (
+                  <option key={tt.id} value={tt.code}>
+                    {tt.code} — {tt.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

@@ -409,10 +409,11 @@ export const TrainingAchievementView: React.FC = () => {
               className="w-full h-[38px] px-3 text-xs font-medium bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] text-[#18232B] focus:bg-white focus:outline-none focus:border-[#E88932]"
             >
               <option value="ALL">Semua Jenis Training</option>
-              <option value="CERTIFICATION">CERTIFICATION (Sertifikasi BNSP/ESDM)</option>
-              <option value="INTERNAL">INTERNAL (Internal Training Center)</option>
-              <option value="IN_HOUSE">IN_HOUSE (In-House Workshop)</option>
-              <option value="EXTERNAL">EXTERNAL (Lembaga Eksternal)</option>
+              {mockStore.trainingTypes.map((tt) => (
+                <option key={tt.id} value={tt.code}>
+                  {tt.code} ({tt.name})
+                </option>
+              ))}
             </select>
           </div>
 

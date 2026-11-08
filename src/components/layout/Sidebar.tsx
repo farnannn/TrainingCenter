@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getRolePermissions, RoleCode } from '../../lib/types';
 import { RajaLogo } from '../ui/RajaLogo';
@@ -14,6 +14,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Tags,
   LogOut,
   X,
 } from 'lucide-react';
@@ -38,6 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { currentUser, logout } = useAuth();
   const role: RoleCode = currentUser.role_code;
   const perms = getRolePermissions(role);
+  const canManageTrainingMaster = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  const [trainingSubOpen, setTrainingSubOpen] = useState(true);
 
   const allSixRoles: RoleCode[] = [
     'SUPER_ADMIN',
@@ -187,34 +191,88 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           {visibleItems.map((item) => {
-            const isActive = currentTab === item.id;
+            const isTrainingGroup = item.id === 'applications';
+            const isActive =
+              currentTab === item.id ||
+              (isTrainingGroup && currentTab === 'training_master');
+
             return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                title={isCollapsed ? item.label : undefined}
-                className={`w-full relative flex items-center ${
-                  isCollapsed ? 'justify-center px-2' : 'px-3 gap-3'
-                } h-[40px] rounded-[8px] text-xs font-medium transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[#263640] text-white font-semibold'
-                    : 'text-slate-300 hover:bg-[#263640]/60 hover:text-white'
-                }`}
-              >
-                {isActive && (
-                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-[#E88932]" />
-                )}
-
-                <span
-                  className={
-                    isActive ? 'text-[#E88932]' : 'text-slate-400 group-hover:text-white'
-                  }
+              <div key={item.id} className="space-y-1">
+                <button
+                  onClick={() => {
+                    if (isTrainingGroup && canManageTrainingMaster && !isCollapsed) {
+                      setTrainingSubOpen((prev) => !prev);
+                    }
+                    handleNavClick(item.id);
+                  }}
+                  title={isCollapsed ? item.label : undefined}
+                  className={`w-full relative flex items-center justify-between ${
+                    isCollapsed ? 'justify-center px-2' : 'px-3'
+                  } h-[40px] rounded-[8px] text-xs font-medium transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-[#263640] text-white font-semibold'
+                      : 'text-slate-300 hover:bg-[#263640]/60 hover:text-white'
+                  }`}
                 >
-                  {item.icon}
-                </span>
+                  {isActive && (
+                    <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-[#E88932]" />
+                  )}
 
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
-              </button>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className={
+                        isActive ? 'text-[#E88932]' : 'text-slate-400 group-hover:text-white'
+                      }
+                    >
+                      {item.icon}
+                    </span>
+
+                    {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  </div>
+
+                  {!isCollapsed && isTrainingGroup && canManageTrainingMaster && (
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                        trainingSubOpen ? 'rotate-0' : '-rotate-90'
+                      }`}
+                    />
+                  )}
+                </button>
+
+                {/* Sub-Sidebar under Data Training (Khusus Admin & Super Admin) */}
+                {!isCollapsed &&
+                  isTrainingGroup &&
+                  canManageTrainingMaster &&
+                  trainingSubOpen && (
+                    <div className="ml-5 pl-3 border-l border-[#263640] space-y-1 py-0.5">
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick('applications')}
+                        className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                          currentTab === 'applications'
+                            ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                            : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">Daftar Data Training</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleNavClick('training_master')}
+                        className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                          currentTab === 'training_master'
+                            ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                            : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                        }`}
+                      >
+                        <Tags className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">Category & Training Type</span>
+                      </button>
+                    </div>
+                  )}
+              </div>
             );
           })}
         </div>

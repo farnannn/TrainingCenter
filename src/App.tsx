@@ -10,6 +10,7 @@ import { PjoDashboard } from './components/dashboard/PjoDashboard';
 import { DepartmentUserDashboard } from './components/dashboard/DepartmentUserDashboard';
 import { TrainingAchievementView } from './components/achievement/TrainingAchievementView';
 import { ApplicationList } from './components/applications/ApplicationList';
+import { TrainingCategoryTypeManager } from './components/applications/TrainingCategoryTypeManager';
 import { TrainingScheduleManager } from './components/schedules/TrainingScheduleManager';
 import { CertificationList } from './components/certifications/CertificationList';
 import { DepartmentAssignmentManager } from './components/assignments/DepartmentAssignmentManager';
@@ -55,6 +56,8 @@ export const App: React.FC = () => {
         return <TrainingAchievementView />;
       case 'applications':
         return <ApplicationList />;
+      case 'training_master':
+        return <TrainingCategoryTypeManager />;
       case 'approval_queue':
         return (
           <ApplicationList

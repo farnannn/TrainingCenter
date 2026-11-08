@@ -119,7 +119,21 @@ export type ApprovalAction =
   | 'PJO_REJECT'
   | 'SUPERADMIN_REOPEN';
 
-export type TrainingType = 'INTERNAL' | 'EXTERNAL' | 'CERTIFICATION' | 'IN_HOUSE';
+export type TrainingType = string;
+
+export interface TrainingCategoryOption {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+}
+
+export interface TrainingTypeOption {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+}
 
 export interface Role {
   id: string;

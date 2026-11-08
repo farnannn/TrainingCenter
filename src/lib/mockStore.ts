@@ -27,6 +27,8 @@ import {
   ApplicationStatus,
   RoleCode,
   TrainingType,
+  TrainingCategoryOption,
+  TrainingTypeOption,
   getRolePermissions,
   SystemSettingsConfig,
 } from './types';
@@ -600,6 +602,66 @@ export interface TrainingAchievementSummary {
 // PERSISTENT IN-MEMORY DATA STORE
 // ==============================================================================
 
+export const INITIAL_TRAINING_CATEGORIES: TrainingCategoryOption[] = [
+  {
+    id: 'cat-1',
+    code: 'Safety',
+    name: 'Safety / HSE',
+    description: 'Pelatihan keselamatan kerja dan K3 pertambangan',
+  },
+  {
+    id: 'cat-2',
+    code: 'Technical',
+    name: 'Technical & Operations',
+    description: 'Kompetensi teknis alat berat, pit operasi, dan engineering',
+  },
+  {
+    id: 'cat-3',
+    code: 'Certification',
+    name: 'National Certification / POP',
+    description: 'Sertifikasi kompetensi nasional BNSP / ESDM (POP, POM, POU)',
+  },
+  {
+    id: 'cat-4',
+    code: 'Compliance',
+    name: 'Regulatory Compliance',
+    description: 'Kepatuhan regulasi pertambangan dan SMKP Minerba',
+  },
+  {
+    id: 'cat-5',
+    code: 'Leadership',
+    name: 'Supervisory & Leadership',
+    description: 'Kepemimpinan pengawas, manajemen, dan pengembangan SDM',
+  },
+];
+
+export const INITIAL_TRAINING_TYPES: TrainingTypeOption[] = [
+  {
+    id: 'type-1',
+    code: 'INTERNAL',
+    name: 'Internal Training Center',
+    description: 'Pelatihan internal oleh instruktur Training Center PT. RAJA',
+  },
+  {
+    id: 'type-2',
+    code: 'EXTERNAL',
+    name: 'External Training Institution',
+    description: 'Pelatihan oleh lembaga eksternal / vendor pelatihan resmi',
+  },
+  {
+    id: 'type-3',
+    code: 'CERTIFICATION',
+    name: 'Professional Certification Body (BNSP/ESDM)',
+    description: 'Uji kompetensi dan sertifikasi profesi resmi',
+  },
+  {
+    id: 'type-4',
+    code: 'IN_HOUSE',
+    name: 'In-House Certified Workshop',
+    description: 'Workshop in-house kolaborasi departemen atau narasumber',
+  },
+];
+
 class DataStore {
   roles: Role[] = [...INITIAL_ROLES];
   departments: Department[] = [...INITIAL_DEPARTMENTS];
@@ -607,6 +669,8 @@ class DataStore {
   departmentAssignments: DepartmentUserAssignment[] = [...INITIAL_DEPARTMENT_ASSIGNMENTS];
   employees: Employee[] = [...INITIAL_EMPLOYEES];
   programs: TrainingProgram[] = [...INITIAL_PROGRAMS];
+  trainingCategories: TrainingCategoryOption[] = [...INITIAL_TRAINING_CATEGORIES];
+  trainingTypes: TrainingTypeOption[] = [...INITIAL_TRAINING_TYPES];
   applications: TrainingApplication[] = [];
   participants: TrainingApplicationParticipant[] = [];
   approvalHistory: TrainingApprovalHistory[] = [];
@@ -671,6 +735,8 @@ class DataStore {
       departmentAssignments: this.departmentAssignments,
       employees: this.employees,
       programs: this.programs,
+      trainingCategories: this.trainingCategories,
+      trainingTypes: this.trainingTypes,
       applications: this.applications,
       participants: this.participants,
       approvalHistory: this.approvalHistory,
@@ -733,6 +799,12 @@ class DataStore {
     }
     if (Array.isArray(snapshot.programs)) {
       this.programs = snapshot.programs;
+    }
+    if (Array.isArray(snapshot.trainingCategories) && snapshot.trainingCategories.length > 0) {
+      this.trainingCategories = snapshot.trainingCategories;
+    }
+    if (Array.isArray(snapshot.trainingTypes) && snapshot.trainingTypes.length > 0) {
+      this.trainingTypes = snapshot.trainingTypes;
     }
     if (Array.isArray(snapshot.applications)) {
       this.applications = snapshot.applications;
@@ -1889,13 +1961,19 @@ class DataStore {
       };
     });
 
-    // Training Type Breakdown
-    const typeConfigs: Array<{ type: TrainingType; label: string }> = [
-      { type: 'CERTIFICATION', label: 'Sertifikasi BNSP / ESDM' },
-      { type: 'INTERNAL', label: 'Internal Training Center' },
-      { type: 'IN_HOUSE', label: 'In-House Workshop' },
-      { type: 'EXTERNAL', label: 'External Training' },
-    ];
+    // Training Type Breakdown (100% Dynamic from Master Training Types)
+    const typeConfigs: Array<{ type: TrainingType; label: string }> = this.trainingTypes.map(
+      (tt) => ({
+        type: tt.code,
+        label: tt.name,
+      })
+    );
+    // Also include any custom training types used on items that aren't in trainingTypes
+    items.forEach((it) => {
+      if (it.trainingType && !typeConfigs.some((tc) => tc.type === it.trainingType)) {
+        typeConfigs.push({ type: it.trainingType, label: it.trainingType });
+      }
+    });
 
     const typeBreakdown = typeConfigs.map((tc) => {
       const tItems = items.filter((i) => i.trainingType === tc.type);
@@ -2092,6 +2170,161 @@ class DataStore {
     this.recalculateKpis(2026);
     this.persistState();
     return removedCount;
+  }
+
+  // ============================================================================
+  // RPC: MASTER TRAINING CATEGORY & TRAINING TYPE (ADMIN & SUPER ADMIN EXCLUSIVE)
+  // ============================================================================
+  private assertAdminOrSuperAdmin(callerId: string) {
+    const callerRole = this.getUserRole(callerId);
+    if (callerRole !== 'SUPER_ADMIN' && callerRole !== 'ADMIN') {
+      throw new Error(
+        'PERMISSION_DENIED: Hanya Admin dan Super Admin yang memiliki akses untuk mengelola Master Category & Training Type.'
+      );
+    }
+  }
+
+  addTrainingCategory(
+    callerId: string,
+    payload: { code: string; name: string; description?: string }
+  ): TrainingCategoryOption {
+    this.assertAdminOrSuperAdmin(callerId);
+    const code = payload.code.trim();
+    const name = payload.name.trim();
+    if (!code || !name) {
+      throw new Error('Kode Category dan Nama Category wajib diisi.');
+    }
+    if (
+      this.trainingCategories.some((c) => c.code.toLowerCase() === code.toLowerCase())
+    ) {
+      throw new Error(`Category dengan kode "${code}" sudah terdaftar.`);
+    }
+    const newCat: TrainingCategoryOption = {
+      id: `cat-${crypto.randomUUID().slice(0, 8)}`,
+      code,
+      name,
+      description: payload.description?.trim() || '',
+    };
+    this.trainingCategories.push(newCat);
+    this.persistState();
+    return newCat;
+  }
+
+  updateTrainingCategory(
+    callerId: string,
+    id: string,
+    payload: { code: string; name: string; description?: string }
+  ): TrainingCategoryOption {
+    this.assertAdminOrSuperAdmin(callerId);
+    const cat = this.trainingCategories.find((c) => c.id === id);
+    if (!cat) throw new Error('Category tidak ditemukan.');
+    const code = payload.code.trim();
+    const name = payload.name.trim();
+    if (!code || !name) {
+      throw new Error('Kode Category dan Nama Category wajib diisi.');
+    }
+    if (
+      this.trainingCategories.some(
+        (c) => c.id !== id && c.code.toLowerCase() === code.toLowerCase()
+      )
+    ) {
+      throw new Error(`Kode Category "${code}" sudah digunakan.`);
+    }
+    const oldCode = cat.code;
+    cat.code = code;
+    cat.name = name;
+    cat.description = payload.description?.trim() || '';
+
+    // Update any applications using the old category code
+    if (oldCode !== code) {
+      this.applications.forEach((app) => {
+        if (app.training_category === oldCode) {
+          app.training_category = code;
+        }
+      });
+    }
+    this.persistState();
+    return cat;
+  }
+
+  deleteTrainingCategory(callerId: string, id: string) {
+    this.assertAdminOrSuperAdmin(callerId);
+    const idx = this.trainingCategories.findIndex((c) => c.id === id);
+    if (idx === -1) throw new Error('Category tidak ditemukan.');
+    this.trainingCategories.splice(idx, 1);
+    this.persistState();
+    return true;
+  }
+
+  addTrainingType(
+    callerId: string,
+    payload: { code: string; name: string; description?: string }
+  ): TrainingTypeOption {
+    this.assertAdminOrSuperAdmin(callerId);
+    const code = payload.code.trim().toUpperCase().replace(/\s+/g, '_');
+    const name = payload.name.trim();
+    if (!code || !name) {
+      throw new Error('Kode Training Type dan Nama Training Type wajib diisi.');
+    }
+    if (this.trainingTypes.some((t) => t.code.toUpperCase() === code)) {
+      throw new Error(`Training Type dengan kode "${code}" sudah terdaftar.`);
+    }
+    const newType: TrainingTypeOption = {
+      id: `type-${crypto.randomUUID().slice(0, 8)}`,
+      code,
+      name,
+      description: payload.description?.trim() || '',
+    };
+    this.trainingTypes.push(newType);
+    this.recalculateKpis(2026);
+    this.persistState();
+    return newType;
+  }
+
+  updateTrainingType(
+    callerId: string,
+    id: string,
+    payload: { code: string; name: string; description?: string }
+  ): TrainingTypeOption {
+    this.assertAdminOrSuperAdmin(callerId);
+    const tObj = this.trainingTypes.find((t) => t.id === id);
+    if (!tObj) throw new Error('Training Type tidak ditemukan.');
+    const code = payload.code.trim().toUpperCase().replace(/\s+/g, '_');
+    const name = payload.name.trim();
+    if (!code || !name) {
+      throw new Error('Kode Training Type dan Nama Training Type wajib diisi.');
+    }
+    if (
+      this.trainingTypes.some((t) => t.id !== id && t.code.toUpperCase() === code)
+    ) {
+      throw new Error(`Kode Training Type "${code}" sudah digunakan.`);
+    }
+    const oldCode = tObj.code;
+    tObj.code = code;
+    tObj.name = name;
+    tObj.description = payload.description?.trim() || '';
+
+    // Update any applications using the old training type code
+    if (oldCode !== code) {
+      this.applications.forEach((app) => {
+        if (app.training_type === oldCode) {
+          app.training_type = code;
+        }
+      });
+    }
+    this.recalculateKpis(2026);
+    this.persistState();
+    return tObj;
+  }
+
+  deleteTrainingType(callerId: string, id: string) {
+    this.assertAdminOrSuperAdmin(callerId);
+    const idx = this.trainingTypes.findIndex((t) => t.id === id);
+    if (idx === -1) throw new Error('Training Type tidak ditemukan.');
+    this.trainingTypes.splice(idx, 1);
+    this.recalculateKpis(2026);
+    this.persistState();
+    return true;
   }
 
   // ============================================================================
@@ -2450,7 +2683,7 @@ class DataStore {
       proposed_start_date: string;
       proposed_end_date: string;
       estimated_budget: number;
-      training_type: 'INTERNAL' | 'EXTERNAL' | 'CERTIFICATION' | 'IN_HOUSE';
+      training_type: TrainingType;
       description: string;
       participant_employee_ids: string[];
       department_id?: string;
