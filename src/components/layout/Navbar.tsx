@@ -11,6 +11,7 @@ import {
   Layers,
   UserCheck,
   Building2,
+  Settings,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -35,26 +36,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, currentTab }) 
     switch (tab) {
       case 'dashboard':
         return 'Executive & Operational Dashboard';
+      case 'achievement':
+        return 'Training Achievement / Capaian Pelaksanaan Training';
       case 'applications':
-        return 'Manajemen Pengajuan Training';
-      case 'approval_queue':
-        return currentUser.role_code === 'ADMIN_PJO'
-          ? 'Antrean Otorisasi Final PJO (Stage 2)'
-          : 'Antrean Evaluasi HOD Training Center (Stage 1)';
+        return 'Manajemen Data Training & Pengajuan';
       case 'schedules':
         return 'Historical & Jadwal Pelaksanaan Training';
       case 'certifications':
-        return 'Registri Data Sertifikasi & Lisensi';
+        return 'Registri Data Sertifikasi & Training History Report';
       case 'kpi':
         return 'KPI Training Center & Realisasi Target';
-      case 'assignments':
-        return 'Manajemen Perwakilan Departemen Aktif';
       case 'employees':
         return 'Direktori Personel & Riwayat Kompetensi';
-      case 'audit_logs':
-        return 'Forensic Audit Trail & System Logs';
+      case 'assignments':
+        return 'User Management & Role Access Control';
+      case 'system_settings':
+        return 'System Settings & Audit Trail';
       default:
-        return 'THR — Training Historical & Reporting';
+        return 'RAJA ACADEMY — Training Historical & Reporting';
     }
   };
 
@@ -65,20 +64,30 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, currentTab }) 
           icon: <ShieldCheck className="w-3.5 h-3.5 text-[#B94C45]" />,
           style: 'bg-[#B94C45]/10 text-[#B94C45] border-[#B94C45]/25',
         };
-      case 'ADMIN_HOD_TC':
+      case 'ADMIN':
         return {
-          icon: <Layers className="w-3.5 h-3.5 text-[#527FA1]" />,
-          style: 'bg-[#527FA1]/10 text-[#527FA1] border-[#527FA1]/25',
+          icon: <Settings className="w-3.5 h-3.5 text-[#397C69]" />,
+          style: 'bg-[#397C69]/10 text-[#397C69] border-[#397C69]/25',
         };
-      case 'ADMIN_PJO':
+      case 'PJO':
         return {
           icon: <UserCheck className="w-3.5 h-3.5 text-[#E88932]" />,
           style: 'bg-[#E88932]/12 text-[#B86214] border-[#E88932]/30',
         };
-      case 'DEPARTMENT_USER':
+      case 'MANAGER_TC':
         return {
-          icon: <Building2 className="w-3.5 h-3.5 text-[#397C69]" />,
+          icon: <Layers className="w-3.5 h-3.5 text-[#527FA1]" />,
+          style: 'bg-[#527FA1]/10 text-[#527FA1] border-[#527FA1]/25',
+        };
+      case 'ADMIN_TC':
+        return {
+          icon: <Layers className="w-3.5 h-3.5 text-[#397C69]" />,
           style: 'bg-[#397C69]/10 text-[#397C69] border-[#397C69]/25',
+        };
+      case 'ADMIN_HRGA':
+        return {
+          icon: <Building2 className="w-3.5 h-3.5 text-[#527FA1]" />,
+          style: 'bg-[#527FA1]/10 text-[#527FA1] border-[#527FA1]/25',
         };
       default:
         return {
@@ -109,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, currentTab }) 
             {getPageTitle(currentTab)}
           </h1>
           <p className="text-[11px] text-[#5A6B75] truncate hidden sm:block">
-            PT. Roda Jaya Sakti • Site Morowali & Head Office Makassar
+            RAJA ACADEMY • PT. Roda Jaya Sakti • Site Morowali & Head Office Makassar
           </p>
         </div>
       </div>

@@ -110,7 +110,7 @@ export const PublicCompanyLanding: React.FC = () => {
               <div className="hidden sm:block pl-3.5 border-l border-[#E2E8E8]">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-heading font-bold tracking-tight text-[#18232B]">
-                    THR DASHBOARD
+                    RAJA ACADEMY
                   </span>
                   <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-[#F4F6F5] text-[#263640] border border-[#E2E8E8]">
                     CORPORATE EDITION
@@ -163,7 +163,7 @@ export const PublicCompanyLanding: React.FC = () => {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[6px] bg-[#263640] border border-white/10 text-xs font-mono text-[#E88932] mb-4">
               <HardHat className="w-3.5 h-3.5" />
-              <span>TRAINING HISTORICAL & REPORTING SYSTEM (THR)</span>
+              <span>RAJA ACADEMY • TRAINING HISTORICAL & REPORTING SYSTEM</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-heading font-bold text-white tracking-tight leading-tight">
@@ -231,11 +231,11 @@ export const PublicCompanyLanding: React.FC = () => {
           />
           <KpiCard
             title="Partisipasi Personel Tambang"
-            value="4 Departemen"
-            comparison="MOD, MED, HSE, HRGA"
+            value="7 Divisi"
+            comparison="HRGA-IT, MED, MOD, PLM, CIVIL, TC, HSE"
             trend="up"
             trendIsGood={true}
-            subtitle="1 Representative Aktif / Dept"
+            subtitle="Terintegrasi Seluruh Divisi"
             icon={<Users className="w-4 h-4" />}
             tone="default"
           />
@@ -418,7 +418,7 @@ export const PublicCompanyLanding: React.FC = () => {
                     onClick={() => setShowLoginModal(true)}
                     className="text-[#E88932] hover:underline text-left cursor-pointer font-medium"
                   >
-                    Masuk THR Dashboard Internal
+                    Masuk Portal RAJA ACADEMY
                   </button>
                 </li>
                 <li>
@@ -440,7 +440,7 @@ export const PublicCompanyLanding: React.FC = () => {
               &copy; 2026 PT. Roda Jaya Sakti (RAJA). Hak Cipta Dilindungi Undang-Undang.
             </div>
             <div className="font-mono">
-              THR — Training Historical & Reporting Dashboard
+              RAJA ACADEMY — Training Historical & Reporting Dashboard
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
+import { Employee, getRolePermissions } from '../../lib/types';
 import { Button } from '../ui/Button';
 import {
   Users,
@@ -11,6 +12,7 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   AlertCircle,
+  Trash2,
   X,
 } from 'lucide-react';
 
@@ -39,13 +41,39 @@ export const EmployeeRoster: React.FC = () => {
   } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // RLS Enforcement: Scoped to department for DEPARTMENT_USER
   const employees = mockStore.getVisibleEmployees(currentUser.id);
-  const isDeptUser = currentUser.role_code === 'DEPARTMENT_USER';
-  const canModify =
-    currentUser.role_code === 'SUPER_ADMIN' ||
-    currentUser.role_code === 'ADMIN_HOD_TC' ||
-    currentUser.role_code === 'DEPARTMENT_USER';
+  const perms = getRolePermissions(currentUser.role_code);
+  const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN';
+  const isDeptUser = false;
+  const canModify = perms.canInputData || perms.canEditData;
+
+  const [confirmDeleteEmp, setConfirmDeleteEmp] = useState<Employee | null>(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const executeSingleEmpDelete = () => {
+    if (!confirmDeleteEmp || !isSuperAdmin) return;
+    setDeleteError(null);
+    try {
+      mockStore.deleteEmployee(currentUser.id, confirmDeleteEmp.id);
+      setConfirmDeleteEmp(null);
+      refreshState();
+    } catch (err: any) {
+      setDeleteError(err.message || 'Gagal menghapus data karyawan.');
+    }
+  };
+
+  const executeDeleteAllEmployees = () => {
+    if (!isSuperAdmin) return;
+    setDeleteError(null);
+    try {
+      mockStore.deleteAllEmployees(currentUser.id);
+      setShowDeleteAllConfirm(false);
+      refreshState();
+    } catch (err: any) {
+      setDeleteError(err.message || 'Gagal menghapus seluruh data karyawan.');
+    }
+  };
 
   const filtered = employees.filter(
     (e) =>
@@ -215,6 +243,19 @@ export const EmployeeRoster: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {isSuperAdmin && employees.length > 0 && (
+            <Button
+              variant="danger"
+              size="md"
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={() => {
+                setDeleteError(null);
+                setShowDeleteAllConfirm(true);
+              }}
+            >
+              Hapus Semua Karyawan
+            </Button>
+          )}
           {canModify && (
             <>
               <Button
@@ -274,56 +315,183 @@ export const EmployeeRoster: React.FC = () => {
 
       {/* Employee Table */}
       <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#F4F6F5] text-[#5A6B75] font-medium border-b border-[#E2E8E8]">
-              <tr>
-                <th className="px-6 py-3">Nama Karyawan & NIK</th>
-                <th className="px-6 py-3">Departemen</th>
-                <th className="px-6 py-3">Jabatan / Posisi</th>
-                <th className="px-6 py-3">Level Jabatan</th>
-                <th className="px-6 py-3">Status Kepegawaian</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E2E8E8]">
-              {filtered.map((emp) => {
-                const dept = mockStore.departments.find((d) => d.id === emp.department_id);
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center text-xs text-[#5A6B75]">
+            Tidak ada data karyawan yang ditemukan.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-[#F4F6F5] text-[#5A6B75] font-medium border-b border-[#E2E8E8]">
+                <tr>
+                  <th className="px-6 py-3">Nama Karyawan & NIK</th>
+                  <th className="px-6 py-3">Divisi / Departemen</th>
+                  <th className="px-6 py-3">Jabatan / Posisi</th>
+                  <th className="px-6 py-3">Level Jabatan</th>
+                  <th className="px-6 py-3">Status Kepegawaian</th>
+                  {isSuperAdmin && <th className="px-6 py-3 text-right">Tindakan</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E2E8E8]">
+                {filtered.map((emp) => {
+                  const dept = mockStore.departments.find((d) => d.id === emp.department_id);
 
-                return (
-                  <tr key={emp.id} className="hover:bg-[#F4F6F5]/50 transition-colors">
-                    <td className="px-6 py-3.5">
-                      <div className="font-heading font-semibold text-[#18232B]">
-                        {emp.full_name}
-                      </div>
-                      <div className="text-[11px] font-mono text-[#E88932] mt-0.5">
-                        {emp.nik}
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <span className="font-mono font-semibold text-xs px-2 py-0.5 rounded bg-[#F4F6F5] text-[#18232B] border border-[#E2E8E8]">
-                        {dept?.code}
-                      </span>
-                      <div className="text-[11px] text-[#5A6B75] mt-0.5">{dept?.name}</div>
-                    </td>
-                    <td className="px-6 py-3.5 text-[#18232B] font-medium">{emp.position}</td>
-                    <td className="px-6 py-3.5">
-                      <span className="px-2.5 py-0.5 rounded text-[11px] font-medium bg-[#F4F6F5] text-[#263640] border border-[#E2E8E8]">
-                        {emp.job_level}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium bg-[#397C69]/12 text-[#296050] border border-[#397C69]/30">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>{emp.employment_status}</span>
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  return (
+                    <tr key={emp.id} className="hover:bg-[#F4F6F5]/50 transition-colors">
+                      <td className="px-6 py-3.5">
+                        <div className="font-heading font-semibold text-[#18232B]">
+                          {emp.full_name}
+                        </div>
+                        <div className="text-[11px] font-mono text-[#E88932] mt-0.5">
+                          {emp.nik}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <span className="font-mono font-semibold text-xs px-2 py-0.5 rounded bg-[#F4F6F5] text-[#18232B] border border-[#E2E8E8]">
+                          {dept?.code}
+                        </span>
+                        <div className="text-[11px] text-[#5A6B75] mt-0.5">{dept?.name}</div>
+                      </td>
+                      <td className="px-6 py-3.5 text-[#18232B] font-medium">{emp.position}</td>
+                      <td className="px-6 py-3.5">
+                        <span className="px-2.5 py-0.5 rounded text-[11px] font-medium bg-[#F4F6F5] text-[#263640] border border-[#E2E8E8]">
+                          {emp.job_level}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium bg-[#397C69]/12 text-[#296050] border border-[#397C69]/30">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>{emp.employment_status}</span>
+                        </span>
+                      </td>
+                      {isSuperAdmin && (
+                        <td className="px-6 py-3.5 text-right">
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            icon={<Trash2 className="w-3.5 h-3.5" />}
+                            onClick={() => {
+                              setDeleteError(null);
+                              setConfirmDeleteEmp(emp);
+                            }}
+                          >
+                            Hapus
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      {/* Modal Konfirmasi Hapus 1 Karyawan (Super Admin Only) */}
+      {confirmDeleteEmp && isSuperAdmin && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#18232B]/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[14px] shadow-2xl border border-[#E2E8E8] max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 bg-[#B94C45] text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4" />
+                <h3 className="text-sm font-heading font-bold">Konfirmasi Hapus Data Karyawan</h3>
+              </div>
+              <button
+                onClick={() => setConfirmDeleteEmp(null)}
+                className="text-white/80 hover:text-white p-1 rounded-[8px] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {deleteError && (
+                <div className="p-3 bg-[#B94C45]/10 border border-[#B94C45]/30 rounded-[8px] text-xs text-[#B94C45]">
+                  {deleteError}
+                </div>
+              )}
+              <p className="text-xs text-[#263640] leading-relaxed">
+                Apakah Anda yakin ingin menghapus data karyawan{' '}
+                <strong className="text-[#18232B]">{confirmDeleteEmp.full_name}</strong> (NIK:{' '}
+                <span className="font-mono text-[#E88932]">{confirmDeleteEmp.nik}</span>) dari sistem?
+              </p>
+              <div className="pt-3 border-t border-[#E2E8E8] flex justify-end gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={() => setConfirmDeleteEmp(null)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="md"
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={executeSingleEmpDelete}
+                >
+                  Ya, Hapus Karyawan
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus SEMUA Karyawan (Super Admin Only) */}
+      {showDeleteAllConfirm && isSuperAdmin && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#18232B]/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[14px] shadow-2xl border border-[#E2E8E8] max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 bg-[#B94C45] text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4" />
+                <h3 className="text-sm font-heading font-bold">
+                  Hapus Seluruh Data Karyawan ({employees.length} Personel)
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowDeleteAllConfirm(false)}
+                className="text-white/80 hover:text-white p-1 rounded-[8px] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {deleteError && (
+                <div className="p-3 bg-[#B94C45]/10 border border-[#B94C45]/30 rounded-[8px] text-xs text-[#B94C45]">
+                  {deleteError}
+                </div>
+              )}
+              <div className="p-3.5 bg-[#B94C45]/10 border border-[#B94C45]/30 rounded-[10px] text-xs text-[#B94C45] space-y-1">
+                <div className="font-heading font-bold">Peringatan Otoritas Super Admin</div>
+                <p className="text-[#263640]">
+                  Tindakan ini akan menghapus seluruh <strong>{employees.length} data karyawan</strong> dari direktori personel PT. Roda Jaya Sakti.
+                </p>
+              </div>
+              <div className="pt-3 border-t border-[#E2E8E8] flex justify-end gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={() => setShowDeleteAllConfirm(false)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="md"
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={executeDeleteAllEmployees}
+                >
+                  Ya, Hapus Semua Karyawan
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL 1: Bulk Upload CSV / Paste Employee Names */}
       {showUploadModal && (

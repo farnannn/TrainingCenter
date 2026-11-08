@@ -8,7 +8,8 @@ export type ButtonVariant =
   | 'ghost'
   | 'approve'
   | 'revision'
-  | 'reject';
+  | 'reject'
+  | 'danger';
 
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
@@ -50,6 +51,8 @@ export const Button: React.FC<ButtonProps> = ({
     revision:
       'bg-[#D5A33D] hover:bg-[#BF8F2C] text-white shadow-2xs border border-transparent',
     reject:
+      'bg-[#B94C45] hover:bg-[#9E3D37] text-white shadow-2xs border border-transparent',
+    danger:
       'bg-[#B94C45] hover:bg-[#9E3D37] text-white shadow-2xs border border-transparent',
   };
 

@@ -9,12 +9,13 @@ import {
   Building,
   Users,
   FileCheck,
-  Award,
+  Target,
   Clock,
   ArrowRight,
   History,
   CheckCircle2,
   XCircle,
+  Settings,
 } from 'lucide-react';
 
 interface SuperAdminDashboardProps {
@@ -28,14 +29,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
   const users = mockStore.users;
   const employees = mockStore.employees;
   const assignments = mockStore.departmentAssignments;
+  const achievement = mockStore.calculateTrainingAchievement({ year: '2026' });
 
   const totalApps = apps.length;
   const underHod = apps.filter((a) => a.current_status === 'UNDER_HOD_REVIEW').length;
   const pendingPjo = apps.filter((a) => a.current_status === 'PENDING_PJO').length;
-  const approved = apps.filter((a) => a.current_status === 'APPROVED').length;
-  const scheduled = apps.filter(
-    (a) => a.current_status === 'SCHEDULED' || a.current_status === 'IN_PROGRESS'
-  ).length;
   const completed = apps.filter((a) => a.current_status === 'COMPLETED').length;
   const rejected = apps.filter((a) => a.current_status === 'REJECTED').length;
 
@@ -47,13 +45,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
           <div>
             <div className="flex items-center gap-2 text-[#E88932] text-xs font-mono font-semibold uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4" />
-              <span>Super Administrator Console • Access Level 1</span>
+              <span>Super Admin • Full System & RBAC Authority</span>
             </div>
             <h2 className="text-xl font-heading font-bold mt-1">
               Enterprise Training Governance & Control
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Otoritas administrasi penuh atas penugasan perwakilan tunggal departemen, akun PJO terpusat, target KPI, audit log, dan pembukaan kembali berkas yang ditolak.
+              Otoritas penuh atas ke-6 role sistem (Super Admin, Admin, PJO, Manager TC, Admin TC, Admin HRGA), Training Achievement, User Management, System Settings, dan Audit Trail.
             </p>
           </div>
 
@@ -61,18 +59,26 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
             <Button
               variant="primary"
               size="md"
-              icon={<Building className="w-4 h-4" />}
-              onClick={() => onNavigate('assignments')}
+              icon={<Target className="w-4 h-4" />}
+              onClick={() => onNavigate('achievement')}
             >
-              Penugasan Departemen
+              Training Achievement ({achievement.achievementPercentage ?? 0}%)
             </Button>
             <Button
               variant="secondary"
               size="md"
-              icon={<History className="w-4 h-4" />}
-              onClick={() => onNavigate('audit_logs')}
+              icon={<Users className="w-4 h-4" />}
+              onClick={() => onNavigate('assignments')}
             >
-              Audit Trail
+              User Management
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              icon={<Settings className="w-4 h-4" />}
+              onClick={() => onNavigate('system_settings')}
+            >
+              System Settings
             </Button>
           </div>
         </div>
@@ -81,33 +87,37 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
       {/* 2. Executive KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          title="Total Pengajuan Training"
+          title="Total Program Training"
           value={totalApps}
-          comparison={`${completed} Selesai`}
+          comparison={`${completed} Realisasi Selesai`}
           trend="up"
           trendIsGood={true}
-          subtitle="Seluruh Departemen"
+          subtitle="Database Utama THR"
           icon={<FileCheck className="w-4 h-4" />}
           tone="default"
         />
         <KpiCard
+          title="Capaian Training 2026"
+          value={
+            achievement.achievementPercentage !== null
+              ? `${achievement.achievementPercentage}%`
+              : 'N/A'
+          }
+          comparison={`${achievement.totalRealization}/${achievement.totalPlan} Terlaksana`}
+          trend="up"
+          trendIsGood={true}
+          subtitle={`${achievement.totalManpowerTrained} Manpower Trained`}
+          icon={<Target className="w-4 h-4" />}
+          tone="success"
+        />
+        <KpiCard
           title="Antrean Verifikasi Aktif"
           value={underHod + pendingPjo}
-          comparison={`${underHod} HOD • ${pendingPjo} PJO`}
+          comparison={`${underHod} TC • ${pendingPjo} PJO`}
           trend="neutral"
           subtitle="Menunggu Keputusan"
           icon={<Clock className="w-4 h-4" />}
           tone="orange"
-        />
-        <KpiCard
-          title="Disetujui & Terjadwal"
-          value={approved + scheduled + completed}
-          comparison={`${approved} Siap Jadwal`}
-          trend="up"
-          trendIsGood={true}
-          subtitle="Otorisasi PJO Lengkap"
-          icon={<CheckCircle2 className="w-4 h-4" />}
-          tone="success"
         />
         <KpiCard
           title="Pengajuan Ditolak (Terminal)"
@@ -130,10 +140,10 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
             <div>
               <h3 className="text-sm font-heading font-semibold text-[#18232B] flex items-center gap-2">
                 <Building className="w-4 h-4 text-[#E88932]" />
-                <span>Penugasan Perwakilan Departemen</span>
+                <span>Penugasan Admin & PIC Departemen</span>
               </h3>
               <p className="text-xs text-[#5A6B75] mt-0.5">
-                Aturan Bisnis: Tepat 1 Department User aktif per departemen.
+                Daftar 6 Role Resmi & Penugasan Departemen Aktif.
               </p>
             </div>
             <Button
@@ -143,7 +153,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
               iconPosition="right"
               onClick={() => onNavigate('assignments')}
             >
-              Kelola
+              User Management
             </Button>
           </div>
 
@@ -163,7 +173,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
                   <div>
                     {user ? (
                       <span className="font-medium text-[#397C69] bg-[#397C69]/10 px-2.5 py-1 rounded-[6px] border border-[#397C69]/25">
-                        {user.full_name}
+                        {user.full_name} ({user.role_name})
                       </span>
                     ) : (
                       <span className="text-[#9D7019] font-medium bg-[#D5A33D]/15 px-2.5 py-1 rounded-[6px] border border-[#D5A33D]/30 text-[11px]">
@@ -184,43 +194,62 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
               <span>Kontrol Otorisasi Khusus Super Admin</span>
             </h3>
             <p className="text-xs text-[#5A6B75] mb-4">
-              Tindakan korektif yang hanya diizinkan bagi level Super Admin.
+              Tindakan korektif dan konfigurasi yang hanya diizinkan bagi level Super Admin.
             </p>
 
             <div className="space-y-3 text-xs">
               <div className="p-3.5 bg-[#F4F6F5] rounded-[10px] border border-[#E2E8E8] flex justify-between items-center gap-3">
                 <div>
                   <div className="font-heading font-semibold text-[#18232B]">
-                    Buka Kembali Berkas Ditolak (Reopen)
+                    Kelola Capaian & Realisasi Training
                   </div>
                   <div className="text-[11px] text-[#5A6B75] mt-0.5">
-                    Status REJECTED bersifat terminal kecuali dibuka kembali dengan alasan wajib.
+                    Pantau dan koreksi target serta realisasi capaian training seluruh departemen.
                   </div>
                 </div>
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => onNavigate('applications')}
+                  onClick={() => onNavigate('achievement')}
                 >
-                  Buka Berkas
+                  Buka Achievement
                 </Button>
               </div>
 
               <div className="p-3.5 bg-[#F4F6F5] rounded-[10px] border border-[#E2E8E8] flex justify-between items-center gap-3">
                 <div>
                   <div className="font-heading font-semibold text-[#18232B]">
-                    Konfigurasi Target & Bobot KPI
+                    System Settings & Matriks RBAC
                   </div>
                   <div className="text-[11px] text-[#5A6B75] mt-0.5">
-                    Evaluasi capaian jam pelatihan, kelulusan sertifikasi, dan realisasi jadwal.
-                </div>
+                    Konfigurasi parameter sistem, tahun periode, dan verifikasi matriks 6 role.
+                  </div>
                 </div>
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => onNavigate('kpi')}
+                  onClick={() => onNavigate('system_settings')}
                 >
-                  Lihat KPI
+                  Pengaturan
+                </Button>
+              </div>
+
+              <div className="p-3.5 bg-[#F4F6F5] rounded-[10px] border border-[#E2E8E8] flex justify-between items-center gap-3">
+                <div>
+                  <div className="font-heading font-semibold text-[#18232B]">
+                    Audit Trail & Buka Kembali Berkas
+                  </div>
+                  <div className="text-[11px] text-[#5A6B75] mt-0.5">
+                    Inspeksi jejak audit perubahan data atau buka kembali berkas REJECTED.
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<History className="w-3.5 h-3.5" />}
+                  onClick={() => onNavigate('audit_logs')}
+                >
+                  Audit Log
                 </Button>
               </div>
             </div>
@@ -235,7 +264,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
                 {employees.filter((e) => e.is_active).length} Karyawan Tambang
               </div>
               <p className="text-xs text-[#5A6B75] mt-0.5">
-                Tersebar di Mining Operations (MOD), Maintenance (MED), HSE & HRGA
+                Tersebar di 7 Divisi: HRGA-IT, MED, MOD, PLM, CIVIL, TC & HSE
               </p>
             </div>
             <Button

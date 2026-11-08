@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrainingApplication } from '../../lib/types';
+import { TrainingApplication, getRolePermissions } from '../../lib/types';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
 import { ApprovalHistoryTimeline } from './ApprovalHistoryTimeline';
@@ -8,10 +8,7 @@ import { SuperAdminReopenModal } from './SuperAdminReopenModal';
 import {
   X,
   Users,
-  Calendar,
   Building,
-  DollarSign,
-  MapPin,
   FileCheck,
   Send,
   CalendarPlus,
@@ -42,6 +39,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   if (!isOpen || !application) return null;
 
   const role = currentUser.role_code;
+  const perms = getRolePermissions(role);
   const history = mockStore.approvalHistory.filter((h) => h.application_id === application.id);
 
   const getStatusBadge = (status: string) => {
@@ -61,6 +59,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
         return 'bg-indigo-100 text-indigo-800 border-indigo-300';
       case 'COMPLETED':
         return 'bg-green-100 text-green-800 border-green-300';
+      case 'CANCELLED':
       case 'REJECTED':
         return 'bg-red-100 text-red-800 border-red-300';
       default:
@@ -227,7 +226,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     {application.hod_decision && (
                       <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-200">
-                        <span className="text-[10px] font-bold text-blue-700 uppercase">HOD TC Decision</span>
+                        <span className="text-[10px] font-bold text-blue-700 uppercase">Manager TC Decision</span>
                         <div className="font-semibold text-slate-800 mt-0.5">
                           {application.hod_decision}
                         </div>
@@ -238,7 +237,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     )}
                     {application.pjo_decision && (
                       <div className="p-3 bg-amber-50/50 rounded-lg border border-amber-200">
-                        <span className="text-[10px] font-bold text-amber-700 uppercase">PJO Decision (Final)</span>
+                        <span className="text-[10px] font-bold text-amber-700 uppercase">Final Authorization</span>
                         <div className="font-semibold text-slate-800 mt-0.5">
                           {application.pjo_decision}
                         </div>
@@ -258,23 +257,23 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
           {/* Action Bar Footer */}
           <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2">
             <span className="text-[11px] text-slate-500 font-medium">
-              Sequential Rule: DRAFT → HOD REVIEW → PENDING PJO → APPROVED → SCHEDULED
+              RBAC Mode: {currentUser.role_name} ({perms.canEditData ? 'Edit Access' : 'View Only'})
             </span>
 
             <div className="flex items-center space-x-2">
-              {/* Department User submit button */}
-              {role === 'DEPARTMENT_USER' && application.current_status === 'DRAFT' && (
+              {/* Submit draft button for roles with canEditData */}
+              {perms.canEditData && application.current_status === 'DRAFT' && (
                 <button
                   onClick={handleDeptSubmit}
                   className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Submit to HOD</span>
+                  <span>Submit to TC Review</span>
                 </button>
               )}
 
-              {/* HOD Review action */}
-              {(role === 'ADMIN_HOD_TC' || role === 'SUPER_ADMIN') &&
+              {/* Stage 1 Review action for Manager TC / Admin TC / Admin / Super Admin */}
+              {(role === 'MANAGER_TC' || role === 'ADMIN_TC' || role === 'ADMIN' || role === 'SUPER_ADMIN') &&
                 application.current_status === 'UNDER_HOD_REVIEW' && (
                   <button
                     onClick={() => setShowHodModal(true)}
@@ -285,20 +284,20 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   </button>
                 )}
 
-              {/* PJO Review action */}
-              {(role === 'ADMIN_PJO' || role === 'SUPER_ADMIN') &&
+              {/* Stage 2 Authorization for Manager TC / Admin / Super Admin */}
+              {(role === 'MANAGER_TC' || role === 'ADMIN' || role === 'SUPER_ADMIN') &&
                 application.current_status === 'PENDING_PJO' && (
                   <button
                     onClick={() => setShowPjoModal(true)}
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm"
                   >
                     <FileCheck className="w-3.5 h-3.5" />
-                    <span>Final PJO Authorization (Stage 2)</span>
+                    <span>Final Authorization (Stage 2)</span>
                   </button>
                 )}
 
               {/* Schedule Training action for approved */}
-              {(role === 'ADMIN_HOD_TC' || role === 'SUPER_ADMIN') &&
+              {(role === 'MANAGER_TC' || role === 'ADMIN_TC' || role === 'ADMIN' || role === 'SUPER_ADMIN') &&
                 application.current_status === 'APPROVED' && (
                   <button
                     onClick={() => {
@@ -369,4 +368,3 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     </>
   );
 };
-

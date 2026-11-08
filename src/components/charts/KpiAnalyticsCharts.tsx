@@ -5,38 +5,97 @@ import { BarChart3, TrendingUp, PieChart, CheckCircle2 } from 'lucide-react';
 export const KpiAnalyticsCharts: React.FC = () => {
   const [hoveredQuarter, setHoveredQuarter] = useState<string | null>(null);
 
-  const records = mockStore.records;
+  const summary = mockStore.calculateTrainingAchievement({ year: 'ALL' });
+  const activeEmployees = mockStore.employees.filter((e) => e.is_active);
 
-  // 1. Quarterly Performance Data
-  const quarterlyData = [
-    { quarter: 'Q1 2026', planned: 200, actual: 215, completion: '107%' },
-    { quarter: 'Q2 2026', planned: 240, actual: 230, completion: '96%' },
-    { quarter: 'Q3 2026', planned: 260, actual: 275, completion: '106%' },
-    { quarter: 'Q4 2026 (Est)', planned: 280, actual: 160, completion: '57%' },
+  // 1. Dynamic Quarterly Performance Data (Q1..Q4 from actual training items)
+  const quartersConfig = [
+    { label: 'Q1 (Jan-Mar)', months: ['01', '02', '03'] },
+    { label: 'Q2 (Apr-Jun)', months: ['04', '05', '06'] },
+    { label: 'Q3 (Jul-Sep)', months: ['07', '08', '09'] },
+    { label: 'Q4 (Okt-Des)', months: ['10', '11', '12'] },
   ];
 
-  // 2. Department Breakdown using Industrial Slate & Safety Orange palette
-  const deptBreakdown = [
-    { code: 'MOD', name: 'Mining Operations', hours: 48, target: 40, barColor: 'bg-[#E88932]', pct: 120 },
-    { code: 'MED', name: 'Plant & Maintenance', hours: 32, target: 35, barColor: 'bg-[#263640]', pct: 91 },
-    { code: 'HSE', name: 'Safety & Environment', hours: 45, target: 40, barColor: 'bg-[#397C69]', pct: 112 },
-    { code: 'HRGA', name: 'HR & General Affairs', hours: 24, target: 25, barColor: 'bg-[#527FA1]', pct: 96 },
+  const quarterlyData = quartersConfig.map((q) => {
+    const qItems = summary.trainingItems.filter((item) => {
+      const month = (item.startDate || '').split('-')[1];
+      return q.months.includes(month);
+    });
+    const planned = qItems.reduce((sum, i) => sum + i.plannedHours, 0);
+    const actual = qItems.reduce((sum, i) => sum + i.actualHours, 0);
+    const pct = planned > 0 ? Math.round((actual / planned) * 100) : 0;
+    return {
+      quarter: q.label,
+      planned,
+      actual,
+      pct,
+      completion: `${pct}%`,
+    };
+  });
+
+  const maxQuarterVal = Math.max(
+    ...quarterlyData.map((q) => Math.max(q.planned, q.actual)),
+    40
+  );
+
+  const totalPlannedHours = summary.totalPlannedHours;
+  const totalActualHours = summary.totalTrainingHours;
+  const hoursAchievementPct =
+    totalPlannedHours > 0 ? Math.round((totalActualHours / totalPlannedHours) * 100) : 0;
+
+  // 2. Dynamic 7-Division Breakdown (HRGA-IT, MED, MOD, PLM, CIVIL, TC, HSE)
+  const barColors = [
+    'bg-[#527FA1]',
+    'bg-[#263640]',
+    'bg-[#E88932]',
+    'bg-[#C27820]',
+    'bg-[#397C69]',
+    'bg-[#18232B]',
+    'bg-[#2C6B58]',
   ];
 
-  // 3. Pass Rate Metric
-  const totalEnrolled = records.length || 6;
-  const totalPassed = records.filter((r) => r.passed).length || 5;
-  const passRate = Math.round((totalPassed / totalEnrolled) * 100);
+  const deptBreakdown = summary.departmentBreakdown.map((d, idx) => {
+    const empCount = activeEmployees.filter((e) => e.department_id === d.departmentId).length;
+    const pct = d.achievementPct !== null ? Math.round(d.achievementPct) : 0;
+    return {
+      code: d.code,
+      name: d.name,
+      empCount,
+      plan: d.plan,
+      realization: d.realization,
+      hours: d.actualHours,
+      target: d.plannedHours,
+      barColor: barColors[idx % barColors.length],
+      pct,
+    };
+  });
 
-  // 4. Category Distribution
-  const categories = [
-    { name: 'Sertifikasi POP / POM ESDM', count: 4, pct: 40, color: 'bg-[#E88932]' },
-    { name: 'K3LH & Hauling Safety', count: 3, pct: 30, color: 'bg-[#263640]' },
-    { name: 'Geoteknik & Kestabilan Lereng', count: 2, pct: 20, color: 'bg-[#397C69]' },
-    { name: 'Sistem Manajemen SMKP Minerba', count: 1, pct: 10, color: 'bg-[#527FA1]' },
+  // 3. Dynamic Achievement & Competency Pass Rate Donut Gauge
+  const overallAchievementPct =
+    summary.achievementPercentage !== null ? Math.round(summary.achievementPercentage) : 0;
+
+  // 4. Dynamic Category Distribution from actual training items
+  const categoryDefs = [
+    { key: 'Certification', name: 'Sertifikasi POP / POM & BNSP', color: 'bg-[#E88932]' },
+    { key: 'Safety', name: 'K3LH & Hauling Safety', color: 'bg-[#263640]' },
+    { key: 'Technical', name: 'Technical, Plant & Operations', color: 'bg-[#397C69]' },
+    { key: 'Compliance', name: 'Regulasi & SMKP Minerba', color: 'bg-[#527FA1]' },
+    { key: 'Leadership', name: 'Supervisory & Leadership', color: 'bg-[#C27820]' },
   ];
 
-  const maxQuarterVal = 300;
+  const totalItemsCount = summary.trainingItems.length;
+  const categories = categoryDefs.map((cat) => {
+    const count = summary.trainingItems.filter(
+      (i) => i.trainingCategory.toLowerCase() === cat.key.toLowerCase()
+    ).length;
+    const pct = totalItemsCount > 0 ? Math.round((count / totalItemsCount) * 100) : 0;
+    return {
+      name: cat.name,
+      count,
+      pct,
+      color: cat.color,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -46,23 +105,23 @@ export const KpiAnalyticsCharts: React.FC = () => {
           <div className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[#E88932]" />
             <h3 className="text-base font-heading font-semibold text-[#18232B]">
-              Analitik & Visualisasi Kinerja Pelatihan
+              Analitik & Visualisasi Kinerja Pelatihan (Real-Time)
             </h3>
           </div>
           <p className="text-xs text-[#5A6B75] mt-0.5">
-            Monitoring realisasi jam pelatihan kuartalan, distribusi kurikulum tambang, dan tingkat kelulusan uji kompetensi.
+            Seluruh persentase, jam pelatihan, komposisi silabus, dan capaian 7 divisi dihitung otomatis dari data aktual.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] bg-white text-[#397C69] text-xs font-medium border border-[#E2E8E8]">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#397C69]" />
-            <span>Data Real-Time Terintegrasi</span>
+            <span>Data Real-Time Terintegrasi ({summary.totalPlan} Program • {activeEmployees.length} Karyawan)</span>
           </span>
         </div>
       </div>
 
-      {/* Row 1: Target vs Realization + Certification Pass Rate */}
+      {/* Row 1: Target vs Realization + Overall Achievement Gauge */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* CHART 1: Target vs Realization - 7 cols */}
         <div className="lg:col-span-7 bg-white p-6 rounded-[12px] border border-[#E2E8E8] flex flex-col justify-between">
@@ -91,8 +150,10 @@ export const KpiAnalyticsCharts: React.FC = () => {
             {/* Bar Chart */}
             <div className="h-56 flex items-end justify-between gap-6 pt-6 pb-2 px-2 border-b border-[#E2E8E8]">
               {quarterlyData.map((item) => {
-                const plannedH = Math.round((item.planned / maxQuarterVal) * 100);
-                const actualH = Math.round((item.actual / maxQuarterVal) * 100);
+                const plannedH =
+                  item.planned > 0 ? Math.max(Math.round((item.planned / maxQuarterVal) * 100), 8) : 2;
+                const actualH =
+                  item.actual > 0 ? Math.max(Math.round((item.actual / maxQuarterVal) * 100), 8) : 2;
                 const isHovered = hoveredQuarter === item.quarter;
 
                 return (
@@ -114,12 +175,12 @@ export const KpiAnalyticsCharts: React.FC = () => {
                     <div className="w-full flex items-end justify-center gap-2 h-full">
                       <div
                         style={{ height: `${plannedH}%` }}
-                        className="w-4 sm:w-6 rounded-t-[4px] bg-[#E2E8E8] transition-all duration-200"
+                        className="w-4 sm:w-6 rounded-t-[4px] bg-[#E2E8E8] transition-all duration-300"
                         title={`Rencana: ${item.planned} jam`}
                       />
                       <div
                         style={{ height: `${actualH}%` }}
-                        className="w-4 sm:w-6 rounded-t-[4px] bg-[#E88932] group-hover:bg-[#D47621] transition-all duration-200"
+                        className="w-4 sm:w-6 rounded-t-[4px] bg-[#E88932] group-hover:bg-[#D47621] transition-all duration-300"
                         title={`Realisasi: ${item.actual} jam`}
                       />
                     </div>
@@ -138,30 +199,34 @@ export const KpiAnalyticsCharts: React.FC = () => {
 
           <div className="mt-4 pt-3 flex flex-wrap justify-between items-center text-xs text-[#5A6B75]">
             <span>
-              Target Tahunan Korporat:{' '}
-              <strong className="font-mono text-[#18232B] tabular-nums">1.000 Jam</strong>
+              Total Rencana Jam:{' '}
+              <strong className="font-mono text-[#18232B] tabular-nums">
+                {totalPlannedHours} Jam
+              </strong>
             </span>
             <span className="font-medium text-[#397C69] flex items-center gap-1 tabular-nums">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>Realisasi YTD: 880 Jam (88% dari target)</span>
+              <span>
+                Realisasi Aktual: {totalActualHours} Jam ({hoursAchievementPct}% dari rencana)
+              </span>
             </span>
           </div>
         </div>
 
-        {/* CHART 2: Certification Pass Rate Donut Gauge - 5 cols */}
+        {/* CHART 2: Real-Time Training Achievement & Manpower Donut Gauge - 5 cols */}
         <div className="lg:col-span-5 bg-white p-6 rounded-[12px] border border-[#E2E8E8] flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-2">
               <div>
                 <span className="text-[11px] font-mono font-medium uppercase tracking-wider text-[#5A6B75]">
-                  EFEKTIVITAS UJI KOMPETENSI
+                  CAPAIAN REALISASI AKTUAL
                 </span>
                 <h4 className="text-sm font-heading font-semibold text-[#18232B] mt-0.5">
-                  Rasio Kelulusan Sertifikasi POP / POM
+                  Persentase Realisasi Program & Peserta
                 </h4>
               </div>
               <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-[#F4F6F5] text-[#263640] border border-[#E2E8E8]">
-                Target: 90%
+                Target: {mockStore.systemSettings.mandatoryAchievementTargetPercent}%
               </span>
             </div>
 
@@ -184,7 +249,7 @@ export const KpiAnalyticsCharts: React.FC = () => {
                     stroke="#397C69"
                     strokeWidth="10"
                     strokeDasharray="251.2"
-                    strokeDashoffset={251.2 - (251.2 * passRate) / 100}
+                    strokeDashoffset={251.2 - (251.2 * Math.min(overallAchievementPct, 100)) / 100}
                     strokeLinecap="round"
                     className="transition-all duration-700 ease-out"
                   />
@@ -192,10 +257,10 @@ export const KpiAnalyticsCharts: React.FC = () => {
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                   <span className="text-3xl font-heading font-bold text-[#18232B] tabular-nums tracking-tight">
-                    {passRate}%
+                    {overallAchievementPct}%
                   </span>
                   <span className="text-[10px] font-mono text-[#5A6B75] uppercase tracking-wider mt-0.5">
-                    First-Attempt Pass
+                    Realisasi ({summary.totalRealization}/{summary.totalPlan})
                   </span>
                 </div>
               </div>
@@ -204,52 +269,57 @@ export const KpiAnalyticsCharts: React.FC = () => {
 
           <div className="space-y-2 pt-3 border-t border-[#E2E8E8] text-xs">
             <div className="flex justify-between">
-              <span className="text-[#5A6B75]">Total Peserta Terdaftar:</span>
+              <span className="text-[#5A6B75]">Total Karyawan Aktif:</span>
               <span className="font-mono font-semibold text-[#18232B] tabular-nums">
-                {totalEnrolled} Peserta
+                {activeEmployees.length} Personel
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#5A6B75]">Tersertifikasi Kompeten (Lulus):</span>
+              <span className="text-[#5A6B75]">Realisasi Peserta Dilatih (Manpower):</span>
               <span className="font-mono font-semibold text-[#397C69] tabular-nums">
-                {totalPassed} Karyawan
+                {summary.totalManpowerTrained} / {summary.totalManpowerPlanned} Peserta
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Row 2: Department Comparison & Category Distribution */}
+      {/* Row 2: 7-Division Comparison & Category Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Department Horizontal Bars - 7 cols */}
         <div className="lg:col-span-7 bg-white p-6 rounded-[12px] border border-[#E2E8E8]">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
             <div>
               <span className="text-[11px] font-mono font-medium uppercase tracking-wider text-[#5A6B75]">
-                PARTISIPASI PER DEPARTEMEN
+                CAPAIAN & PARTISIPASI 7 DIVISI
               </span>
               <h4 className="text-sm font-heading font-semibold text-[#18232B] mt-0.5">
-                Rata-Rata Jam Pelatihan per Karyawan
+                Realisasi Program, Jam Pelatihan & Personel per Divisi
               </h4>
             </div>
             <span className="text-xs font-mono text-[#5A6B75]">
-              Benchmark Site: 40 Jam / Thn
+              7 Divisi Resmi PT. RAJA
             </span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {deptBreakdown.map((dept) => (
               <div key={dept.code} className="space-y-1.5">
-                <div className="flex justify-between text-xs">
+                <div className="flex flex-wrap justify-between gap-2 text-xs">
                   <span className="font-medium text-[#18232B] flex items-center gap-2">
-                    <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-[#F4F6F5] text-[#263640] border border-[#E2E8E8]">
+                    <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-[#F4F6F5] text-[#263640] border border-[#E2E8E8] font-bold">
                       {dept.code}
                     </span>
-                    <span>{dept.name}</span>
+                    <span className="truncate max-w-[200px] sm:max-w-xs">{dept.name}</span>
+                    <span className="text-[10px] font-mono text-[#5A6B75]">
+                      ({dept.empCount} Karyawan)
+                    </span>
                   </span>
                   <div className="flex items-center gap-2 font-mono tabular-nums">
-                    <span className="font-semibold text-[#18232B]">{dept.hours} jam</span>
-                    <span className="text-[11px] text-[#5A6B75]">/ {dept.target} target</span>
+                    <span className="font-bold text-[#18232B]">{dept.pct}%</span>
+                    <span className="text-[11px] text-[#5A6B75]">
+                      ({dept.realization}/{dept.plan} prog • {dept.hours}/{dept.target} jam)
+                    </span>
                   </div>
                 </div>
 
@@ -264,8 +334,10 @@ export const KpiAnalyticsCharts: React.FC = () => {
           </div>
 
           <div className="mt-5 pt-3 border-t border-[#E2E8E8] flex items-center justify-between text-xs text-[#5A6B75]">
-            <span>Sesuai standar pemenuhan kompetensi ESDM</span>
-            <span className="font-medium text-[#E88932]">MOD & HSE Melampaui Target</span>
+            <span>Otomatis berubah saat data training atau karyawan ditambah/diedit/dihapus</span>
+            <span className="font-mono font-semibold text-[#E88932]">
+              Total: {summary.totalRealization}/{summary.totalPlan} Terlaksana
+            </span>
           </div>
         </div>
 
@@ -275,10 +347,10 @@ export const KpiAnalyticsCharts: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <div>
                 <span className="text-[11px] font-mono font-medium uppercase tracking-wider text-[#5A6B75]">
-                  KOMPOSISI SILABUS
+                  KOMPOSISI SILABUS AKTUAL
                 </span>
                 <h4 className="text-sm font-heading font-semibold text-[#18232B] mt-0.5">
-                  Distribusi Topik Pelatihan Aktif
+                  Distribusi Kategori Pelatihan ({totalItemsCount} Program)
                 </h4>
               </div>
               <PieChart className="w-4 h-4 text-[#5A6B75]" />
@@ -288,15 +360,23 @@ export const KpiAnalyticsCharts: React.FC = () => {
               {categories.map((cat, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 rounded-[8px] bg-[#F4F6F5] border border-[#E2E8E8] text-xs"
+                  className="p-3 rounded-[8px] bg-[#F4F6F5] border border-[#E2E8E8] text-xs space-y-1.5"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-2.5 h-2.5 rounded-full ${cat.color}`} />
-                    <span className="font-medium text-[#18232B]">{cat.name}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-2.5 h-2.5 rounded-full ${cat.color}`} />
+                      <span className="font-medium text-[#18232B]">{cat.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 font-mono tabular-nums">
+                      <span className="font-semibold text-[#18232B]">{cat.pct}%</span>
+                      <span className="text-[11px] text-[#5A6B75]">({cat.count} modul)</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 font-mono tabular-nums">
-                    <span className="font-semibold text-[#18232B]">{cat.pct}%</span>
-                    <span className="text-[11px] text-[#5A6B75]">({cat.count} modul)</span>
+                  <div className="w-full h-1.5 bg-white rounded-full overflow-hidden">
+                    <div
+                      style={{ width: `${Math.min(cat.pct, 100)}%` }}
+                      className={`h-full ${cat.color} transition-all duration-300`}
+                    />
                   </div>
                 </div>
               ))}
@@ -304,7 +384,7 @@ export const KpiAnalyticsCharts: React.FC = () => {
           </div>
 
           <div className="mt-4 pt-3 border-t border-[#E2E8E8] text-xs text-[#5A6B75] flex items-center justify-between">
-            <span>Kurikulum disetujui HOD TC & PJO</span>
+            <span>Dihitung langsung dari daftar Data Training aktif</span>
             <span className="font-mono text-[11px] text-[#263640]">SMKP Compliant</span>
           </div>
         </div>

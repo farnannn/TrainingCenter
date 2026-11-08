@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
-import { TrainingApplication } from '../../lib/types';
+import { TrainingApplication, getRolePermissions } from '../../lib/types';
 import { CreateApplicationModal } from '../applications/CreateApplicationModal';
 import { ApplicationDetailModal } from '../applications/ApplicationDetailModal';
 import { KpiAnalyticsCharts } from '../charts/KpiAnalyticsCharts';
@@ -17,19 +17,26 @@ import {
   RotateCcw,
   CheckCircle2,
   Eye,
+  Target,
 } from 'lucide-react';
 
 interface DepartmentUserDashboardProps {
   onNavigate: (tab: string) => void;
 }
 
-export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = () => {
+export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = ({
+  onNavigate,
+}) => {
   const { currentUser, refreshState } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedApp, setSelectedApp] = useState<TrainingApplication | null>(null);
 
+  const perms = getRolePermissions(currentUser.role_code);
+  const isHrga = currentUser.role_code === 'ADMIN_HRGA';
+
   const deptApps = mockStore.getVisibleApplications(currentUser.id);
   const deptEmployees = mockStore.getVisibleEmployees(currentUser.id);
+  const achievement = mockStore.calculateTrainingAchievement({ year: '2026' });
 
   // Revision alert: Applications in DRAFT that have approval history indicating return by HOD or PJO
   const returnedForRevisionApps = deptApps.filter((a) => {
@@ -49,37 +56,56 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
       a.current_status === 'COMPLETED'
   ).length;
 
-  const deptCertsCount = mockStore.certifications.filter((c) => {
-    const emp = mockStore.employees.find((e) => e.id === c.employee_id);
-    return emp && emp.department_id === mockStore.getUserActiveDeptId(currentUser.id);
-  }).length;
+  const deptCertsCount = mockStore.certifications.length;
 
   return (
     <div className="space-y-6">
-      {/* 1. Department Representative Header Banner */}
+      {/* 1. Admin / Admin HRGA Header Banner */}
       <div className="bg-[#18232B] bg-topography text-white p-6 rounded-[12px] border border-[#263640]">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
             <div className="flex items-center gap-2 text-[#E88932] text-xs font-mono font-semibold uppercase tracking-wider">
               <Building2 className="w-4 h-4" />
-              <span>Perwakilan Departemen Aktif • {currentUser.department_name}</span>
+              <span>
+                {isHrga
+                  ? 'Admin HRGA • HRGA Data Management & Achievement Monitoring'
+                  : 'Admin • Operational Training Data & Achievement Management'}
+              </span>
             </div>
             <h2 className="text-xl font-heading font-bold mt-1">
-              Portal Pengajuan & Monitoring Pelatihan Departemen
+              {isHrga
+                ? 'HRGA Training & Personnel Competency Portal'
+                : 'Operational Training & Achievement Management Portal'}
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Perwakilan aktif tunggal untuk {currentUser.department_name}. Ajukan dan pantau progres persetujuan pelatihan personel departemen Anda.
+              {isHrga
+                ? 'Mengelola data training dan direktori personel HRGA (Input, Edit, Delete) serta memantau laporan Training Achievement korporat (View).'
+                : 'Kewenangan operasional penuh untuk menginput, mengedit, dan menghapus data training serta mengelola capaian realisasi pada fitur Training Achievement.'}
             </p>
           </div>
 
-          <Button
-            variant="primary"
-            size="md"
-            icon={<Plus className="w-4 h-4" />}
-            onClick={() => setShowCreateModal(true)}
-          >
-            Ajukan Training Baru
-          </Button>
+          <div className="flex flex-wrap gap-2.5">
+            <Button
+              variant="secondary"
+              size="md"
+              icon={<Target className="w-4 h-4" />}
+              onClick={() => onNavigate('achievement')}
+            >
+              {perms.trainingAchievement === 'EDIT'
+                ? 'Kelola Training Achievement'
+                : 'Lihat Training Achievement'}
+            </Button>
+            {perms.canInputData && (
+              <Button
+                variant="primary"
+                size="md"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={() => setShowCreateModal(true)}
+              >
+                Input Data Training Baru
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -93,7 +119,7 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
             </span>
           </div>
           <p className="text-xs text-[#263640]">
-            HOD Training Center atau PJO telah mengembalikan pengajuan berikut disertai catatan evaluasi. Silakan periksa catatan, perbarui data, dan kirim ulang.
+            Silakan periksa catatan evaluasi, perbarui data, dan kirim ulang.
           </p>
 
           <div className="divide-y divide-[#D5A33D]/25 mt-2">
@@ -107,16 +133,6 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
                     {app.application_number}
                   </span>{' '}
                   — <span className="font-medium">{app.training_title}</span>
-                  {app.hod_comments && (
-                    <div className="text-[11px] text-[#8C6412] italic mt-0.5">
-                      "HOD: {app.hod_comments}"
-                    </div>
-                  )}
-                  {app.pjo_comments && (
-                    <div className="text-[11px] text-[#8C6412] italic mt-0.5">
-                      "PJO: {app.pjo_comments}"
-                    </div>
-                  )}
                 </div>
                 <Button
                   variant="revision"
@@ -134,40 +150,44 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
       {/* 3. Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          title="Personel Departemen"
+          title="Capaian Training (2026)"
+          value={
+            achievement.achievementPercentage !== null
+              ? `${achievement.achievementPercentage}%`
+              : 'N/A'
+          }
+          comparison={`${achievement.totalRealization}/${achievement.totalPlan} Terlaksana`}
+          trend="up"
+          trendIsGood={true}
+          subtitle={`${achievement.totalManpowerTrained} Manpower Trained`}
+          icon={<Target className="w-4 h-4" />}
+          tone="success"
+        />
+        <KpiCard
+          title="Total Personel Terdaftar"
           value={deptEmployees.length}
           comparison="Karyawan Aktif"
           trend="neutral"
-          subtitle={currentUser.department_name || 'Roster'}
+          subtitle="Database Karyawan"
           icon={<Users className="w-4 h-4" />}
           tone="default"
         />
         <KpiCard
           title="Dalam Proses Review"
           value={underReviewCount}
-          comparison="HOD / PJO Stage"
+          comparison="Menunggu Verifikasi"
           trend="neutral"
-          subtitle="Menunggu Verifikasi"
+          subtitle={`${approvedCount} Disetujui / Selesai`}
           icon={<Clock className="w-4 h-4" />}
           tone="info"
         />
         <KpiCard
-          title="Disetujui / Selesai"
-          value={approvedCount}
-          comparison="Otorisasi Penuh"
-          trend="up"
-          trendIsGood={true}
-          subtitle="Program Terverifikasi"
-          icon={<CheckCircle2 className="w-4 h-4" />}
-          tone="success"
-        />
-        <KpiCard
-          title="Sertifikasi Departemen"
+          title="Sertifikasi Terbit"
           value={deptCertsCount}
           comparison="Terbit & Aktif"
           trend="up"
           trendIsGood={true}
-          subtitle="Lisensi Tim"
+          subtitle="Kompetensi Personel"
           icon={<Award className="w-4 h-4" />}
           tone="orange"
         />
@@ -177,21 +197,32 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
       <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
         <div className="px-6 py-4 bg-[#F4F6F5] border-b border-[#E2E8E8] flex flex-wrap justify-between items-center gap-3">
           <h3 className="text-xs font-heading font-bold text-[#18232B] uppercase tracking-wider">
-            Daftar Pengajuan Training {currentUser.department_name} ({deptApps.length})
+            Daftar Data Training & Pengajuan ({deptApps.length})
           </h3>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Plus className="w-3.5 h-3.5" />}
-            onClick={() => setShowCreateModal(true)}
-          >
-            Buat Pengajuan
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigate('applications')}
+            >
+              Kelola Semua Data Training
+            </Button>
+            {perms.canInputData && (
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Plus className="w-3.5 h-3.5" />}
+                onClick={() => setShowCreateModal(true)}
+              >
+                Input Data Training
+              </Button>
+            )}
+          </div>
         </div>
 
         {deptApps.length === 0 ? (
           <div className="p-8 text-center text-xs text-[#5A6B75]">
-            Belum ada pengajuan pelatihan untuk departemen Anda. Klik "Ajukan Training Baru" untuk memulai.
+            Belum ada data pelatihan. Klik "Input Data Training" untuk menambahkan.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -199,6 +230,7 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
               <thead className="bg-[#F4F6F5]/60 text-[#5A6B75] font-medium border-b border-[#E2E8E8]">
                 <tr>
                   <th className="px-6 py-3">Nomor & Judul Pelatihan</th>
+                  <th className="px-6 py-3">Departemen</th>
                   <th className="px-6 py-3">Peserta</th>
                   <th className="px-6 py-3">Rentang Jadwal</th>
                   <th className="px-6 py-3">Status Saat Ini</th>
@@ -206,7 +238,7 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E8E8]">
-                {deptApps.map((app) => (
+                {deptApps.slice(0, 8).map((app) => (
                   <tr key={app.id} className="hover:bg-[#F4F6F5]/50 transition-colors">
                     <td className="px-6 py-3.5">
                       <div className="font-mono text-[11px] font-semibold text-[#E88932]">
@@ -218,6 +250,9 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
                       <div className="text-[11px] text-[#5A6B75]">
                         {app.training_category} • {app.training_type}
                       </div>
+                    </td>
+                    <td className="px-6 py-3.5 font-medium text-[#18232B]">
+                      {app.department_name}
                     </td>
                     <td className="px-6 py-3.5 font-mono font-medium text-[#263640] tabular-nums">
                       {app.participants?.length || 0} Personel
@@ -235,7 +270,7 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
                         icon={<Eye className="w-3.5 h-3.5" />}
                         onClick={() => setSelectedApp(app)}
                       >
-                        Lihat Progres
+                        Lihat Detail
                       </Button>
                     </td>
                   </tr>

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
+import { getRolePermissions } from '../../lib/types';
 import { RajaLogo } from '../ui/RajaLogo';
 import { Button } from '../ui/Button';
 import {
@@ -53,13 +54,7 @@ export const CertificationList: React.FC = () => {
     : null;
 
   // All visible certificates across allowed scope
-  const visibleCerts = mockStore.certifications.filter((c) => {
-    if (role === 'DEPARTMENT_USER') {
-      const emp = mockStore.employees.find((e) => e.id === c.employee_id);
-      return emp && emp.department_id === deptId;
-    }
-    return true;
-  });
+  const visibleCerts = mockStore.certifications;
 
   // Combined Training & Certification History for the selected employee
   const employeeHistoryItems = React.useMemo(() => {
@@ -171,6 +166,7 @@ export const CertificationList: React.FC = () => {
       created_at: new Date().toISOString(),
     });
 
+    mockStore.persistState();
     refreshState();
     setCertName('');
     setCertNo('');
@@ -221,7 +217,8 @@ export const CertificationList: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const canManageCerts = role === 'SUPER_ADMIN' || role === 'ADMIN_HOD_TC';
+  const perms = getRolePermissions(role);
+  const canManageCerts = perms.canEditData;
 
   const filteredEmployees = visibleEmployees.filter(
     (e) =>
@@ -240,9 +237,7 @@ export const CertificationList: React.FC = () => {
             <span>Data Sertifikasi & Training History Report</span>
           </h3>
           <p className="text-xs text-[#5A6B75] mt-0.5">
-            {role === 'DEPARTMENT_USER'
-              ? `Rekam jejak pelatihan & sertifikasi personel departemen ${currentUser.department_name}`
-              : 'Rekam jejak sertifikasi kompetensi dan riwayat pelatihan seluruh personel PT. Roda Jaya Sakti'}
+            Rekam jejak sertifikasi kompetensi dan riwayat pelatihan seluruh personel PT. Roda Jaya Sakti
           </p>
         </div>
 

@@ -1,16 +1,17 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { getRolePermissions, RoleCode } from '../../lib/types';
 import { RajaLogo } from '../ui/RajaLogo';
 import {
   LayoutDashboard,
+  Target,
   FileText,
   CalendarDays,
   Award,
   BarChart3,
   Users,
-  Building,
-  FileCheck,
-  History,
+  ShieldCheck,
+  Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -35,66 +36,87 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
 }) => {
   const { currentUser, logout } = useAuth();
-  const role = currentUser.role_code;
+  const role: RoleCode = currentUser.role_code;
+  const perms = getRolePermissions(role);
+
+  const allSixRoles: RoleCode[] = [
+    'SUPER_ADMIN',
+    'ADMIN',
+    'PJO',
+    'MANAGER_TC',
+    'ADMIN_TC',
+    'ADMIN_HRGA',
+  ];
 
   const navItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
       icon: <LayoutDashboard className="w-4 h-4 shrink-0" />,
-      roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'ADMIN_PJO', 'DEPARTMENT_USER'],
+      visible: true,
+      roles: allSixRoles,
+    },
+    {
+      id: 'achievement',
+      label: 'Training Achievement',
+      icon: <Target className="w-4 h-4 shrink-0" />,
+      visible: true,
+      roles: allSixRoles,
     },
     {
       id: 'applications',
-      label: 'Pengajuan Training',
+      label: 'Data Training',
       icon: <FileText className="w-4 h-4 shrink-0" />,
-      roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'ADMIN_PJO', 'DEPARTMENT_USER'],
-    },
-    {
-      id: 'approval_queue',
-      label: role === 'ADMIN_PJO' ? 'Otorisasi PJO (Queue)' : 'Review HOD (Queue)',
-      icon: <FileCheck className="w-4 h-4 shrink-0" />,
-      roles: ['ADMIN_HOD_TC', 'ADMIN_PJO'],
+      visible: true,
+      roles: allSixRoles,
     },
     {
       id: 'schedules',
       label: 'Historical & Jadwal',
       icon: <CalendarDays className="w-4 h-4 shrink-0" />,
-      roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'DEPARTMENT_USER'],
+      visible: true,
+      roles: allSixRoles,
     },
     {
       id: 'certifications',
       label: 'Data Sertifikasi',
       icon: <Award className="w-4 h-4 shrink-0" />,
-      roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'ADMIN_PJO', 'DEPARTMENT_USER'],
+      visible: true,
+      roles: allSixRoles,
     },
     {
       id: 'kpi',
       label: 'KPI Training Center',
       icon: <BarChart3 className="w-4 h-4 shrink-0" />,
-      roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'ADMIN_PJO'],
-    },
-    {
-      id: 'assignments',
-      label: 'Penugasan Departemen',
-      icon: <Building className="w-4 h-4 shrink-0" />,
-      roles: ['SUPER_ADMIN'],
+      visible: true,
+      roles: allSixRoles,
     },
     {
       id: 'employees',
-      label: role === 'DEPARTMENT_USER' ? 'Personel Departemen' : 'Data Karyawan',
+      label: 'Data Karyawan',
       icon: <Users className="w-4 h-4 shrink-0" />,
-      roles: ['SUPER_ADMIN', 'ADMIN_HOD_TC', 'DEPARTMENT_USER'],
+      visible: true,
+      roles: allSixRoles,
     },
     {
-      id: 'audit_logs',
-      label: 'Audit Trail',
-      icon: <History className="w-4 h-4 shrink-0" />,
-      roles: ['SUPER_ADMIN'],
+      id: 'assignments',
+      label: 'User Management',
+      icon: <ShieldCheck className="w-4 h-4 shrink-0" />,
+      visible: perms.canManageUsers,
+      roles: ['SUPER_ADMIN'] as RoleCode[],
+    },
+    {
+      id: 'system_settings',
+      label: 'System Settings',
+      icon: <Settings className="w-4 h-4 shrink-0" />,
+      visible: perms.canManageSystemSettings,
+      roles: ['SUPER_ADMIN'] as RoleCode[],
     },
   ];
 
-  const visibleItems = navItems.filter((item) => item.roles.includes(role));
+  const visibleItems = navItems.filter(
+    (item) => item.visible && item.roles.includes(role)
+  );
 
   const initials = currentUser.full_name
     .split(' ')
@@ -118,7 +140,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {isCollapsed ? (
               <RajaLogo variant="compact" />
             ) : (
-              <RajaLogo variant="on-dark" heightClass="h-7" />
+              <div className="flex items-center gap-2.5 min-w-0">
+                <RajaLogo variant="on-dark" heightClass="h-6" />
+                <div className="min-w-0 leading-tight">
+                  <div className="text-xs font-heading font-bold text-white tracking-tight truncate">
+                    RAJA ACADEMY
+                  </div>
+                  <div className="text-[9px] font-mono text-[#E88932] truncate">
+                    TRAINING CENTER
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -150,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
           {!isCollapsed && (
             <div className="px-3 pb-2 text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wider">
-              Menu Utama
+              Menu Utama ({currentUser.role_name})
             </div>
           )}
 
@@ -169,7 +201,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : 'text-slate-300 hover:bg-[#263640]/60 hover:text-white'
                 }`}
               >
-                {/* Safety Orange Active Indicator Bar */}
                 {isActive && (
                   <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-[#E88932]" />
                 )}
@@ -242,7 +273,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Desktop Sidebar */}
       <aside
         className={`hidden lg:block shrink-0 transition-all duration-200 border-r border-[#263640] ${
           collapsed ? 'w-[72px]' : 'w-[256px]'
@@ -251,7 +281,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="sticky top-0 h-screen">{renderSidebarContent(false)}</div>
       </aside>
 
-      {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div

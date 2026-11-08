@@ -10,6 +10,9 @@ interface AuthContextType {
   departments: Department[];
   notifications: Notification[];
   unreadCount: number;
+  cloudStatus: 'ONLINE_SYNCED' | 'SYNCING' | 'LOCAL_CACHE';
+  lastCloudSyncAt: string | null;
+  supabaseProjectRef: string;
   login: (email: string, password?: string) => boolean;
   loginAsUser: (userId: string) => void;
   logout: () => void;
@@ -28,10 +31,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [cloudStatus, setCloudStatus] = useState<'ONLINE_SYNCED' | 'SYNCING' | 'LOCAL_CACHE'>(
+    mockStore.cloudStatus
+  );
+  const [lastCloudSyncAt, setLastCloudSyncAt] = useState<string | null>(
+    mockStore.lastCloudSyncAt
+  );
 
   const refreshState = () => {
     setRefreshTrigger((prev) => prev + 1);
   };
+
+  // Subscribe to mockStore cloud sync changes and initialize Supabase Online sync on mount
+  useEffect(() => {
+    const unsubscribe = mockStore.subscribe(() => {
+      setCloudStatus(mockStore.cloudStatus);
+      setLastCloudSyncAt(mockStore.lastCloudSyncAt);
+      setRefreshTrigger((prev) => prev + 1);
+    });
+
+    mockStore.initCloudSync();
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const user = mockStore.users.find((u) => u.id === currentUserId) || mockStore.users[0];
@@ -87,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (notif) {
       notif.is_read = true;
       notif.read_at = new Date().toISOString();
+      mockStore.persistState();
       refreshState();
     }
   };
@@ -98,6 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         n.is_read = true;
         n.read_at = new Date().toISOString();
       });
+    mockStore.persistState();
     refreshState();
   };
 
@@ -113,6 +139,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         departments: mockStore.departments,
         notifications,
         unreadCount,
+        cloudStatus,
+        lastCloudSyncAt,
+        supabaseProjectRef: mockStore.supabaseProjectRef,
         login,
         loginAsUser,
         logout,

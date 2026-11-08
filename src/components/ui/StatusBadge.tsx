@@ -73,6 +73,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
           icon: <XCircle className="w-3 h-3" />,
           classes: 'bg-[#B94C45]/12 text-[#93332D] border-[#B94C45]/35',
         };
+      case 'CANCELLED':
+        return {
+          label: 'Cancelled',
+          icon: <XCircle className="w-3 h-3" />,
+          classes: 'bg-[#B94C45]/12 text-[#93332D] border-[#B94C45]/35',
+        };
       default:
         return {
           label: st.replace(/_/g, ' '),

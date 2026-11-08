@@ -9,6 +9,7 @@ import {
   UserCheck,
   Layers,
   Building2,
+  Settings,
   X,
   ArrowRight,
   AlertCircle,
@@ -38,7 +39,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       onClose();
     } else {
       setError(
-        'Akun tidak ditemukan atau tidak aktif. Silakan gunakan pilihan Akun Demo Cepat di bawah.'
+        'Akun tidak ditemukan atau tidak aktif. Silakan gunakan pilihan 6 Role Resmi di bawah.'
       );
     }
   };
@@ -56,28 +57,40 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           tag: 'Super Admin',
           style: 'bg-[#B94C45]/10 text-[#B94C45] border-[#B94C45]/25',
         };
-      case 'ADMIN_HOD_TC':
+      case 'ADMIN':
         return {
-          icon: <Layers className="w-3.5 h-3.5 text-[#527FA1]" />,
-          tag: 'HOD TC (Stage 1)',
-          style: 'bg-[#527FA1]/10 text-[#527FA1] border-[#527FA1]/25',
+          icon: <Settings className="w-3.5 h-3.5 text-[#397C69]" />,
+          tag: 'Admin',
+          style: 'bg-[#397C69]/10 text-[#397C69] border-[#397C69]/25',
         };
-      case 'ADMIN_PJO':
+      case 'PJO':
         return {
           icon: <UserCheck className="w-3.5 h-3.5 text-[#E88932]" />,
-          tag: 'PJO (Final Auth)',
+          tag: 'PJO (View Only)',
           style: 'bg-[#E88932]/12 text-[#C26A1B] border-[#E88932]/30',
         };
-      case 'DEPARTMENT_USER':
+      case 'MANAGER_TC':
         return {
-          icon: <Building2 className="w-3.5 h-3.5 text-[#397C69]" />,
-          tag: 'Dept Rep',
+          icon: <Layers className="w-3.5 h-3.5 text-[#527FA1]" />,
+          tag: 'Manager TC',
+          style: 'bg-[#527FA1]/10 text-[#527FA1] border-[#527FA1]/25',
+        };
+      case 'ADMIN_TC':
+        return {
+          icon: <Layers className="w-3.5 h-3.5 text-[#397C69]" />,
+          tag: 'Admin TC',
           style: 'bg-[#397C69]/10 text-[#397C69] border-[#397C69]/25',
+        };
+      case 'ADMIN_HRGA':
+        return {
+          icon: <Building2 className="w-3.5 h-3.5 text-[#527FA1]" />,
+          tag: 'Admin HRGA',
+          style: 'bg-[#527FA1]/10 text-[#527FA1] border-[#527FA1]/25',
         };
       default:
         return {
           icon: null,
-          tag: 'Staff',
+          tag: roleCode,
           style: 'bg-[#F4F6F5] text-[#263640] border-[#E2E8E8]',
         };
     }
@@ -88,17 +101,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       <div className="bg-white rounded-[16px] shadow-2xl border border-[#E2E8E8] max-w-4xl w-full overflow-hidden grid grid-cols-1 lg:grid-cols-12">
         {/* LEFT SIDE: Open-Pit Mining Photograph + Dark Charcoal Overlay + Topographic Pattern */}
         <div className="lg:col-span-5 relative bg-[#18232B] text-white p-7 sm:p-8 flex flex-col justify-between overflow-hidden">
-          {/* Mining Landscape Photography Layer */}
           <div
             className="absolute inset-0 bg-cover bg-center opacity-35 mix-blend-luminosity"
             style={{
               backgroundImage: `url('https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=1000&q=80')`,
             }}
           />
-          {/* Deep Charcoal Gradient Overlay + Topographic Contour Pattern */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#18232B]/90 via-[#18232B]/85 to-[#18232B]/95 bg-topography" />
 
-          {/* Top Branding */}
           <div className="relative z-10">
             <div className="flex items-center gap-3">
               <RajaLogo variant="on-dark" heightClass="h-8" />
@@ -107,26 +117,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <div className="mt-8">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#263640] border border-white/10 text-[11px] text-[#E88932] font-medium">
                 <HardHat className="w-3.5 h-3.5" />
-                <span>Training Historical & Reporting</span>
+                <span>RAJA ACADEMY • Training Historical & Reporting</span>
               </span>
               <h2 className="mt-3 text-xl font-heading font-bold text-white leading-snug">
-                Sistem Informasi Pelatihan & Sertifikasi Operasional Tambang
+                Sistem Informasi Pelatihan, Capaian & Sertifikasi Operasional Tambang
               </h2>
               <p className="mt-3 text-xs text-slate-300 leading-relaxed">
-                Platform terpadu pengelolaan pengajuan training departemen, evaluasi kurikulum HOD Training Center, dan otorisasi operasional terpusat oleh PJO sesuai kaidah Kepmen ESDM 1827 K/2018.
+                Platform terpadu pengelolaan data training, perhitungan otomatis Training Achievement (Plan vs Realization), dan pelaporan kompetensi PT. Roda Jaya Sakti.
               </p>
             </div>
           </div>
 
-          {/* Bottom Governance Metadata */}
           <div className="relative z-10 mt-8 pt-5 border-t border-white/10 space-y-2.5 text-[11px] text-slate-300">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-[#E88932] shrink-0" />
-              <span>Persetujuan Bertingkat (HOD TC → PJO Final)</span>
+              <span>6 Role Resmi RBAC Terintegrasi</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-[#E88932] shrink-0" />
-              <span>Isolasi Data Departemen via Supabase RLS</span>
+              <span>Fitur Training Achievement (Realization / Plan)</span>
             </div>
             <div className="flex items-center gap-2 pt-1 text-slate-400">
               <MapPin className="w-3.5 h-3.5 text-[#E88932] shrink-0" />
@@ -151,25 +160,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 OTENTIKASI PORTAL INTERNAL
               </span>
               <h3 className="text-lg font-heading font-bold text-[#18232B] mt-0.5">
-                Masuk ke THR Dashboard
+                Masuk ke RAJA ACADEMY
               </h3>
               <p className="text-xs text-[#5A6B75] mt-1">
-                Pilih akun demonstrasi sesuai peran fungsional atau masuk dengan email korporat.
+                Pilih salah satu dari 6 Role resmi di bawah ini atau masuk dengan email korporat.
               </p>
             </div>
 
-            {/* 1-Click Role Demo Accounts */}
+            {/* 1-Click Role Demo Accounts (Strictly 6 Roles) */}
             <div className="mt-5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-semibold text-[#263640] uppercase tracking-wider">
-                  Akses Cepat Akun Peran (1-Click Demo)
+                  Pilih Role Akses (1-Click Login)
                 </span>
-                <span className="text-[11px] font-mono text-[#5A6B75]">
-                  4 Role Fungsional
+                <span className="text-[11px] font-mono text-[#E88932] font-semibold">
+                  6 Role Resmi RBAC
                 </span>
               </div>
 
-              <div className="space-y-2 max-h-[230px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
                 {availableUsers.map((user) => {
                   const badge = getRoleBadge(user.role_code);
                   const initials = user.full_name
@@ -216,7 +225,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Divider */}
-            <div className="relative flex items-center justify-center my-5">
+            <div className="relative flex items-center justify-center my-4">
               <div className="border-t border-[#E2E8E8] w-full" />
               <span className="bg-white px-3 text-[10px] font-mono uppercase tracking-wider text-[#5A6B75] shrink-0">
                 Atau Kredensial Manual
@@ -243,7 +252,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="nama@rodajayasakti.id"
+                      placeholder="nama@ptraja.com"
                       className="w-full h-[38px] pl-9 pr-3 text-xs bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] text-[#18232B] focus:bg-white focus:outline-none focus:border-[#E88932]"
                     />
                   </div>
@@ -267,16 +276,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               <div className="pt-1">
-                <Button type="submit" variant="primary" fullWidth icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  fullWidth
+                  icon={<ArrowRight className="w-4 h-4" />}
+                  iconPosition="right"
+                >
                   Masuk ke Portal Internal
                 </Button>
               </div>
             </form>
           </div>
 
-          <div className="mt-5 pt-3 border-t border-[#E2E8E8] flex items-center justify-between text-[11px] text-[#5A6B75]">
-            <span>Keamanan Terverifikasi • Supabase Auth & RLS</span>
-            <span className="font-mono">v2.6 Enterprise</span>
+          <div className="mt-4 pt-3 border-t border-[#E2E8E8] flex items-center justify-between text-[11px] text-[#5A6B75]">
+            <span>RBAC 6 Role Terverifikasi • Supabase Auth & RLS</span>
+            <span className="font-mono">v3.0 Enterprise</span>
           </div>
         </div>
       </div>

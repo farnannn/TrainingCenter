@@ -8,10 +8,12 @@ import { SuperAdminDashboard } from './components/dashboard/SuperAdminDashboard'
 import { HodDashboard } from './components/dashboard/HodDashboard';
 import { PjoDashboard } from './components/dashboard/PjoDashboard';
 import { DepartmentUserDashboard } from './components/dashboard/DepartmentUserDashboard';
+import { TrainingAchievementView } from './components/achievement/TrainingAchievementView';
 import { ApplicationList } from './components/applications/ApplicationList';
 import { TrainingScheduleManager } from './components/schedules/TrainingScheduleManager';
 import { CertificationList } from './components/certifications/CertificationList';
 import { DepartmentAssignmentManager } from './components/assignments/DepartmentAssignmentManager';
+import { SystemSettingsManager } from './components/settings/SystemSettingsManager';
 import { EmployeeRoster } from './components/employees/EmployeeRoster';
 import { KpiOverview } from './components/kpi/KpiOverview';
 import { AuditLogViewer } from './components/audit/AuditLogViewer';
@@ -27,19 +29,21 @@ export const App: React.FC = () => {
     return <PublicCompanyLanding />;
   }
 
-  // After login: Clean enterprise workspace without Visi & Misi
+  // After login: Clean enterprise workspace mapped to the 6 Official Roles
   const renderDashboardByRole = () => {
     switch (currentUser.role_code) {
       case 'SUPER_ADMIN':
         return <SuperAdminDashboard onNavigate={setCurrentTab} />;
-      case 'ADMIN_HOD_TC':
+      case 'MANAGER_TC':
+      case 'ADMIN_TC':
         return <HodDashboard onNavigate={setCurrentTab} />;
-      case 'ADMIN_PJO':
+      case 'PJO':
         return <PjoDashboard onNavigate={setCurrentTab} />;
-      case 'DEPARTMENT_USER':
+      case 'ADMIN':
+      case 'ADMIN_HRGA':
         return <DepartmentUserDashboard onNavigate={setCurrentTab} />;
       default:
-        return <div>Unknown Role</div>;
+        return <SuperAdminDashboard onNavigate={setCurrentTab} />;
     }
   };
 
@@ -47,25 +51,27 @@ export const App: React.FC = () => {
     switch (currentTab) {
       case 'dashboard':
         return renderDashboardByRole();
+      case 'achievement':
+        return <TrainingAchievementView />;
       case 'applications':
         return <ApplicationList />;
       case 'approval_queue':
         return (
           <ApplicationList
             filterStatus={
-              currentUser.role_code === 'ADMIN_PJO'
+              currentUser.role_code === 'PJO'
                 ? 'PENDING_PJO'
                 : 'UNDER_HOD_REVIEW'
             }
             title={
-              currentUser.role_code === 'ADMIN_PJO'
-                ? 'PJO Final Review Queue (Stage 2)'
-                : 'Incoming HOD Review Queue (Stage 1)'
+              currentUser.role_code === 'PJO'
+                ? 'Antrean Review PJO (View Only)'
+                : 'Antrean Verifikasi Training Center (Stage 1)'
             }
             subtitle={
-              currentUser.role_code === 'ADMIN_PJO'
-                ? 'Applications verified by HOD TC awaiting final executive authorization'
-                : 'Applications submitted by Department Users awaiting curriculum & feasibility approval'
+              currentUser.role_code === 'PJO'
+                ? 'Monitoring berkas pengajuan training yang menunggu verifikasi akhir'
+                : 'Pengajuan pelatihan departemen yang menunggu verifikasi kurikulum & kelayakan oleh Manager TC / Admin TC'
             }
           />
         );
@@ -77,6 +83,8 @@ export const App: React.FC = () => {
         return <KpiOverview />;
       case 'assignments':
         return <DepartmentAssignmentManager />;
+      case 'system_settings':
+        return <SystemSettingsManager />;
       case 'employees':
         return <EmployeeRoster />;
       case 'audit_logs':
@@ -88,7 +96,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F4F6F5] text-[#18232B] font-sans">
-      {/* Top Role Switcher Bar for Quick Multi-Role Testing */}
+      {/* Top Role Switcher Bar for Quick 6-Role Testing */}
       <RoleSwitcher />
 
       {/* Main Enterprise Shell: Collapsible Sidebar + Off-White Content Area */}

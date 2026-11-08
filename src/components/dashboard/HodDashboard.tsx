@@ -16,6 +16,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Eye,
+  Target,
 } from 'lucide-react';
 
 interface HodDashboardProps {
@@ -32,6 +33,9 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
   const readyToSchedule = applications.filter((a) => a.current_status === 'APPROVED');
   const activeSchedules = mockStore.schedules.filter((s) => s.status !== 'COMPLETED');
   const totalCerts = mockStore.certifications.length;
+  const achievement = mockStore.calculateTrainingAchievement({ year: '2026' });
+
+  const isManagerTc = currentUser.role_code === 'MANAGER_TC';
 
   return (
     <div className="space-y-6">
@@ -41,13 +45,19 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
           <div>
             <div className="flex items-center gap-2 text-[#E88932] text-xs font-mono font-semibold uppercase tracking-wider">
               <Layers className="w-4 h-4" />
-              <span>HOD Training Center • Stage 1 Reviewer</span>
+              <span>
+                {isManagerTc
+                  ? 'Manager TC • Full Training Achievement & Curriculum Authority'
+                  : 'Admin TC • Training Center Operational Management'}
+              </span>
             </div>
             <h2 className="text-xl font-heading font-bold mt-1">
-              Training Center Operations & Review Queue
+              Training Center Operations & Achievement Control
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Bertanggung jawab atas evaluasi pengajuan training seluruh departemen, verifikasi kurikulum, penjadwalan kelas yang telah diotorisasi PJO, dan penerbitan sertifikat.
+              {isManagerTc
+                ? 'Akses penuh untuk memonitor dan mengedit capaian pelaksanaan training seluruh departemen, melakukan koreksi target/realisasi, serta memverifikasi pengajuan training.'
+                : 'Mengelola data operasional Training Center, jadwal pelaksanaan kelas, pencatatan hasil evaluasi peserta, dan pembaruan capaian training.'}
             </p>
           </div>
 
@@ -55,10 +65,18 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
             <Button
               variant="primary"
               size="md"
+              icon={<Target className="w-4 h-4" />}
+              onClick={() => onNavigate('achievement')}
+            >
+              Kelola Training Achievement
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
               icon={<CalendarDays className="w-4 h-4" />}
               onClick={() => onNavigate('schedules')}
             >
-              Jadwal & Historical
+              Jadwal & Eksekusi
             </Button>
             <Button
               variant="secondary"
@@ -75,7 +93,21 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
       {/* 2. KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          title="Antrean Review HOD (Stage 1)"
+          title="Capaian Training (2026)"
+          value={
+            achievement.achievementPercentage !== null
+              ? `${achievement.achievementPercentage}%`
+              : 'N/A'
+          }
+          comparison={`${achievement.totalRealization}/${achievement.totalPlan} Selesai`}
+          trend="up"
+          trendIsGood={true}
+          subtitle={`${achievement.totalTrainingHours} Jam Pelatihan`}
+          icon={<Target className="w-4 h-4" />}
+          tone="success"
+        />
+        <KpiCard
+          title="Antrean Review TC"
           value={incomingQueue.length}
           comparison="Menunggu Evaluasi"
           trend="neutral"
@@ -84,21 +116,11 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
           tone="orange"
         />
         <KpiCard
-          title="Disetujui PJO (Siap Jadwal)"
-          value={readyToSchedule.length}
-          comparison="Otorisasi Penuh"
-          trend="up"
-          trendIsGood={true}
-          subtitle="Siap Penjadwalan Batch"
-          icon={<CheckCircle2 className="w-4 h-4" />}
-          tone="success"
-        />
-        <KpiCard
           title="Batch Pelatihan Aktif"
-          value={activeSchedules.length}
-          comparison="On-Site Delivery"
+          value={activeSchedules.length + readyToSchedule.length}
+          comparison={`${readyToSchedule.length} Siap Jadwal`}
           trend="neutral"
-          subtitle="Training Center Morowali"
+          subtitle="Training Center Site Morowali"
           icon={<CalendarDays className="w-4 h-4" />}
           tone="info"
         />
@@ -120,10 +142,10 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
           <div>
             <h3 className="text-xs font-heading font-bold text-[#18232B] uppercase tracking-wider flex items-center gap-2">
               <FileCheck className="w-4 h-4 text-[#E88932]" />
-              <span>Antrean Pengajuan Menunggu Review HOD Stage 1 ({incomingQueue.length})</span>
+              <span>Antrean Pengajuan Menunggu Verifikasi Training Center ({incomingQueue.length})</span>
             </h3>
             <p className="text-xs text-[#5A6B75] mt-0.5">
-              Persetujuan HOD meneruskan berkas ke antrean PJO untuk otorisasi final.
+              Evaluasi kesesuaian kurikulum, provider, dan jadwal pelatihan yang diajukan departemen.
             </p>
           </div>
           <Button
@@ -133,7 +155,7 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
             iconPosition="right"
             onClick={() => onNavigate('applications')}
           >
-            Semua Pengajuan
+            Semua Data Training
           </Button>
         </div>
 
@@ -194,7 +216,7 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
                           size="sm"
                           onClick={() => setSelectedReviewApp(app)}
                         >
-                          Review Stage 1
+                          Verifikasi TC
                         </Button>
                       </div>
                     </td>

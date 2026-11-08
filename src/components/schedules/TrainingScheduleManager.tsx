@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
-import { TrainingApplication, TrainingSchedule } from '../../lib/types';
+import { TrainingApplication, TrainingSchedule, getRolePermissions } from '../../lib/types';
 import { Calendar, Plus, CheckCircle, Award, Users, AlertCircle, X } from 'lucide-react';
 
 interface TrainingScheduleManagerProps {
@@ -90,8 +90,8 @@ export const TrainingScheduleManager: React.FC<TrainingScheduleManagerProps> = (
     }
   };
 
-  const canManageSchedule =
-    currentUser.role_code === 'ADMIN_HOD_TC' || currentUser.role_code === 'SUPER_ADMIN';
+  const perms = getRolePermissions(currentUser.role_code);
+  const canManageSchedule = perms.canEditData;
 
   return (
     <div className="space-y-6">

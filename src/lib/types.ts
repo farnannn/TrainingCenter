@@ -1,8 +1,92 @@
 // ==============================================================================
-// THR DASHBOARD DATA TYPES (22 TABLES & WORKFLOW ENUMS)
+// RAJA ACADEMY — THR DASHBOARD DATA TYPES & RBAC PERMISSION MATRIX
 // ==============================================================================
 
-export type RoleCode = 'SUPER_ADMIN' | 'ADMIN_HOD_TC' | 'ADMIN_PJO' | 'DEPARTMENT_USER';
+export type RoleCode =
+  | 'SUPER_ADMIN'
+  | 'ADMIN'
+  | 'PJO'
+  | 'MANAGER_TC'
+  | 'ADMIN_TC'
+  | 'ADMIN_HRGA';
+
+export interface RolePermissionMatrix {
+  dashboard: 'FULL' | 'VIEW';
+  trainingData: 'EDIT' | 'VIEW';
+  trainingAchievement: 'EDIT' | 'VIEW';
+  canInputData: boolean;
+  canEditData: boolean;
+  canDeleteData: boolean;
+  canManageUsers: boolean;
+  canManageSystemSettings: boolean;
+}
+
+export const ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = {
+  SUPER_ADMIN: {
+    dashboard: 'FULL',
+    trainingData: 'EDIT',
+    trainingAchievement: 'EDIT',
+    canInputData: true,
+    canEditData: true,
+    canDeleteData: true,
+    canManageUsers: true,
+    canManageSystemSettings: true,
+  },
+  ADMIN: {
+    dashboard: 'FULL',
+    trainingData: 'EDIT',
+    trainingAchievement: 'EDIT',
+    canInputData: true,
+    canEditData: true,
+    canDeleteData: false,
+    canManageUsers: false,
+    canManageSystemSettings: false,
+  },
+  PJO: {
+    dashboard: 'VIEW',
+    trainingData: 'VIEW',
+    trainingAchievement: 'VIEW',
+    canInputData: false,
+    canEditData: false,
+    canDeleteData: false,
+    canManageUsers: false,
+    canManageSystemSettings: false,
+  },
+  MANAGER_TC: {
+    dashboard: 'FULL',
+    trainingData: 'EDIT',
+    trainingAchievement: 'EDIT',
+    canInputData: true,
+    canEditData: true,
+    canDeleteData: false,
+    canManageUsers: false,
+    canManageSystemSettings: false,
+  },
+  ADMIN_TC: {
+    dashboard: 'FULL',
+    trainingData: 'EDIT',
+    trainingAchievement: 'EDIT',
+    canInputData: true,
+    canEditData: true,
+    canDeleteData: false,
+    canManageUsers: false,
+    canManageSystemSettings: false,
+  },
+  ADMIN_HRGA: {
+    dashboard: 'FULL',
+    trainingData: 'EDIT',
+    trainingAchievement: 'VIEW',
+    canInputData: true,
+    canEditData: true,
+    canDeleteData: false,
+    canManageUsers: false,
+    canManageSystemSettings: false,
+  },
+};
+
+export function getRolePermissions(roleCode: RoleCode): RolePermissionMatrix {
+  return ROLE_PERMISSIONS[roleCode] || ROLE_PERMISSIONS.PJO;
+}
 
 export type ApplicationStatus =
   | 'DRAFT'
@@ -13,7 +97,8 @@ export type ApplicationStatus =
   | 'SCHEDULED'
   | 'IN_PROGRESS'
   | 'COMPLETED'
-  | 'REJECTED';
+  | 'REJECTED'
+  | 'CANCELLED';
 
 export type ApprovalDecision = 'APPROVE' | 'RETURN_FOR_REVISION' | 'REJECT';
 
@@ -126,6 +211,10 @@ export interface TrainingApplication {
   training_type: TrainingType;
   description: string;
   current_status: ApplicationStatus;
+  planned_hours?: number;
+  actual_hours?: number;
+  planned_participants?: number;
+  actual_participants?: number;
   hod_approver_id?: string | null;
   hod_approver_name?: string | null;
   hod_decision?: ApprovalDecision | null;
@@ -351,3 +440,16 @@ export interface AuditLog {
   created_at: string;
 }
 
+export interface SystemSettingsConfig {
+  companyName: string;
+  portalName: string;
+  operationalSite: string;
+  headOffice: string;
+  annualTrainingHoursTargetPerEmployee: number;
+  minimumPassScore: number;
+  mandatoryAchievementTargetPercent: number;
+  strictRlsEnabled: boolean;
+  autoIssueCertificateOnPass: boolean;
+  updatedAt: string;
+  updatedBy?: string;
+}
