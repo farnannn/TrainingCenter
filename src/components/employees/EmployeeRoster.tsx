@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   AlertCircle,
+  Edit3,
   Trash2,
   X,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ export const EmployeeRoster: React.FC = () => {
   const { currentUser, refreshState } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEmp, setEditingEmp] = useState<Employee | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   // Add Individual Employee State
@@ -206,27 +208,63 @@ export const EmployeeRoster: React.FC = () => {
     }
   };
 
-  // Handle Single Employee Add
+  const openCreateModal = () => {
+    setEditingEmp(null);
+    setNik('');
+    setFullName('');
+    setDeptId(userDeptId || mockStore.departments[0].id);
+    setPosition('');
+    setJobLevel('Operator / Teknisi');
+    setEmpStatus('PERMANENT');
+    setFormError(null);
+    setShowAddModal(true);
+  };
+
+  const openEditModal = (emp: Employee) => {
+    setEditingEmp(emp);
+    setNik(emp.nik);
+    setFullName(emp.full_name);
+    setDeptId(emp.department_id);
+    setPosition(emp.position);
+    setJobLevel(emp.job_level);
+    setEmpStatus(emp.employment_status);
+    setFormError(null);
+    setShowAddModal(true);
+  };
+
+  // Handle Single Employee Add or Edit
   const handleAddSingle = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
     try {
-      mockStore.addEmployee(currentUser.id, {
-        nik,
-        full_name: fullName,
-        department_id: isDeptUser && userDeptId ? userDeptId : deptId,
-        position,
-        job_level: jobLevel,
-        employment_status: empStatus,
-      });
+      if (editingEmp) {
+        mockStore.updateEmployee(currentUser.id, editingEmp.id, {
+          nik,
+          full_name: fullName,
+          department_id: isDeptUser && userDeptId ? userDeptId : deptId,
+          position,
+          job_level: jobLevel,
+          employment_status: empStatus,
+        });
+      } else {
+        mockStore.addEmployee(currentUser.id, {
+          nik,
+          full_name: fullName,
+          department_id: isDeptUser && userDeptId ? userDeptId : deptId,
+          position,
+          job_level: jobLevel,
+          employment_status: empStatus,
+        });
+      }
       refreshState();
+      setEditingEmp(null);
       setNik('');
       setFullName('');
       setPosition('');
       setShowAddModal(false);
     } catch (err: any) {
-      setFormError(err.message || 'Gagal menambahkan karyawan.');
+      setFormError(err.message || 'Gagal menyimpan data karyawan.');
     }
   };
 
@@ -286,10 +324,7 @@ export const EmployeeRoster: React.FC = () => {
                 variant="primary"
                 size="md"
                 icon={<Plus className="w-4 h-4" />}
-                onClick={() => {
-                  setFormError(null);
-                  setShowAddModal(true);
-                }}
+                onClick={openCreateModal}
               >
                 Tambah Karyawan
               </Button>
@@ -337,7 +372,9 @@ export const EmployeeRoster: React.FC = () => {
                   <th className="px-6 py-3">Jabatan / Posisi</th>
                   <th className="px-6 py-3">Level Jabatan</th>
                   <th className="px-6 py-3">Status Kepegawaian</th>
-                  {isSuperAdmin && <th className="px-6 py-3 text-right">Tindakan</th>}
+                  {(canModify || isSuperAdmin) && (
+                    <th className="px-6 py-3 text-right">Tindakan</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E8E8]">
@@ -372,19 +409,33 @@ export const EmployeeRoster: React.FC = () => {
                           <span>{emp.employment_status}</span>
                         </span>
                       </td>
-                      {isSuperAdmin && (
+                      {(canModify || isSuperAdmin) && (
                         <td className="px-6 py-3.5 text-right">
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            icon={<Trash2 className="w-3.5 h-3.5" />}
-                            onClick={() => {
-                              setDeleteError(null);
-                              setConfirmDeleteEmp(emp);
-                            }}
-                          >
-                            Hapus
-                          </Button>
+                          <div className="inline-flex items-center justify-end gap-2">
+                            {canModify && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                icon={<Edit3 className="w-3.5 h-3.5" />}
+                                onClick={() => openEditModal(emp)}
+                              >
+                                Edit
+                              </Button>
+                            )}
+                            {isSuperAdmin && (
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                icon={<Trash2 className="w-3.5 h-3.5" />}
+                                onClick={() => {
+                                  setDeleteError(null);
+                                  setConfirmDeleteEmp(emp);
+                                }}
+                              >
+                                Hapus
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -629,13 +680,20 @@ export const EmployeeRoster: React.FC = () => {
           <div className="bg-white rounded-[14px] shadow-2xl border border-[#E2E8E8] max-w-lg w-full overflow-hidden">
             <div className="px-6 py-4 bg-[#18232B] text-white border-b border-[#263640] flex justify-between items-center">
               <div>
-                <h3 className="text-sm font-heading font-bold">Tambah Personel Karyawan Baru</h3>
+                <h3 className="text-sm font-heading font-bold">
+                  {editingEmp ? 'Edit Data Karyawan' : 'Tambah Personel Karyawan Baru'}
+                </h3>
                 <p className="text-[11px] text-slate-300">
-                  Masukkan identitas karyawan untuk didaftarkan ke dalam sistem THR
+                  {editingEmp
+                    ? 'Perbarui identitas, NIK, departemen, atau jabatan karyawan'
+                    : 'Masukkan identitas karyawan untuk didaftarkan ke dalam sistem THR'}
                 </p>
               </div>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setEditingEmp(null);
+                  setShowAddModal(false);
+                }}
                 className="text-slate-400 hover:text-white p-1 rounded-[8px] cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -749,7 +807,10 @@ export const EmployeeRoster: React.FC = () => {
                   type="button"
                   variant="outline"
                   size="md"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setEditingEmp(null);
+                    setShowAddModal(false);
+                  }}
                 >
                   Batal
                 </Button>
@@ -757,9 +818,9 @@ export const EmployeeRoster: React.FC = () => {
                   type="submit"
                   variant="primary"
                   size="md"
-                  icon={<Plus className="w-4 h-4" />}
+                  icon={editingEmp ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 >
-                  Simpan Karyawan
+                  {editingEmp ? 'Simpan Perubahan' : 'Simpan Karyawan'}
                 </Button>
               </div>
             </form>

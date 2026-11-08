@@ -3016,6 +3016,94 @@ class DataStore {
     return newEmp;
   }
 
+  updateEmployee(
+    actorId: string,
+    employeeId: string,
+    updates: {
+      nik: string;
+      full_name: string;
+      department_id: string;
+      position: string;
+      job_level: string;
+      employment_status: 'PERMANENT' | 'CONTRACT' | 'INTERN';
+    }
+  ): Employee {
+    const callerRole = this.getUserRole(actorId);
+    const perms = this.getUserPermissions(actorId);
+    if (
+      !perms.canEditData ||
+      perms.employeeData === 'VIEW' ||
+      callerRole === 'MANAGER_TC' ||
+      callerRole === 'PJO'
+    ) {
+      throw new Error(
+        'PERMISSION_DENIED: Hanya Super Admin, Admin, Admin TC, dan Admin HRGA yang dapat mengedit data karyawan.'
+      );
+    }
+
+    const emp = this.employees.find((e) => e.id === employeeId);
+    if (!emp) {
+      throw new Error('Karyawan tidak ditemukan.');
+    }
+
+    const cleanNik = updates.nik.trim().toUpperCase();
+    const cleanName = updates.full_name.trim();
+    if (!cleanNik || !cleanName) {
+      throw new Error('NIK dan Nama Lengkap wajib diisi.');
+    }
+
+    const duplicate = this.employees.find(
+      (e) => e.id !== employeeId && e.nik.toUpperCase() === cleanNik
+    );
+    if (duplicate) {
+      throw new Error(`NIK ${cleanNik} sudah digunakan oleh karyawan lain (${duplicate.full_name}).`);
+    }
+
+    const dept = this.departments.find((d) => d.id === updates.department_id);
+    if (!dept) {
+      throw new Error('Departemen tidak valid.');
+    }
+
+    const oldSnapshot = {
+      nik: emp.nik,
+      full_name: emp.full_name,
+      department_name: emp.department_name,
+      position: emp.position,
+      job_level: emp.job_level,
+      employment_status: emp.employment_status,
+    };
+
+    emp.nik = cleanNik;
+    emp.full_name = cleanName;
+    emp.department_id = dept.id;
+    emp.department_name = dept.name;
+    emp.position = updates.position.trim() || 'Operator Tambang';
+    emp.job_level = updates.job_level.trim() || 'Staff / Operator';
+    emp.employment_status = updates.employment_status || 'PERMANENT';
+
+    this.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      actor_id: actorId,
+      table_name: 'employees',
+      record_id: emp.id,
+      action: 'UPDATE_EMPLOYEE',
+      old_values: oldSnapshot,
+      new_values: {
+        nik: emp.nik,
+        full_name: emp.full_name,
+        department: dept.code,
+        position: emp.position,
+        job_level: emp.job_level,
+        employment_status: emp.employment_status,
+      },
+      created_at: new Date().toISOString(),
+    });
+
+    this.recalculateKpis(2026);
+    this.persistState();
+    return emp;
+  }
+
   deleteEmployee(actorId: string, employeeId: string) {
     const callerRole = this.getUserRole(actorId);
     if (callerRole !== 'SUPER_ADMIN') {
