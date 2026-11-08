@@ -10,9 +10,11 @@ import {
   FileText,
   Printer,
   Download,
-  User,
   Camera,
   Search,
+  Filter,
+  ArrowLeft,
+  ChevronRight,
   Plus,
   X,
   Table,
@@ -22,17 +24,16 @@ import {
 export const CertificationList: React.FC = () => {
   const { currentUser, refreshState } = useAuth();
   const role = currentUser.role_code;
-  const deptId = mockStore.getUserActiveDeptId(currentUser.id);
 
-  // Visible employees respecting RLS (MOD user only sees MOD employees, etc.)
+  // Visible employees respecting RLS
   const visibleEmployees = mockStore.getVisibleEmployees(currentUser.id);
 
-  // View Mode: 'report' (Training History Report per employee - matching user's reference image) | 'all' (All certificates table)
+  // View Mode: 'report' (List of employees -> click to open Training History Report) | 'all' (All certificates table)
   const [viewMode, setViewMode] = useState<'report' | 'all'>('report');
-  const [selectedEmpId, setSelectedEmpId] = useState<string>(
-    visibleEmployees[0]?.id || ''
-  );
+  const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deptFilter, setDeptFilter] = useState<string>('ALL');
+  const [certFilter, setCertFilter] = useState<'ALL' | 'HAS_CERT' | 'NO_CERT'>('ALL');
 
   // Modal for adding historical certification record manually (HOD TC / Super Admin)
   const [showAddCertModal, setShowAddCertModal] = useState(false);
@@ -45,9 +46,10 @@ export const CertificationList: React.FC = () => {
 
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Ensure selectedEmpId stays valid when switching roles
-  const activeEmployee =
-    visibleEmployees.find((e) => e.id === selectedEmpId) || visibleEmployees[0] || null;
+  // Only resolve activeEmployee when an employee is explicitly clicked/selected from the list
+  const activeEmployee = selectedEmpId
+    ? visibleEmployees.find((e) => e.id === selectedEmpId) || null
+    : null;
 
   const activeDept = activeEmployee
     ? mockStore.departments.find((d) => d.id === activeEmployee.department_id)
@@ -220,12 +222,36 @@ export const CertificationList: React.FC = () => {
   const perms = getRolePermissions(role);
   const canManageCerts = perms.canEditData;
 
-  const filteredEmployees = visibleEmployees.filter(
-    (e) =>
+  const getEmployeeHistoryCount = (empId: string) => {
+    const empCerts = mockStore.certifications.filter((c) => c.employee_id === empId);
+    const empCompletedRecords = mockStore.records.filter(
+      (r) =>
+        r.employee_id === empId &&
+        r.attendance_status === 'ATTENDED' &&
+        !empCerts.some((c) => c.record_id === r.id)
+    );
+    return empCerts.length + empCompletedRecords.length;
+  };
+
+  const filteredEmployees = visibleEmployees.filter((e) => {
+    const matchesSearch =
       e.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.nik.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.position.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      e.position.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (deptFilter !== 'ALL' && e.department_id !== deptFilter) {
+      return false;
+    }
+
+    if (certFilter !== 'ALL') {
+      const count = getEmployeeHistoryCount(e.id);
+      if (certFilter === 'HAS_CERT' && count === 0) return false;
+      if (certFilter === 'NO_CERT' && count > 0) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -246,7 +272,10 @@ export const CertificationList: React.FC = () => {
           <div className="inline-flex bg-[#F4F6F5] p-1 rounded-[10px] border border-[#E2E8E8]">
             <button
               type="button"
-              onClick={() => setViewMode('report')}
+              onClick={() => {
+                setViewMode('report');
+                setSelectedEmpId(null);
+              }}
               className={`px-3 py-1.5 rounded-[8px] text-xs font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewMode === 'report'
                   ? 'bg-[#18232B] text-white font-semibold shadow-2xs'
@@ -254,7 +283,7 @@ export const CertificationList: React.FC = () => {
               }`}
             >
               <IdCard className="w-3.5 h-3.5 text-[#E88932]" />
-              <span>Training History Report (Per Karyawan)</span>
+              <span>Daftar Karyawan & History Report</span>
             </button>
             <button
               type="button"
@@ -273,43 +302,192 @@ export const CertificationList: React.FC = () => {
       </div>
 
       {/* =====================================================================
-          MODE 1: TRAINING & CERTIFICATION HISTORY REPORT (MATCHING REFERENCE)
+          MODE 1: EMPLOYEE LIST -> CLICK TO OPEN TRAINING & CERTIFICATION HISTORY REPORT
          ===================================================================== */}
-      {viewMode === 'report' && activeEmployee && (
-        <div className="space-y-5">
-          {/* Employee Selector & Action Bar */}
-          <div className="bg-white p-4 rounded-[12px] border border-[#E2E8E8] flex flex-wrap items-center justify-between gap-4 print:hidden">
-            <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[260px]">
-              <div className="relative w-56">
-                <Search className="w-3.5 h-3.5 text-[#5A6B75] absolute left-3 top-2.5" />
+      {viewMode === 'report' && !activeEmployee && (
+        <div className="space-y-4">
+          {/* Search & Filter Bar (Next to Search Name) */}
+          <div className="bg-white p-4 rounded-[12px] border border-[#E2E8E8] flex flex-wrap items-center justify-between gap-3 print:hidden">
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              {/* Search Name / NIK / Position */}
+              <div className="relative min-w-[240px] flex-1 max-w-md">
+                <Search className="w-4 h-4 text-[#5A6B75] absolute left-3 top-2.5" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari nama / NIK karyawan..."
-                  className="w-full h-[36px] pl-8 pr-3 text-xs bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932]"
+                  placeholder="Cari nama karyawan, NIK, atau jabatan..."
+                  className="w-full h-[38px] pl-9 pr-3 text-xs bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932] text-[#18232B]"
                 />
               </div>
 
+              {/* Filter Division / Department right next to Search */}
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-[#5A6B75]">Pilih Personel:</span>
+                <Filter className="w-3.5 h-3.5 text-[#E88932] shrink-0" />
                 <select
-                  value={activeEmployee.id}
-                  onChange={(e) => setSelectedEmpId(e.target.value)}
-                  className="h-[36px] px-3 text-xs font-heading font-semibold bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] text-[#18232B] focus:bg-white focus:outline-none focus:border-[#E88932]"
+                  value={deptFilter}
+                  onChange={(e) => setDeptFilter(e.target.value)}
+                  className="h-[38px] px-3 text-xs font-medium bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] text-[#18232B] focus:bg-white focus:outline-none focus:border-[#E88932]"
                 >
-                  {filteredEmployees.map((emp) => {
-                    const d = mockStore.departments.find((dp) => dp.id === emp.department_id);
-                    const count = mockStore.certifications.filter(
-                      (c) => c.employee_id === emp.id
-                    ).length;
-                    return (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.full_name} ({emp.nik}) — {d?.code} [{count} Sertifikasi]
-                      </option>
-                    );
-                  })}
+                  <option value="ALL">Semua Divisi (7 Divisi)</option>
+                  {mockStore.departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.code} — {d.name}
+                    </option>
+                  ))}
                 </select>
+              </div>
+
+              {/* Filter Certification Status */}
+              <div>
+                <select
+                  value={certFilter}
+                  onChange={(e) =>
+                    setCertFilter(e.target.value as 'ALL' | 'HAS_CERT' | 'NO_CERT')
+                  }
+                  className="h-[38px] px-3 text-xs font-medium bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] text-[#18232B] focus:bg-white focus:outline-none focus:border-[#E88932]"
+                >
+                  <option value="ALL">Semua Status Sertifikasi</option>
+                  <option value="HAS_CERT">Sudah Ada Sertifikasi / History</option>
+                  <option value="NO_CERT">Belum Ada Sertifikasi (0)</option>
+                </select>
+              </div>
+
+              {(searchQuery || deptFilter !== 'ALL' || certFilter !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setDeptFilter('ALL');
+                    setCertFilter('ALL');
+                  }}
+                  className="text-xs text-[#E88932] hover:underline font-medium cursor-pointer"
+                >
+                  Reset Filter
+                </button>
+              )}
+            </div>
+
+            <div className="text-xs font-mono text-[#5A6B75]">
+              Menampilkan <strong className="text-[#18232B]">{filteredEmployees.length}</strong> dari{' '}
+              <strong className="text-[#18232B]">{visibleEmployees.length}</strong> karyawan
+            </div>
+          </div>
+
+          {/* Vertical Employee List Table — Click Row to Open Training & Certification History Report */}
+          <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
+            <div className="px-6 py-3.5 bg-[#F4F6F5] border-b border-[#E2E8E8] flex items-center justify-between">
+              <span className="text-xs font-heading font-bold text-[#18232B] uppercase tracking-wider">
+                Daftar Nama Karyawan — Klik Nama untuk Membuka Training & Certification History Report
+              </span>
+            </div>
+
+            {filteredEmployees.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[#5A6B75]">
+                Tidak ada karyawan yang sesuai dengan pencarian atau filter.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-[#F4F6F5]/60 text-[#5A6B75] font-medium border-b border-[#E2E8E8]">
+                    <tr>
+                      <th className="px-6 py-3 w-14 text-center">No</th>
+                      <th className="px-6 py-3">Nama Karyawan & NIK</th>
+                      <th className="px-6 py-3">Divisi / Departemen</th>
+                      <th className="px-6 py-3">Jabatan / Level</th>
+                      <th className="px-6 py-3 text-center">Total Riwayat / Sertifikasi</th>
+                      <th className="px-6 py-3 text-right">History Report</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E2E8E8]">
+                    {filteredEmployees.map((emp, idx) => {
+                      const dept = mockStore.departments.find(
+                        (d) => d.id === emp.department_id
+                      );
+                      const historyCount = getEmployeeHistoryCount(emp.id);
+
+                      return (
+                        <tr
+                          key={emp.id}
+                          onClick={() => setSelectedEmpId(emp.id)}
+                          className="hover:bg-[#E88932]/5 transition-colors cursor-pointer group"
+                        >
+                          <td className="px-6 py-3.5 text-center font-mono text-[#5A6B75] tabular-nums">
+                            {idx + 1}
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <div className="font-heading font-bold text-[#18232B] group-hover:text-[#E88932] transition-colors">
+                              {emp.full_name}
+                            </div>
+                            <div className="text-[11px] font-mono text-[#E88932] mt-0.5">
+                              {emp.nik}
+                            </div>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className="font-mono font-semibold text-xs px-2 py-0.5 rounded bg-[#F4F6F5] text-[#18232B] border border-[#E2E8E8]">
+                              {dept?.code || 'RAJA'}
+                            </span>
+                            <div className="text-[11px] text-[#5A6B75] mt-0.5">
+                              {dept?.name || emp.department_name}
+                            </div>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <div className="font-medium text-[#18232B]">{emp.position}</div>
+                            <div className="text-[11px] text-[#5A6B75]">{emp.job_level}</div>
+                          </td>
+                          <td className="px-6 py-3.5 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded font-mono text-[11px] font-semibold border ${
+                                historyCount > 0
+                                  ? 'bg-[#397C69]/12 text-[#296050] border-[#397C69]/30'
+                                  : 'bg-[#F4F6F5] text-[#5A6B75] border-[#E2E8E8]'
+                              }`}
+                            >
+                              <span>{historyCount} Program</span>
+                            </span>
+                          </td>
+                          <td className="px-6 py-3.5 text-right">
+                            <span className="inline-flex items-center gap-1 text-xs font-heading font-semibold text-[#18232B] group-hover:text-[#E88932] px-3 py-1.5 rounded-[8px] border border-[#E2E8E8] bg-[#F4F6F5] group-hover:bg-white group-hover:border-[#E88932]/40 transition-all">
+                              <FileText className="w-3.5 h-3.5 text-[#E88932]" />
+                              <span>Buka History Report</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          OPENED EMPLOYEE TRAINING & CERTIFICATION HISTORY REPORT
+         ===================================================================== */}
+      {viewMode === 'report' && activeEmployee && (
+        <div className="space-y-5">
+          {/* Top Bar when Report is Opened: Back to Employee List + Actions */}
+          <div className="bg-white p-4 rounded-[12px] border border-[#E2E8E8] flex flex-wrap items-center justify-between gap-4 print:hidden">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<ArrowLeft className="w-4 h-4" />}
+                onClick={() => setSelectedEmpId(null)}
+              >
+                Kembali ke Daftar Karyawan
+              </Button>
+              <div className="hidden sm:block pl-3 border-l border-[#E2E8E8]">
+                <div className="text-xs font-heading font-bold text-[#18232B]">
+                  {activeEmployee.full_name}
+                </div>
+                <div className="text-[11px] font-mono text-[#5A6B75]">
+                  NIK: <span className="text-[#E88932]">{activeEmployee.nik}</span> •{' '}
+                  {activeDept?.code || 'RAJA'}
+                </div>
               </div>
             </div>
 
@@ -341,39 +519,6 @@ export const CertificationList: React.FC = () => {
                 Cetak Report
               </Button>
             </div>
-          </div>
-
-          {/* Quick Employee Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 print:hidden">
-            {filteredEmployees.map((emp) => {
-              const isSelected = emp.id === activeEmployee.id;
-              const certCount = mockStore.certifications.filter(
-                (c) => c.employee_id === emp.id
-              ).length;
-              return (
-                <button
-                  key={emp.id}
-                  type="button"
-                  onClick={() => setSelectedEmpId(emp.id)}
-                  className={`px-3 py-1.5 rounded-[8px] text-xs font-medium border transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#18232B] text-white border-[#18232B] shadow-2xs'
-                      : 'bg-white text-[#263640] border-[#E2E8E8] hover:bg-[#F4F6F5]'
-                  }`}
-                >
-                  <span>{emp.full_name}</span>
-                  <span
-                    className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
-                      isSelected
-                        ? 'bg-[#E88932] text-white font-semibold'
-                        : 'bg-[#F4F6F5] text-[#5A6B75]'
-                    }`}
-                  >
-                    {certCount}
-                  </span>
-                </button>
-              );
-            })}
           </div>
 
           {/* =================================================================
