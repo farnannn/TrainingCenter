@@ -360,7 +360,15 @@ export const PublicCompanyLanding: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-8 border-b border-[#263640]">
             <div className="md:col-span-5 space-y-3">
               <div className="flex items-center gap-3">
-                <RajaLogo variant="on-dark" heightClass="h-8" />
+                <RajaLogo variant="on-dark" heightClass="h-9" />
+                <div className="leading-tight">
+                  <div className="text-sm font-heading font-bold text-white tracking-tight">
+                    PT. RODA JAYA SAKTI
+                  </div>
+                  <div className="text-[10px] font-mono text-[#E88932]">
+                    RAJA ACADEMY • TRAINING CENTER
+                  </div>
+                </div>
               </div>
               <p className="text-slate-400 leading-relaxed text-xs max-w-sm">
                 Perusahaan kontraktor jasa pertambangan nikel, penyewaan alat berat tambang, dan pekerjaan konstruksi sipil di Indonesia sejak Agustus 2010.

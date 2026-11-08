@@ -111,7 +111,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
           <div className="relative z-10">
             <div className="flex items-center gap-3">
-              <RajaLogo variant="on-dark" heightClass="h-8" />
+              <RajaLogo variant="on-dark" heightClass="h-9" />
+              <div className="leading-tight">
+                <div className="text-sm font-heading font-bold text-white tracking-tight">
+                  PT. RODA JAYA SAKTI
+                </div>
+                <div className="text-[10px] font-mono text-[#E88932]">
+                  RAJA ACADEMY
+                </div>
+              </div>
             </div>
 
             <div className="mt-8">

@@ -19,14 +19,13 @@ export const RajaLogo: React.FC<RajaLogoProps> = ({
   if (variant === 'compact') {
     return (
       <div
-        className={`w-10 h-10 rounded-[8px] bg-white p-1.5 flex items-center justify-start overflow-hidden shadow-2xs border border-[#E2E8E8] shrink-0 ${className}`}
+        className={`w-10 h-10 rounded-[8px] bg-[#263640]/60 p-1.5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0 ${className}`}
         title="PT. Roda Jaya Sakti (RAJA)"
       >
         <img
           src="/logo-raja.png"
           alt="PT. Roda Jaya Sakti"
-          className="h-full w-auto max-w-none object-contain object-left"
-          style={{ height: '28px' }}
+          className="h-full w-full object-contain select-none"
         />
       </div>
     );
@@ -34,9 +33,7 @@ export const RajaLogo: React.FC<RajaLogoProps> = ({
 
   if (variant === 'on-dark') {
     return (
-      <div
-        className={`inline-flex items-center bg-white px-3 py-1.5 rounded-[8px] shadow-2xs border border-white/20 shrink-0 ${className}`}
-      >
+      <div className={`inline-flex items-center shrink-0 ${className}`}>
         <img
           src="/logo-raja.png"
           alt="PT. Roda Jaya Sakti (RAJA)"

@@ -141,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <RajaLogo variant="compact" />
             ) : (
               <div className="flex items-center gap-2.5 min-w-0">
-                <RajaLogo variant="on-dark" heightClass="h-6" />
+                <RajaLogo variant="on-dark" heightClass="h-8" />
                 <div className="min-w-0 leading-tight">
                   <div className="text-xs font-heading font-bold text-white tracking-tight truncate">
                     RAJA ACADEMY
