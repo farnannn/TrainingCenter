@@ -79,8 +79,8 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
               {isHrga
-                ? 'Mengelola data training dan direktori personel HRGA (Input, Edit, Delete) serta memantau laporan Training Achievement korporat (View).'
-                : 'Kewenangan operasional penuh untuk menginput, mengedit, dan menghapus data training serta mengelola capaian realisasi pada fitur Training Achievement.'}
+                ? 'Mengelola data training dan direktori personel HRGA (Input, Edit) serta memantau laporan Training Achievement korporat (View).'
+                : 'Kewenangan operasional untuk menginput dan mengedit data training serta mengelola capaian realisasi pada fitur Training Achievement.'}
             </p>
           </div>
 

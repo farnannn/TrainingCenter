@@ -4,7 +4,6 @@ import { Button } from '../ui/Button';
 import {
   Bell,
   CheckCheck,
-  Briefcase,
   LogOut,
   Menu,
   ShieldCheck,
@@ -191,27 +190,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, currentTab }) 
           )}
         </div>
 
-        {/* Active Role & Department Badge */}
+        {/* Active Role Badge */}
         <div className="hidden md:flex items-center gap-2.5 pl-3 border-l border-[#E2E8E8]">
-          <div className="text-right">
-            <div className="text-xs font-heading font-semibold text-[#18232B]">
-              {currentUser.full_name}
-            </div>
-            <div className="flex items-center justify-end gap-1.5 mt-0.5">
-              <span
-                className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded border ${badge.style}`}
-              >
-                {badge.icon}
-                <span>{currentUser.role_name}</span>
-              </span>
-              {currentUser.department_name && (
-                <span className="text-[10px] font-mono text-[#5A6B75] flex items-center gap-0.5">
-                  <Briefcase className="w-3 h-3" />
-                  <span>{currentUser.department_name}</span>
-                </span>
-              )}
-            </div>
-          </div>
+          <span
+            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-[8px] border ${badge.style}`}
+          >
+            {badge.icon}
+            <span>{currentUser.role_name}</span>
+          </span>
         </div>
 
         {/* Logout Button */}

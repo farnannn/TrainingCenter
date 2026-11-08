@@ -234,13 +234,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {!isCollapsed && (
                 <div className="min-w-0">
                   <div className="text-xs font-heading font-semibold text-white truncate">
-                    {currentUser.full_name}
+                    {currentUser.role_name || currentUser.full_name}
                   </div>
                   <div className="text-[10px] font-mono text-[#E88932] truncate">
-                    {currentUser.role_name}
-                  </div>
-                  <div className="text-[10px] text-slate-400 truncate">
-                    {currentUser.department_name || 'All Departments (Central)'}
+                    RAJA ACADEMY
                   </div>
                 </div>
               )}

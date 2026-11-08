@@ -15,7 +15,10 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
   onClose,
   onCreated,
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, departments } = useAuth();
+  const [departmentId, setDepartmentId] = useState(
+    currentUser.department_id || departments[0]?.id || '20000000-0000-0000-0000-000000000001'
+  );
   const [trainingTitle, setTrainingTitle] = useState('');
   const [trainingCategory, setTrainingCategory] = useState('Safety');
   const [trainingObjectives, setTrainingObjectives] = useState('');
@@ -57,6 +60,7 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
         training_type: trainingType,
         description,
         participant_employee_ids: selectedEmployees,
+        department_id: departmentId,
       });
 
       if (autoSubmit) {
@@ -77,12 +81,12 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
           <div>
             <h3 className="text-base font-bold text-slate-900">
-              New Training Application
+              Input Data Training Baru
             </h3>
             <p className="text-xs text-slate-500">
-              Department:{' '}
+              Role Akses:{' '}
               <span className="font-semibold text-slate-700">
-                {currentUser.department_name || 'Department'}
+                {currentUser.role_name || 'Admin'}
               </span>
             </p>
           </div>
@@ -103,18 +107,37 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Training Title *
-            </label>
-            <input
-              type="text"
-              required
-              value={trainingTitle}
-              onChange={(e) => setTrainingTitle(e.target.value)}
-              placeholder="e.g. Defensive Driving & Hauler Safety Awareness"
-              className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Divisi / Departemen (7 Divisi Resmi) *
+              </label>
+              <select
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
+              >
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.code} — {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Training Title *
+              </label>
+              <input
+                type="text"
+                required
+                value={trainingTitle}
+                onChange={(e) => setTrainingTitle(e.target.value)}
+                placeholder="e.g. Defensive Driving & Hauler Safety Awareness"
+                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

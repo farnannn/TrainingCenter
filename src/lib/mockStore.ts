@@ -159,7 +159,7 @@ export const INITIAL_USERS: UserProfile[] = [
     role_code: 'SUPER_ADMIN',
     role_name: 'Super Admin',
     nik: 'NIK-SA-01',
-    full_name: 'Super Administrator',
+    full_name: 'Super Admin',
     email: 'superadmin@ptraja.com',
     phone_number: '+62811000001',
     department_id: null,
@@ -172,11 +172,10 @@ export const INITIAL_USERS: UserProfile[] = [
     role_code: 'ADMIN',
     role_name: 'Admin',
     nik: 'NIK-ADM-01',
-    full_name: 'Ahmad Fauzi (Admin)',
+    full_name: 'Admin',
     email: 'admin@ptraja.com',
     phone_number: '+62811000002',
-    department_id: '20000000-0000-0000-0000-000000000001',
-    department_name: 'Mining Operations Department',
+    department_id: null,
     is_active: true,
     created_at: '2026-01-01T00:00:00Z',
   },
@@ -186,7 +185,7 @@ export const INITIAL_USERS: UserProfile[] = [
     role_code: 'PJO',
     role_name: 'PJO',
     nik: 'NIK-PJO-01',
-    full_name: 'Bambang Sutrisno (PJO)',
+    full_name: 'PJO',
     email: 'pjo@ptraja.com',
     phone_number: '+62811000003',
     department_id: null,
@@ -199,11 +198,10 @@ export const INITIAL_USERS: UserProfile[] = [
     role_code: 'MANAGER_TC',
     role_name: 'Manager TC',
     nik: 'NIK-MGR-TC',
-    full_name: 'Ir. Hendra Kusuma (Manager TC)',
+    full_name: 'Manager TC',
     email: 'manager.tc@ptraja.com',
     phone_number: '+62811000004',
-    department_id: '20000000-0000-0000-0000-000000000004',
-    department_name: 'Training Center',
+    department_id: null,
     is_active: true,
     created_at: '2026-01-01T00:00:00Z',
   },
@@ -213,11 +211,10 @@ export const INITIAL_USERS: UserProfile[] = [
     role_code: 'ADMIN_TC',
     role_name: 'Admin TC',
     nik: 'NIK-ADM-TC',
-    full_name: 'Siti Rahma (Admin TC)',
+    full_name: 'Admin TC',
     email: 'admin.tc@ptraja.com',
     phone_number: '+62811000005',
-    department_id: '20000000-0000-0000-0000-000000000004',
-    department_name: 'Training Center',
+    department_id: null,
     is_active: true,
     created_at: '2026-01-01T00:00:00Z',
   },
@@ -227,51 +224,16 @@ export const INITIAL_USERS: UserProfile[] = [
     role_code: 'ADMIN_HRGA',
     role_name: 'Admin HRGA',
     nik: 'NIK-ADM-HRGA',
-    full_name: 'Farid Nafis (Admin HRGA)',
+    full_name: 'Admin HRGA',
     email: 'admin.hrga@ptraja.com',
     phone_number: '+62811000006',
-    department_id: '20000000-0000-0000-0000-000000000003',
-    department_name: 'HRGA-IT (Human Resources, General Affairs & IT)',
+    department_id: null,
     is_active: true,
     created_at: '2026-01-01T00:00:00Z',
   },
 ];
 
-export const INITIAL_DEPARTMENT_ASSIGNMENTS: DepartmentUserAssignment[] = [
-  {
-    id: '30000000-0000-0000-0000-000000000001',
-    department_id: '20000000-0000-0000-0000-000000000001',
-    department_name: 'MOD (Mining Operations Department)',
-    user_id: '00000000-0000-0000-0000-000000000002',
-    user_name: 'Ahmad Fauzi (Admin)',
-    assigned_by: '00000000-0000-0000-0000-000000000001',
-    assigned_by_name: 'Super Administrator',
-    is_active: true,
-    assigned_at: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: '30000000-0000-0000-0000-000000000002',
-    department_id: '20000000-0000-0000-0000-000000000004',
-    department_name: 'TC (Training Center)',
-    user_id: '00000000-0000-0000-0000-000000000005',
-    user_name: 'Siti Rahma (Admin TC)',
-    assigned_by: '00000000-0000-0000-0000-000000000001',
-    assigned_by_name: 'Super Administrator',
-    is_active: true,
-    assigned_at: '2026-01-01T00:00:00Z',
-  },
-  {
-    id: '30000000-0000-0000-0000-000000000003',
-    department_id: '20000000-0000-0000-0000-000000000003',
-    department_name: 'HRGA-IT (Human Resources, General Affairs & IT)',
-    user_id: '00000000-0000-0000-0000-000000000006',
-    user_name: 'Farid Nafis (Admin HRGA)',
-    assigned_by: '00000000-0000-0000-0000-000000000001',
-    assigned_by_name: 'Super Administrator',
-    is_active: true,
-    assigned_at: '2026-01-01T00:00:00Z',
-  },
-];
+export const INITIAL_DEPARTMENT_ASSIGNMENTS: DepartmentUserAssignment[] = [];
 
 export const INITIAL_EMPLOYEES: Employee[] = [
   // MOD employees
@@ -746,10 +708,25 @@ class DataStore {
       this.departments = snapshot.departments;
     }
     if (Array.isArray(snapshot.users) && snapshot.users.length > 0) {
-      this.users = snapshot.users;
+      const defaultRoleIdSet = new Set(INITIAL_USERS.map((u) => u.id));
+      this.users = snapshot.users.map((u: UserProfile) => {
+        if (defaultRoleIdSet.has(u.id)) {
+          const cleanDefault = INITIAL_USERS.find((iu) => iu.id === u.id)!;
+          return {
+            ...u,
+            full_name: cleanDefault.full_name,
+            role_name: cleanDefault.role_name,
+            department_id: null,
+            department_name: undefined,
+          };
+        }
+        return u;
+      });
     }
     if (Array.isArray(snapshot.departmentAssignments)) {
-      this.departmentAssignments = snapshot.departmentAssignments;
+      this.departmentAssignments = snapshot.departmentAssignments.filter(
+        (a: DepartmentUserAssignment) => a.user_id !== '00000000-0000-0000-0000-000000000002'
+      );
     }
     if (Array.isArray(snapshot.employees)) {
       this.employees = snapshot.employees;
@@ -852,13 +829,29 @@ class DataStore {
       Array.isArray(res.data.applications);
 
     if (isCurrentSevenDivSchema) {
+      const hadLegacyNames =
+        Array.isArray(res.data.users) &&
+        res.data.users.some(
+          (u: any) =>
+            typeof u.full_name === 'string' &&
+            (u.full_name.includes('Ahmad Fauzi') ||
+              u.full_name.includes('Bambang Sutrisno') ||
+              u.full_name.includes('Hendra Kusuma') ||
+              u.full_name.includes('Siti Rahma') ||
+              u.full_name.includes('Farid Nafis'))
+        );
+
       this.hydrateState(res.data);
+      const serialized = this.serializeState();
       if (typeof window !== 'undefined' && window.localStorage) {
         try {
-          window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.serializeState()));
+          window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serialized));
         } catch {
           // Ignore
         }
+      }
+      if (hadLegacyNames) {
+        await saveCloudDatabaseState(serialized);
       }
       this.cloudStatus = 'ONLINE_SYNCED';
       this.lastCloudSyncAt = res.updatedAt || new Date().toISOString();
@@ -907,7 +900,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000001',
         deptName: 'Mining Operations Department',
         submittedBy: '00000000-0000-0000-0000-000000000002',
-        submitterName: 'Ahmad Fauzi (Admin)',
+        submitterName: 'Admin',
         title: 'Pengawas Operasional Pertama (POP) Pertambangan Minerba',
         category: 'Certification',
         type: 'CERTIFICATION',
@@ -933,7 +926,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000001',
         deptName: 'Mining Operations Department',
         submittedBy: '00000000-0000-0000-0000-000000000002',
-        submitterName: 'Ahmad Fauzi (Admin)',
+        submitterName: 'Admin',
         title: 'Applied Failure Analysis (AFA) & Heavy Fleet Supervision',
         category: 'Technical',
         type: 'INTERNAL',
@@ -958,7 +951,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000002',
         deptName: 'Mining Engineering Department',
         submittedBy: '00000000-0000-0000-0000-000000000004',
-        submitterName: 'Ir. Hendra Kusuma (Manager TC)',
+        submitterName: 'Manager TC',
         title: 'Slope Stability & Geotechnical Radar Monitoring',
         category: 'Technical',
         type: 'EXTERNAL',
@@ -983,7 +976,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000005',
         deptName: 'Health Safety & Environment',
         submittedBy: '00000000-0000-0000-0000-000000000005',
-        submitterName: 'Siti Rahma (Admin TC)',
+        submitterName: 'Admin TC',
         title: 'Defensive Driving Training (DDT) & Heavy Hauler Safety 6x4',
         category: 'Safety',
         type: 'IN_HOUSE',
@@ -1008,7 +1001,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000001',
         deptName: 'Mining Operations Department',
         submittedBy: '00000000-0000-0000-0000-000000000002',
-        submitterName: 'Ahmad Fauzi (Admin)',
+        submitterName: 'Admin',
         title: 'Product Knowledge, Maintenance & Pengoperasian Excavator Komatsu PC400',
         category: 'Technical',
         type: 'INTERNAL',
@@ -1033,7 +1026,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000003',
         deptName: 'HRGA-IT (Human Resources, General Affairs & IT)',
         submittedBy: '00000000-0000-0000-0000-000000000006',
-        submitterName: 'Farid Nafis (Admin HRGA)',
+        submitterName: 'Admin HRGA',
         title: 'Supervisory Leadership, Industrial Relations & Enterprise IT Security',
         category: 'Leadership',
         type: 'IN_HOUSE',
@@ -1055,7 +1048,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000004',
         deptName: 'Training Center',
         submittedBy: '00000000-0000-0000-0000-000000000004',
-        submitterName: 'Ir. Hendra Kusuma (Manager TC)',
+        submitterName: 'Manager TC',
         title: 'Training of Trainer (TOT) BNSP Level 4 Metodologi Pelatihan',
         category: 'Certification',
         type: 'CERTIFICATION',
@@ -1077,7 +1070,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000005',
         deptName: 'Health Safety & Environment',
         submittedBy: '00000000-0000-0000-0000-000000000005',
-        submitterName: 'Siti Rahma (Admin TC)',
+        submitterName: 'Admin TC',
         title: 'Sistem Manajemen Keselamatan Pertambangan (SMKP) Kepmen 1827 K/2018',
         category: 'Compliance',
         type: 'CERTIFICATION',
@@ -1102,7 +1095,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000002',
         deptName: 'Mining Engineering Department',
         submittedBy: '00000000-0000-0000-0000-000000000004',
-        submitterName: 'Ir. Hendra Kusuma (Manager TC)',
+        submitterName: 'Manager TC',
         title: 'Short-Term Nickel Pit Fleet Dispatch & Mine Planning Optimization',
         category: 'Technical',
         type: 'INTERNAL',
@@ -1127,7 +1120,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000001',
         deptName: 'Mining Operations Department',
         submittedBy: '00000000-0000-0000-0000-000000000002',
-        submitterName: 'Ahmad Fauzi (Admin)',
+        submitterName: 'Admin',
         title: 'KOMTRAX & VHMS Heavy Equipment Telemetry Diagnostics',
         category: 'Technical',
         type: 'IN_HOUSE',
@@ -1149,7 +1142,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000004',
         deptName: 'Training Center',
         submittedBy: '00000000-0000-0000-0000-000000000005',
-        submitterName: 'Siti Rahma (Admin TC)',
+        submitterName: 'Admin TC',
         title: 'Simulator Heavy Hauler & Emergency Braking Procedure Batch 2',
         category: 'Safety',
         type: 'INTERNAL',
@@ -1174,7 +1167,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000001',
         deptName: 'Mining Operations Department',
         submittedBy: '00000000-0000-0000-0000-000000000002',
-        submitterName: 'Ahmad Fauzi (Admin)',
+        submitterName: 'Admin',
         title: 'Pengawas Operasional Madya (POM) Pertambangan Batch 2',
         category: 'Certification',
         type: 'CERTIFICATION',
@@ -1199,7 +1192,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000003',
         deptName: 'HRGA-IT (Human Resources, General Affairs & IT)',
         submittedBy: '00000000-0000-0000-0000-000000000006',
-        submitterName: 'Farid Nafis (Admin HRGA)',
+        submitterName: 'Admin HRGA',
         title: 'Competency Based Interview & HRIS Digital Transformation',
         category: 'Leadership',
         type: 'EXTERNAL',
@@ -1221,7 +1214,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000006',
         deptName: 'PLM (Plant & Logistics Management)',
         submittedBy: '00000000-0000-0000-0000-000000000002',
-        submitterName: 'Ahmad Fauzi (Admin)',
+        submitterName: 'Admin',
         title: 'Preventive Maintenance Hydraulic System & Fleet Logistics Optimization',
         category: 'Technical',
         type: 'IN_HOUSE',
@@ -1243,7 +1236,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000007',
         deptName: 'CIVIL (Civil & Infrastructure)',
         submittedBy: '00000000-0000-0000-0000-000000000002',
-        submitterName: 'Ahmad Fauzi (Admin)',
+        submitterName: 'Admin',
         title: 'Haul Road Construction Standard, Drainage & Settling Pond Engineering',
         category: 'Technical',
         type: 'INTERNAL',
@@ -1265,7 +1258,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000005',
         deptName: 'Health Safety & Environment',
         submittedBy: '00000000-0000-0000-0000-000000000005',
-        submitterName: 'Siti Rahma (Admin TC)',
+        submitterName: 'Admin TC',
         title: 'Emergency Pit Rescue & High Angle Evacuation Drill',
         category: 'Safety',
         type: 'IN_HOUSE',
@@ -1287,7 +1280,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000002',
         deptName: 'Mining Engineering Department',
         submittedBy: '00000000-0000-0000-0000-000000000004',
-        submitterName: 'Ir. Hendra Kusuma (Manager TC)',
+        submitterName: 'Manager TC',
         title: 'Overseas Autonomous Drilling Seminar (Ditunda / Cancelled)',
         category: 'Technical',
         type: 'EXTERNAL',
@@ -1310,7 +1303,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000001',
         deptName: 'Mining Operations Department',
         submittedBy: '00000000-0000-0000-0000-000000000002',
-        submitterName: 'Ahmad Fauzi (Admin)',
+        submitterName: 'Admin',
         title: 'Pedoman Teknis Operasional Tambang (PTOT) & Good Mining Practice',
         category: 'Compliance',
         type: 'CERTIFICATION',
@@ -1335,7 +1328,7 @@ class DataStore {
         deptId: '20000000-0000-0000-0000-000000000002',
         deptName: 'Mining Engineering Department',
         submittedBy: '00000000-0000-0000-0000-000000000004',
-        submitterName: 'Ir. Hendra Kusuma (Manager TC)',
+        submitterName: 'Manager TC',
         title: 'Geotechnical Pit Slope Instrumentation & Water Drainage',
         category: 'Technical',
         type: 'INTERNAL',
@@ -1466,7 +1459,7 @@ class DataStore {
       id: '92000000-0000-0000-0000-000000000001',
       application_id: '90000000-0000-0000-0000-000000000012',
       actor_id: '00000000-0000-0000-0000-000000000002',
-      actor_name: 'Ahmad Fauzi (Admin)',
+      actor_name: 'Admin',
       actor_role: 'ADMIN',
       action: 'SUBMIT',
       previous_status: 'DRAFT',
