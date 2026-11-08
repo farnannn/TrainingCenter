@@ -14,6 +14,7 @@ export interface RolePermissionMatrix {
   dashboard: 'FULL' | 'VIEW';
   trainingData: 'EDIT' | 'VIEW';
   trainingAchievement: 'EDIT' | 'VIEW';
+  employeeData: 'EDIT' | 'VIEW';
   canInputData: boolean;
   canEditData: boolean;
   canDeleteData: boolean;
@@ -26,6 +27,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = {
     dashboard: 'FULL',
     trainingData: 'EDIT',
     trainingAchievement: 'EDIT',
+    employeeData: 'EDIT',
     canInputData: true,
     canEditData: true,
     canDeleteData: true,
@@ -36,6 +38,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = {
     dashboard: 'FULL',
     trainingData: 'EDIT',
     trainingAchievement: 'EDIT',
+    employeeData: 'EDIT',
     canInputData: true,
     canEditData: true,
     canDeleteData: false,
@@ -46,6 +49,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = {
     dashboard: 'VIEW',
     trainingData: 'VIEW',
     trainingAchievement: 'VIEW',
+    employeeData: 'VIEW',
     canInputData: false,
     canEditData: false,
     canDeleteData: false,
@@ -56,6 +60,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = {
     dashboard: 'FULL',
     trainingData: 'EDIT',
     trainingAchievement: 'EDIT',
+    employeeData: 'VIEW',
     canInputData: true,
     canEditData: true,
     canDeleteData: false,
@@ -66,6 +71,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = {
     dashboard: 'FULL',
     trainingData: 'EDIT',
     trainingAchievement: 'EDIT',
+    employeeData: 'EDIT',
     canInputData: true,
     canEditData: true,
     canDeleteData: false,
@@ -76,6 +82,7 @@ export const ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = {
     dashboard: 'FULL',
     trainingData: 'EDIT',
     trainingAchievement: 'VIEW',
+    employeeData: 'EDIT',
     canInputData: true,
     canEditData: true,
     canDeleteData: false,

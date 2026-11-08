@@ -2957,9 +2957,10 @@ class DataStore {
       email?: string;
     }
   ): Employee {
+    const callerRole = this.getUserRole(actorId);
     const perms = this.getUserPermissions(actorId);
-    if (!perms.canInputData) {
-      throw new Error('Forbidden: Role Anda (View Only) tidak memiliki akses menambah data karyawan.');
+    if (!perms.canInputData || perms.employeeData === 'VIEW' || callerRole === 'MANAGER_TC' || callerRole === 'PJO') {
+      throw new Error('Forbidden: Role Anda hanya memiliki akses Lihat (View Only) pada Data Karyawan dan tidak dapat menambah data karyawan.');
     }
 
     const actor = this.users.find((u) => u.id === actorId);
@@ -3083,9 +3084,10 @@ class DataStore {
       employment_status?: string;
     }>
   ): { added: Employee[]; skipped: string[] } {
+    const callerRole = this.getUserRole(actorId);
     const perms = this.getUserPermissions(actorId);
-    if (!perms.canInputData) {
-      throw new Error('Forbidden: Role Anda tidak memiliki hak akses mengunggah data karyawan.');
+    if (!perms.canInputData || perms.employeeData === 'VIEW' || callerRole === 'MANAGER_TC' || callerRole === 'PJO') {
+      throw new Error('Forbidden: Role Anda hanya memiliki akses Lihat (View Only) pada Data Karyawan dan tidak dapat mengunggah data karyawan.');
     }
 
     const added: Employee[] = [];

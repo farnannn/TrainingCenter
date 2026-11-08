@@ -45,7 +45,11 @@ export const EmployeeRoster: React.FC = () => {
   const perms = getRolePermissions(currentUser.role_code);
   const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN';
   const isDeptUser = false;
-  const canModify = perms.canInputData || perms.canEditData;
+  const canModify =
+    (perms.canInputData || perms.canEditData) &&
+    perms.employeeData !== 'VIEW' &&
+    currentUser.role_code !== 'MANAGER_TC' &&
+    currentUser.role_code !== 'PJO';
 
   const [confirmDeleteEmp, setConfirmDeleteEmp] = useState<Employee | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -256,7 +260,7 @@ export const EmployeeRoster: React.FC = () => {
               Hapus Semua Karyawan
             </Button>
           )}
-          {canModify && (
+          {canModify ? (
             <>
               <Button
                 variant="outline"
@@ -290,6 +294,10 @@ export const EmployeeRoster: React.FC = () => {
                 Tambah Karyawan
               </Button>
             </>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#F4F6F5] border border-[#E2E8E8] text-xs font-mono font-semibold text-[#5A6B75]">
+              <span>Mode Akses: LIHAT SAJA ({currentUser.role_name})</span>
+            </span>
           )}
         </div>
       </div>
