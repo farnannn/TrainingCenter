@@ -30,11 +30,34 @@ import {
   Building2,
   Lock,
   ShieldCheck,
+  ClipboardList,
+  Calendar,
   X,
   AlertCircle,
 } from 'lucide-react';
 
-export const TrainingAchievementView: React.FC = () => {
+const WEEKLY_MONTH_NAMES: Record<string, string> = {
+  '01': 'Januari',
+  '02': 'Februari',
+  '03': 'Maret',
+  '04': 'April',
+  '05': 'Mei',
+  '06': 'Juni',
+  '07': 'Juli',
+  '08': 'Agustus',
+  '09': 'September',
+  '10': 'Oktober',
+  '11': 'November',
+  '12': 'Desember',
+};
+
+interface TrainingAchievementViewProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = ({
+  onNavigate,
+}) => {
   const { currentUser, refreshState } = useAuth();
   const perms = getRolePermissions(currentUser.role_code);
   const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN';
@@ -51,6 +74,10 @@ export const TrainingAchievementView: React.FC = () => {
   const [deptFilter, setDeptFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  // Weekly Technical Trainer Activity Selector State
+  const [selectedActivityMonth, setSelectedActivityMonth] = useState<string>('11');
+  const [selectedActivityWeek, setSelectedActivityWeek] = useState<number | 'ALL'>(1);
 
   // Modals State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -522,6 +549,207 @@ export const TrainingAchievementView: React.FC = () => {
           tone="danger"
         />
       </div>
+
+      {/* 3B. LAPORAN WEEKLY — ACTIVITAS TECHNICAL TRAINER (TERINTEGRASI DARI SUB-SIDEBAR) */}
+      {(() => {
+        const activeYear = yearFilter === 'ALL' ? '2026' : yearFilter;
+        const effectiveMonth =
+          monthFilter !== 'ALL' ? monthFilter : selectedActivityMonth;
+        const monthDisplay = WEEKLY_MONTH_NAMES[effectiveMonth] || 'November';
+
+        const matchingWeeklyReports = mockStore.trainerActivities.filter((sec) => {
+          const secYear = sec.year || '2026';
+          const secMonth = sec.month || '11';
+          const secWeek = sec.week_number || 1;
+          const matchYear = yearFilter === 'ALL' || secYear === activeYear;
+          const matchMonth = secMonth === effectiveMonth;
+          const matchWeek =
+            selectedActivityWeek === 'ALL' || secWeek === selectedActivityWeek;
+          return matchYear && matchMonth && matchWeek;
+        });
+
+        return (
+          <div className="bg-white rounded-[14px] border border-[#E2E8E8] shadow-xs overflow-hidden">
+            {/* Top Selector Bar for Weekly Technical Trainer Activities */}
+            <div className="px-5 py-4 bg-[#18232B] text-white border-b border-[#263640] flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <ClipboardList className="w-4 h-4 text-[#E88932]" />
+                <div>
+                  <div className="text-xs font-heading font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <span>Laporan Weekly — Activitas Technical Trainer</span>
+                    <span className="px-2 py-0.5 rounded bg-[#E88932]/20 text-[#E88932] font-mono text-[10px]">
+                      {selectedActivityWeek === 'ALL'
+                        ? `Semua Minggu • ${monthDisplay} ${activeYear}`
+                        : `Minggu Ke-${selectedActivityWeek} • ${monthDisplay} ${activeYear}`}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Pilih minggu keberapa untuk melihat laporan aktivitas Technical Trainer yang sudah diedit & disimpan
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Pilih Bulan untuk Laporan Weekly */}
+                <div className="flex items-center gap-1.5 bg-[#263640] px-2.5 py-1.5 rounded-[8px] border border-slate-700">
+                  <Calendar className="w-3.5 h-3.5 text-[#E88932]" />
+                  <select
+                    value={effectiveMonth}
+                    onChange={(e) => setSelectedActivityMonth(e.target.value)}
+                    className="text-xs font-semibold bg-transparent text-white focus:outline-none cursor-pointer"
+                  >
+                    {Object.entries(WEEKLY_MONTH_NAMES).map(([code, name]) => (
+                      <option key={code} value={code} className="text-[#18232B]">
+                        {code} — {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Pilih Minggu Keberapa (1 - 5 atau Semua) */}
+                <div className="flex items-center gap-1 bg-[#263640] p-1 rounded-[8px] border border-slate-700">
+                  {[1, 2, 3, 4, 5].map((wk) => {
+                    const hasSaved = mockStore.trainerActivities.some(
+                      (s) =>
+                        (s.year || '2026') === activeYear &&
+                        (s.month || '11') === effectiveMonth &&
+                        (s.week_number || 1) === wk &&
+                        s.items.length > 0
+                    );
+                    const isSelected = selectedActivityWeek === wk;
+                    return (
+                      <button
+                        key={wk}
+                        type="button"
+                        onClick={() => setSelectedActivityWeek(wk)}
+                        className={`px-2.5 py-1 rounded-[6px] text-[11px] font-mono font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                          isSelected
+                            ? 'bg-[#E88932] text-[#18232B]'
+                            : 'text-slate-300 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <span>Minggu {wk}</span>
+                        {hasSaved && (
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isSelected ? 'bg-[#18232B]' : 'bg-[#6EE7B7]'
+                            }`}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedActivityWeek('ALL')}
+                    className={`px-2.5 py-1 rounded-[6px] text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                      selectedActivityWeek === 'ALL'
+                        ? 'bg-[#E88932] text-[#18232B]'
+                        : 'text-slate-300 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    Semua
+                  </button>
+                </div>
+
+                {onNavigate && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Edit3 className="w-3.5 h-3.5" />}
+                    onClick={() => onNavigate('trainer_activities')}
+                  >
+                    Edit / Kelola Weekly Report
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Content of Selected Week's Technical Trainer Activities */}
+            {matchingWeeklyReports.length === 0 ? (
+              <div className="p-6 bg-gradient-to-b from-[#FAF3DD]/40 to-[#EBF0F2]/40 text-center space-y-2.5">
+                <p className="text-xs text-[#263640]">
+                  Belum ada laporan <strong>Activitas Technical Trainer</strong> yang disimpan untuk{' '}
+                  <strong>
+                    {selectedActivityWeek === 'ALL'
+                      ? `Bulan ${monthDisplay} ${activeYear}`
+                      : `Minggu Ke-${selectedActivityWeek} • ${monthDisplay} ${activeYear}`}
+                  </strong>
+                  .
+                </p>
+                {onNavigate && (
+                  <div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Plus className="w-3.5 h-3.5 text-[#E88932]" />}
+                      onClick={() => onNavigate('trainer_activities')}
+                    >
+                      Isi & Simpan Laporan Minggu Ini di Sub-Menu Activitas Technical Trainer
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-[#E5C7B8]">
+                {matchingWeeklyReports.map((sec) => (
+                  <div key={sec.id}>
+                    {/* Ribbon Header matching screenshot: [TRAINING] | [1. Activitas Technical Trainer] */}
+                    <div className="bg-[#F9E6DE] border-b border-[#E5C7B8] flex flex-wrap items-stretch justify-between">
+                      <div className="flex items-stretch flex-1 min-w-[260px]">
+                        <div
+                          className="bg-[#F5E8C7] text-[#18232B] px-5 py-2.5 font-heading font-extrabold text-xs sm:text-sm tracking-wide uppercase flex items-center border-r border-[#DEC99A]"
+                          style={{
+                            clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0% 100%)',
+                            paddingRight: '1.75rem',
+                          }}
+                        >
+                          {sec.badge_label || 'TRAINING'}
+                        </div>
+                        <div className="flex-1 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="text-sm sm:text-base font-heading font-extrabold text-[#18232B]">
+                            {sec.title}
+                          </h4>
+                          <span className="text-xs font-mono font-bold text-[#C66B1A] bg-white/80 px-2.5 py-0.5 rounded-full border border-[#E08A66]/50">
+                            Minggu Ke-{sec.week_number || 1} •{' '}
+                            {WEEKLY_MONTH_NAMES[sec.month || '11'] || 'November'}{' '}
+                            {sec.year || '2026'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Warm Rounded Container with Numbered Points */}
+                    <div className="p-4 sm:p-5 bg-gradient-to-b from-[#FAF3DD]/60 to-[#EBF0F2]/60">
+                      <div className="bg-[#F6B092]/35 border-2 border-[#E08A66]/60 rounded-[18px] p-4 sm:p-5 shadow-2xs">
+                        {sec.items.length === 0 ? (
+                          <div className="text-xs text-[#5A6B75] text-center py-3">
+                            Belum ada poin aktivitas pada minggu ini.
+                          </div>
+                        ) : (
+                          <ol className="space-y-2">
+                            {sec.items.map((item, idx) => (
+                              <li
+                                key={item.id}
+                                className="flex items-start gap-2.5 text-xs sm:text-sm text-[#18232B] leading-relaxed bg-white/80 rounded-[10px] px-3.5 py-2 border border-[#E08A66]/30"
+                              >
+                                <span className="font-mono font-bold text-[#18232B] shrink-0">
+                                  {idx + 1}.
+                                </span>
+                                <span className="font-medium">{item.content}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 4. OVERALL ACHIEVEMENT PROGRESS BAR BANNER */}
       <div className="bg-white p-6 rounded-[12px] border border-[#E2E8E8]">

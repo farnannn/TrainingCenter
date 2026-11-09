@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
 import {
-  TrainerActivityItem,
   TrainerActivitySection,
   getRolePermissions,
 } from '../../lib/types';
@@ -17,169 +16,183 @@ import {
   CheckCircle2,
   AlertCircle,
   Lock,
+  Calendar,
+  Copy,
 } from 'lucide-react';
+
+const MONTH_OPTIONS = [
+  { value: '01', label: 'Januari' },
+  { value: '02', label: 'Februari' },
+  { value: '03', label: 'Maret' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'Mei' },
+  { value: '06', label: 'Juni' },
+  { value: '07', label: 'Juli' },
+  { value: '08', label: 'Agustus' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' },
+];
+
+const WEEK_NUMBERS = [1, 2, 3, 4, 5];
 
 export const TechnicalTrainerActivitiesView: React.FC = () => {
   const { currentUser, refreshState } = useAuth();
   const perms = getRolePermissions(currentUser.role_code);
   const canEdit = perms.canEditData || perms.canInputData;
 
-  const sections = mockStore.trainerActivities;
+  // Selected Period State (Year, Month, Week Number)
+  const [selectedYear, setSelectedYear] = useState<string>('2026');
+  const [selectedMonth, setSelectedMonth] = useState<string>('11');
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
 
-  // Inline / Modal State for Editing Section Header
-  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
-  const [sectionBadgeInput, setSectionBadgeInput] = useState('TRAINING');
-  const [sectionTitleInput, setSectionTitleInput] = useState('');
+  const monthLabel =
+    MONTH_OPTIONS.find((m) => m.value === selectedMonth)?.label || 'November';
 
-  // Inline State for Editing a Specific Activity Item
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editingItemSectionId, setEditingItemSectionId] = useState<string | null>(null);
-  const [editingItemContent, setEditingItemContent] = useState('');
+  // Find saved report for (selectedYear, selectedMonth, selectedWeek)
+  const savedReportForWeek: TrainerActivitySection | undefined =
+    mockStore.trainerActivities.find(
+      (s) =>
+        (s.year || '2026') === selectedYear &&
+        (s.month || '11') === selectedMonth &&
+        (s.week_number || 1) === selectedWeek
+    );
 
-  // State for Adding a New Activity Item to a Section
-  const [addingToSectionId, setAddingToSectionId] = useState<string | null>(null);
-  const [newItemContent, setNewItemContent] = useState('');
-
-  // Modal State for Adding a New Section
-  const [showAddSectionModal, setShowAddSectionModal] = useState(false);
-  const [newSecBadge, setNewSecBadge] = useState('TRAINING');
-  const [newSecTitle, setNewSecTitle] = useState('');
-  const [newSecFirstItem, setNewSecFirstItem] = useState('');
+  // Editable Draft State for the Selected Week
+  const [badgeLabel, setBadgeLabel] = useState<string>('TRAINING');
+  const [sectionTitle, setSectionTitle] = useState<string>(
+    '1. Activitas Technical Trainer'
+  );
+  const [isEditingHeader, setIsEditingHeader] = useState<boolean>(false);
+  const [draftItems, setDraftItems] = useState<string[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState<string>('');
+  const [newPointText, setNewPointText] = useState<string>('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
 
   // Feedback Banner
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const startEditSection = (sec: TrainerActivitySection) => {
-    setEditingSectionId(sec.id);
-    setSectionBadgeInput(sec.badge_label || 'TRAINING');
-    setSectionTitleInput(sec.title);
-    setErrorMsg(null);
-  };
+  // Sync draft when user switches Year / Month / Week
+  useEffect(() => {
+    const found = mockStore.trainerActivities.find(
+      (s) =>
+        (s.year || '2026') === selectedYear &&
+        (s.month || '11') === selectedMonth &&
+        (s.week_number || 1) === selectedWeek
+    );
+    if (found) {
+      setBadgeLabel(found.badge_label || 'TRAINING');
+      setSectionTitle(found.title || '1. Activitas Technical Trainer');
+      setDraftItems(found.items.map((it) => it.content));
+    } else {
+      setBadgeLabel('TRAINING');
+      setSectionTitle('1. Activitas Technical Trainer');
+      setDraftItems([]);
+    }
+    setEditingIndex(null);
+    setIsEditingHeader(false);
+    setHasUnsavedChanges(false);
+  }, [selectedYear, selectedMonth, selectedWeek, mockStore.trainerActivities.length]);
 
-  const handleSaveSectionHeader = (e: React.FormEvent, sectionId: string) => {
-    e.preventDefault();
+  // Save the Weekly Report to mockStore (and immediately persist so it appears in Capaian Training)
+  const handleSaveWeeklyReport = (itemsOverride?: string[], titleOverride?: string, badgeOverride?: string) => {
     setErrorMsg(null);
     setSuccessMsg(null);
+    const itemsToSave = itemsOverride !== undefined ? itemsOverride : draftItems;
+    const titleToSave = titleOverride !== undefined ? titleOverride : sectionTitle;
+    const badgeToSave = badgeOverride !== undefined ? badgeOverride : badgeLabel;
+
     try {
-      mockStore.updateTrainerActivitySection(currentUser.id, sectionId, {
-        badge_label: sectionBadgeInput,
-        title: sectionTitleInput,
+      mockStore.saveWeeklyTrainerReport(currentUser.id, {
+        year: selectedYear,
+        month: selectedMonth,
+        week_number: selectedWeek,
+        period_label: `Minggu Ke-${selectedWeek} • ${monthLabel} ${selectedYear}`,
+        badge_label: badgeToSave,
+        title: titleToSave,
+        items: itemsToSave,
       });
-      setEditingSectionId(null);
-      setSuccessMsg('Judul bagian aktivitas berhasil diperbarui.');
-      refreshState();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal memperbarui judul bagian.');
-    }
-  };
-
-  const handleDeleteSection = (sec: TrainerActivitySection) => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      mockStore.deleteTrainerActivitySection(currentUser.id, sec.id);
-      setSuccessMsg(`Bagian "${sec.title}" berhasil dihapus.`);
-      refreshState();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menghapus bagian aktivitas.');
-    }
-  };
-
-  const startEditItem = (sectionId: string, item: TrainerActivityItem) => {
-    setEditingItemSectionId(sectionId);
-    setEditingItemId(item.id);
-    setEditingItemContent(item.content);
-    setErrorMsg(null);
-  };
-
-  const handleSaveItem = (e: React.FormEvent, sectionId: string, itemId: string) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      mockStore.updateTrainerActivityItem(
-        currentUser.id,
-        sectionId,
-        itemId,
-        editingItemContent
+      setHasUnsavedChanges(false);
+      setSuccessMsg(
+        `Laporan Mingguan (Minggu Ke-${selectedWeek} • ${monthLabel} ${selectedYear}) berhasil disimpan dan otomatis tampil di halaman Capaian Training!`
       );
-      setEditingItemId(null);
-      setEditingItemSectionId(null);
-      setSuccessMsg('Poin aktivitas berhasil diperbarui.');
       refreshState();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menyimpan perubahan poin aktivitas.');
+      setErrorMsg(err.message || 'Gagal menyimpan laporan mingguan.');
     }
   };
 
-  const handleAddItem = (e: React.FormEvent, sectionId: string) => {
+  // Add a new activity point and auto-save
+  const handleAddPoint = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      mockStore.addTrainerActivityItem(currentUser.id, sectionId, newItemContent);
-      setNewItemContent('');
-      setAddingToSectionId(null);
-      setSuccessMsg('Poin aktivitas baru berhasil ditambahkan.');
-      refreshState();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menambahkan poin aktivitas.');
-    }
+    const clean = newPointText.trim();
+    if (!clean) return;
+    const updated = [...draftItems, clean];
+    setDraftItems(updated);
+    setNewPointText('');
+    handleSaveWeeklyReport(updated);
   };
 
-  const handleDeleteItem = (sectionId: string, itemId: string) => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      mockStore.deleteTrainerActivityItem(currentUser.id, sectionId, itemId);
-      setSuccessMsg('Poin aktivitas berhasil dihapus.');
-      refreshState();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menghapus poin aktivitas.');
-    }
+  // Start editing a specific point
+  const handleStartEditPoint = (idx: number) => {
+    setEditingIndex(idx);
+    setEditingText(draftItems[idx]);
   };
 
-  const handleCreateSection = (e: React.FormEvent) => {
+  // Save edited point and auto-save report
+  const handleSaveEditedPoint = (e: React.FormEvent, idx: number) => {
     e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    try {
-      const initialLines = newSecFirstItem
-        .split(/\r?\n/)
-        .map((l) => l.replace(/^\d+[\.\)]\s*/, '').trim())
-        .filter(Boolean);
+    const clean = editingText.trim();
+    if (!clean) return;
+    const updated = draftItems.map((item, i) => (i === idx ? clean : item));
+    setDraftItems(updated);
+    setEditingIndex(null);
+    handleSaveWeeklyReport(updated);
+  };
 
-      mockStore.addTrainerActivitySection(currentUser.id, {
-        badge_label: newSecBadge,
-        title: newSecTitle,
-        items: initialLines,
-      });
-      setNewSecBadge('TRAINING');
-      setNewSecTitle('');
-      setNewSecFirstItem('');
-      setShowAddSectionModal(false);
-      setSuccessMsg(`Bagian "${newSecTitle}" berhasil ditambahkan.`);
-      refreshState();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menambah bagian aktivitas.');
-    }
+  // Delete a point and auto-save report
+  const handleDeletePoint = (idx: number) => {
+    const updated = draftItems.filter((_, i) => i !== idx);
+    setDraftItems(updated);
+    handleSaveWeeklyReport(updated);
+  };
+
+  // Copy points from Minggu Ke-1 (or latest saved week) as template
+  const handleCopyFromPreviousWeek = () => {
+    const sourceReport =
+      mockStore.trainerActivities.find(
+        (s) =>
+          (s.year || '2026') === selectedYear &&
+          (s.month || '11') === selectedMonth &&
+          (s.week_number || 1) === Math.max(1, selectedWeek - 1)
+      ) || mockStore.trainerActivities[0];
+
+    if (!sourceReport) return;
+    const copied = sourceReport.items.map((it) => it.content);
+    setDraftItems(copied);
+    setHasUnsavedChanges(true);
+    setSuccessMsg(
+      `Berhasil menyalin ${copied.length} poin aktivitas dari ${sourceReport.period_label || 'Minggu sebelumnya'}. Silakan sesuaikan lalu klik "Simpan Laporan Minggu Ke-${selectedWeek}".`
+    );
   };
 
   return (
     <div className="space-y-6">
-      {/* Top Hero Banner */}
+      {/* 1. TOP HERO BANNER */}
       <div className="bg-[#18232B] bg-topography text-white p-6 rounded-[12px] border border-[#263640] flex flex-wrap justify-between items-center gap-4">
         <div>
           <div className="flex items-center gap-2 text-[#E88932] text-xs font-mono font-semibold uppercase tracking-wider">
             <ClipboardList className="w-4 h-4" />
-            <span>RAJA ACADEMY • TRAINING ACHIEVEMENT SUB-MENU</span>
+            <span>RAJA ACADEMY • WEEKLY TECHNICAL TRAINER REPORT</span>
           </div>
           <h2 className="text-xl font-heading font-bold mt-1">
-            Activitas Technical Trainer & Laporan Kegiatan
+            Laporan Mingguan (Weekly) — Activitas Technical Trainer
           </h2>
           <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-            Rincian aktivitas pelaksanaan Training Class, Interview, Assessment, Monitoring OJT Siswa BMC, serta Sharing Session di seluruh Site operasional PT. Roda Jaya Sakti.
+            Pilih periode <strong>Bulan & Minggu Keberapa</strong>, edit atau tambahkan rincian aktivitas Technical Trainer, lalu klik <strong>Simpan Laporan Mingguan</strong> agar otomatis tampil di halaman <strong>Capaian Training</strong>.
           </p>
         </div>
 
@@ -192,15 +205,10 @@ export const TechnicalTrainerActivitiesView: React.FC = () => {
               <Button
                 variant="primary"
                 size="md"
-                icon={<Plus className="w-4 h-4" />}
-                onClick={() => {
-                  setNewSecBadge('TRAINING');
-                  setNewSecTitle(`${sections.length + 1}. Activitas Technical Trainer`);
-                  setNewSecFirstItem('');
-                  setShowAddSectionModal(true);
-                }}
+                icon={<Save className="w-4 h-4" />}
+                onClick={() => handleSaveWeeklyReport()}
               >
-                Tambah Bagian Aktivitas
+                Simpan Laporan Minggu Ke-{selectedWeek}
               </Button>
             </>
           ) : (
@@ -209,6 +217,124 @@ export const TechnicalTrainerActivitiesView: React.FC = () => {
               <span>Mode Akses: LIHAT SAJA ({currentUser.role_name})</span>
             </span>
           )}
+        </div>
+      </div>
+
+      {/* 2. WEEKLY PERIOD SELECTOR BAR (TAHUN, BULAN, MINGGU KE-1 s/d KE-5) */}
+      <div className="bg-white p-5 rounded-[12px] border border-[#E2E8E8] shadow-2xs space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs font-heading font-bold text-[#18232B] uppercase tracking-wider">
+            <Calendar className="w-4 h-4 text-[#E88932]" />
+            <span>Pilih Periode Laporan Mingguan (Weekly Report)</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Pilih Tahun */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-[#5A6B75]">Tahun:</span>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="h-[36px] px-3 text-xs font-semibold bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] text-[#18232B] focus:bg-white focus:outline-none focus:border-[#E88932]"
+              >
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+              </select>
+            </div>
+
+            {/* Pilih Bulan */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-[#5A6B75]">Bulan:</span>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="h-[36px] px-3 text-xs font-semibold bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] text-[#18232B] focus:bg-white focus:outline-none focus:border-[#E88932]"
+              >
+                {MONTH_OPTIONS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.value} — {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Pilih Minggu Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-[#5A6B75]">Minggu:</span>
+              <select
+                value={selectedWeek}
+                onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                className="h-[36px] px-3 text-xs font-bold bg-[#E88932]/12 border border-[#E88932]/40 rounded-[8px] text-[#C66B1A] focus:outline-none"
+              >
+                {WEEK_NUMBERS.map((w) => (
+                  <option key={w} value={w}>
+                    Minggu Ke-{w}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Interactive Week Pills (Minggu Ke-1 s/d Minggu Ke-5) */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2 border-t border-[#E2E8E8]">
+          {WEEK_NUMBERS.map((weekNum) => {
+            const isSelected = selectedWeek === weekNum;
+            const savedForThisWeek = mockStore.trainerActivities.find(
+              (s) =>
+                (s.year || '2026') === selectedYear &&
+                (s.month || '11') === selectedMonth &&
+                (s.week_number || 1) === weekNum
+            );
+            const itemCount = savedForThisWeek ? savedForThisWeek.items.length : 0;
+
+            return (
+              <button
+                key={weekNum}
+                type="button"
+                onClick={() => setSelectedWeek(weekNum)}
+                className={`p-3 rounded-[10px] border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                  isSelected
+                    ? 'bg-[#18232B] text-white border-[#E88932] shadow-sm'
+                    : 'bg-[#F4F6F5] hover:bg-white text-[#18232B] border-[#E2E8E8]'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-heading font-bold">
+                    Minggu Ke-{weekNum}
+                  </span>
+                  {savedForThisWeek ? (
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold ${
+                        isSelected
+                          ? 'bg-[#397C69] text-white'
+                          : 'bg-[#397C69]/15 text-[#296050]'
+                      }`}
+                    >
+                      Tersimpan
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                        isSelected
+                          ? 'bg-white/10 text-slate-300'
+                          : 'bg-[#E2E8E8] text-[#5A6B75]'
+                      }`}
+                    >
+                      Kosong
+                    </span>
+                  )}
+                </div>
+                <div
+                  className={`text-[11px] font-mono ${
+                    isSelected ? 'text-[#E88932]' : 'text-[#5A6B75]'
+                  }`}
+                >
+                  {monthLabel} {selectedYear} • {itemCount} Aktivitas
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -243,368 +369,331 @@ export const TechnicalTrainerActivitiesView: React.FC = () => {
         </div>
       )}
 
-      {/* Activity Sections List */}
-      <div className="space-y-6">
-        {sections.map((sec) => {
-          const isEditingHeader = editingSectionId === sec.id;
-          const isAddingItem = addingToSectionId === sec.id;
-
-          return (
-            <div
-              key={sec.id}
-              className="bg-white rounded-[14px] border border-[#E2E8E8] shadow-xs overflow-hidden"
+      {/* 3. ACTIVE WEEKLY REPORT CARD (MATCHING SCREENSHOT DESIGN + EDITABLE) */}
+      <div className="bg-white rounded-[14px] border border-[#E2E8E8] shadow-xs overflow-hidden">
+        {/* Top Ribbon Header: [TRAINING] | [1. Activitas Technical Trainer — Minggu Ke-X] */}
+        <div className="bg-[#F9E6DE] border-b border-[#E5C7B8] flex flex-wrap items-stretch justify-between">
+          {isEditingHeader ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setIsEditingHeader(false);
+                handleSaveWeeklyReport(draftItems, sectionTitle, badgeLabel);
+              }}
+              className="w-full p-3 flex flex-wrap items-center gap-2.5 bg-[#FFF8F5]"
             >
-              {/* Ribbon Header matching the reference layout: [TRAINING] | [1. Activitas Technical Trainer] */}
-              <div className="bg-[#F9E6DE] border-b border-[#E5C7B8] flex flex-wrap items-stretch justify-between">
-                {isEditingHeader ? (
-                  <form
-                    onSubmit={(e) => handleSaveSectionHeader(e, sec.id)}
-                    className="w-full p-3 flex flex-wrap items-center gap-2.5 bg-[#FFF8F5]"
-                  >
-                    <input
-                      type="text"
-                      value={sectionBadgeInput}
-                      onChange={(e) => setSectionBadgeInput(e.target.value)}
-                      placeholder="TRAINING"
-                      className="w-32 h-[36px] px-3 text-xs font-heading font-bold uppercase bg-white border border-[#E2E8E8] rounded-[8px] focus:outline-none focus:border-[#E88932] text-[#18232B]"
-                    />
-                    <input
-                      type="text"
-                      required
-                      value={sectionTitleInput}
-                      onChange={(e) => setSectionTitleInput(e.target.value)}
-                      placeholder="Contoh: 1. Activitas Technical Trainer"
-                      className="flex-1 min-w-[220px] h-[36px] px-3 text-xs font-heading font-bold bg-white border border-[#E2E8E8] rounded-[8px] focus:outline-none focus:border-[#E88932] text-[#18232B]"
-                    />
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="sm"
-                      icon={<Save className="w-3.5 h-3.5" />}
-                    >
-                      Simpan Judul
-                    </Button>
+              <input
+                type="text"
+                value={badgeLabel}
+                onChange={(e) => setBadgeLabel(e.target.value)}
+                placeholder="TRAINING"
+                className="w-32 h-[36px] px-3 text-xs font-heading font-bold uppercase bg-white border border-[#E2E8E8] rounded-[8px] focus:outline-none focus:border-[#E88932] text-[#18232B]"
+              />
+              <input
+                type="text"
+                required
+                value={sectionTitle}
+                onChange={(e) => setSectionTitle(e.target.value)}
+                placeholder="Contoh: 1. Activitas Technical Trainer"
+                className="flex-1 min-w-[220px] h-[36px] px-3 text-xs font-heading font-bold bg-white border border-[#E2E8E8] rounded-[8px] focus:outline-none focus:border-[#E88932] text-[#18232B]"
+              />
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                icon={<Save className="w-3.5 h-3.5" />}
+              >
+                Simpan Judul
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditingHeader(false)}
+              >
+                Batal
+              </Button>
+            </form>
+          ) : (
+            <>
+              <div className="flex items-stretch flex-1 min-w-[260px]">
+                {/* Left angled TRAINING badge */}
+                <div
+                  className="bg-[#F5E8C7] text-[#18232B] px-5 py-3 font-heading font-extrabold text-xs sm:text-sm tracking-wide uppercase flex items-center border-r border-[#DEC99A] shadow-2xs"
+                  style={{
+                    clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0% 100%)',
+                    paddingRight: '1.75rem',
+                  }}
+                >
+                  {badgeLabel || 'TRAINING'}
+                </div>
+
+                {/* Center Title + Selected Week Badge */}
+                <div className="flex-1 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm sm:text-base font-heading font-extrabold text-[#18232B]">
+                    {sectionTitle}
+                  </h3>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#18232B] text-[#E88932] font-mono text-xs font-bold">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>
+                      Minggu Ke-{selectedWeek} • {monthLabel} {selectedYear}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons on Header */}
+              {canEdit && (
+                <div className="px-4 py-2.5 flex flex-wrap items-center gap-2">
+                  {draftItems.length === 0 && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setEditingSectionId(null)}
+                      icon={<Copy className="w-3.5 h-3.5 text-[#E88932]" />}
+                      onClick={handleCopyFromPreviousWeek}
                     >
-                      Batal
+                      Salin dari Minggu Sebelumnya
                     </Button>
-                  </form>
-                ) : (
-                  <>
-                    <div className="flex items-stretch flex-1 min-w-[260px]">
-                      {/* Left angled/styled TRAINING badge */}
-                      <div
-                        className="bg-[#F5E8C7] text-[#18232B] px-5 py-3 font-heading font-extrabold text-xs sm:text-sm tracking-wide uppercase flex items-center border-r border-[#DEC99A] shadow-2xs"
-                        style={{
-                          clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0% 100%)',
-                          paddingRight: '1.75rem',
-                        }}
-                      >
-                        {sec.badge_label || 'TRAINING'}
-                      </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    icon={<Edit3 className="w-3.5 h-3.5" />}
+                    onClick={() => setIsEditingHeader(true)}
+                  >
+                    Edit Judul
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    icon={<Save className="w-3.5 h-3.5" />}
+                    onClick={() => handleSaveWeeklyReport()}
+                  >
+                    Simpan Laporan Minggu Ke-{selectedWeek}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
-                      {/* Center Title */}
-                      <div className="flex-1 px-4 py-3 flex items-center justify-center sm:justify-start">
-                        <h3 className="text-sm sm:text-base font-heading font-extrabold text-[#18232B]">
-                          {sec.title}
-                        </h3>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons on Header */}
-                    {canEdit && (
-                      <div className="px-4 py-2.5 flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          icon={<Plus className="w-3.5 h-3.5 text-[#E88932]" />}
-                          onClick={() => {
-                            setAddingToSectionId(sec.id);
-                            setNewItemContent('');
-                          }}
-                        >
-                          Tambah Poin
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          icon={<Edit3 className="w-3.5 h-3.5" />}
-                          onClick={() => startEditSection(sec)}
-                        >
-                          Edit Judul
-                        </Button>
-                        {sections.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="danger"
-                            size="sm"
-                            icon={<Trash2 className="w-3.5 h-3.5" />}
-                            onClick={() => handleDeleteSection(sec)}
-                          >
-                            Hapus Bagian
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </>
+        {/* Body Area with Warm Rounded Container like the reference image */}
+        <div className="p-5 sm:p-6 bg-gradient-to-b from-[#FAF3DD]/60 to-[#EBF0F2]/60">
+          <div className="bg-[#F6B092]/35 border-2 border-[#E08A66]/60 rounded-[20px] p-5 sm:p-6 shadow-xs space-y-3">
+            {draftItems.length === 0 ? (
+              <div className="text-center py-6 space-y-3">
+                <p className="text-xs text-[#263640]">
+                  Belum ada poin aktivitas yang disimpan untuk{' '}
+                  <strong>
+                    Minggu Ke-{selectedWeek} ({monthLabel} {selectedYear})
+                  </strong>
+                  .
+                </p>
+                {canEdit && (
+                  <div className="flex justify-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Copy className="w-3.5 h-3.5" />}
+                      onClick={handleCopyFromPreviousWeek}
+                    >
+                      Salin Template dari Minggu Sebelumnya
+                    </Button>
+                  </div>
                 )}
               </div>
+            ) : (
+              <ol className="space-y-2.5">
+                {draftItems.map((itemText, idx) => {
+                  const isEditingThis = editingIndex === idx;
 
-              {/* Body Area with Warm Rounded Container like the reference image */}
-              <div className="p-5 sm:p-6 bg-gradient-to-b from-[#FAF3DD]/60 to-[#EBF0F2]/60">
-                <div className="bg-[#F6B092]/35 border-2 border-[#E08A66]/60 rounded-[20px] p-5 sm:p-6 shadow-xs space-y-3">
-                  {sec.items.length === 0 ? (
-                    <div className="text-center py-6 text-xs text-[#5A6B75]">
-                      Belum ada poin aktivitas pada bagian ini.{' '}
-                      {canEdit && 'Klik tombol "Tambah Poin" untuk menambahkan aktivitas.'}
-                    </div>
-                  ) : (
-                    <ol className="space-y-2.5">
-                      {sec.items.map((item, idx) => {
-                        const isEditingThisItem =
-                          editingItemSectionId === sec.id && editingItemId === item.id;
-
-                        return (
-                          <li
-                            key={item.id}
-                            className="bg-white/85 hover:bg-white transition-colors rounded-[12px] px-4 py-3 border border-[#E08A66]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                          >
-                            {isEditingThisItem ? (
-                              <form
-                                onSubmit={(e) => handleSaveItem(e, sec.id, item.id)}
-                                className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
-                              >
-                                <span className="font-mono font-bold text-xs text-[#C66B1A] shrink-0">
-                                  {idx + 1}.
-                                </span>
-                                <input
-                                  type="text"
-                                  required
-                                  value={editingItemContent}
-                                  onChange={(e) => setEditingItemContent(e.target.value)}
-                                  className="flex-1 h-[38px] px-3 text-xs sm:text-sm bg-white border border-[#E88932] rounded-[8px] focus:outline-none text-[#18232B]"
-                                />
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <Button
-                                    type="submit"
-                                    variant="primary"
-                                    size="sm"
-                                    icon={<Save className="w-3.5 h-3.5" />}
-                                  >
-                                    Simpan
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditingItemId(null);
-                                      setEditingItemSectionId(null);
-                                    }}
-                                  >
-                                    Batal
-                                  </Button>
-                                </div>
-                              </form>
-                            ) : (
-                              <>
-                                <div className="flex items-start gap-3 text-xs sm:text-sm text-[#18232B] leading-relaxed">
-                                  <span className="font-mono font-bold text-[#18232B] shrink-0 mt-0.5">
-                                    {idx + 1}.
-                                  </span>
-                                  <span className="font-medium">{item.content}</span>
-                                </div>
-
-                                {canEdit && (
-                                  <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      icon={<Edit3 className="w-3.5 h-3.5" />}
-                                      onClick={() => startEditItem(sec.id, item)}
-                                    >
-                                      Edit
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="danger"
-                                      size="sm"
-                                      icon={<Trash2 className="w-3.5 h-3.5" />}
-                                      onClick={() => handleDeleteItem(sec.id, item.id)}
-                                    >
-                                      Hapus
-                                    </Button>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  )}
-
-                  {/* Form Tambah Poin Aktivitas Baru */}
-                  {canEdit && isAddingItem && (
-                    <form
-                      onSubmit={(e) => handleAddItem(e, sec.id)}
-                      className="mt-4 pt-3 border-t border-[#E08A66]/40 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
+                  return (
+                    <li
+                      key={idx}
+                      className="bg-white/90 hover:bg-white transition-colors rounded-[12px] px-4 py-3 border border-[#E08A66]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
-                      <span className="font-mono font-bold text-xs text-[#18232B] shrink-0">
-                        {sec.items.length + 1}.
-                      </span>
-                      <input
-                        type="text"
-                        required
-                        value={newItemContent}
-                        onChange={(e) => setNewItemContent(e.target.value)}
-                        placeholder="Ketik poin aktivitas Technical Trainer baru..."
-                        className="flex-1 h-[38px] px-3 text-xs sm:text-sm bg-white border border-[#E88932] rounded-[8px] focus:outline-none text-[#18232B]"
-                      />
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          type="submit"
-                          variant="primary"
-                          size="sm"
-                          icon={<Plus className="w-3.5 h-3.5" />}
+                      {isEditingThis ? (
+                        <form
+                          onSubmit={(e) => handleSaveEditedPoint(e, idx)}
+                          className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
                         >
-                          Simpan Poin
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setAddingToSectionId(null);
-                            setNewItemContent('');
-                          }}
-                        >
-                          Batal
-                        </Button>
-                      </div>
-                    </form>
-                  )}
+                          <span className="font-mono font-bold text-xs text-[#C66B1A] shrink-0">
+                            {idx + 1}.
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            className="flex-1 h-[38px] px-3 text-xs sm:text-sm bg-white border border-[#E88932] rounded-[8px] focus:outline-none text-[#18232B]"
+                          />
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              type="submit"
+                              variant="primary"
+                              size="sm"
+                              icon={<Save className="w-3.5 h-3.5" />}
+                            >
+                              Simpan Poin
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingIndex(null)}
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="flex items-start gap-3 text-xs sm:text-sm text-[#18232B] leading-relaxed">
+                            <span className="font-mono font-bold text-[#18232B] shrink-0 mt-0.5">
+                              {idx + 1}.
+                            </span>
+                            <span className="font-medium">{itemText}</span>
+                          </div>
 
-                  {canEdit && !isAddingItem && (
-                    <div className="pt-2 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAddingToSectionId(sec.id);
-                          setNewItemContent('');
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-heading font-bold text-[#18232B] hover:text-[#C66B1A] bg-white/80 hover:bg-white px-3.5 py-1.5 rounded-[8px] border border-[#E08A66]/50 transition-colors cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-[#E88932]" />
-                        <span>Tambah Poin Aktivitas Baru</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                          {canEdit && (
+                            <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                icon={<Edit3 className="w-3.5 h-3.5" />}
+                                onClick={() => handleStartEditPoint(idx)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="danger"
+                                size="sm"
+                                icon={<Trash2 className="w-3.5 h-3.5" />}
+                                onClick={() => handleDeletePoint(idx)}
+                              >
+                                Hapus
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
 
-                <div className="mt-2.5 flex flex-wrap items-center justify-between text-[11px] font-mono text-[#5A6B75] px-1">
-                  <span>Total Aktivitas Tercatat: {sec.items.length} Poin</span>
-                  <span>
-                    Terakhir diperbarui oleh: {sec.updated_by || 'Admin'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Modal Tambah Bagian Aktivitas Baru */}
-      {showAddSectionModal && canEdit && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#18232B]/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[14px] shadow-2xl border border-[#E2E8E8] max-w-lg w-full overflow-hidden">
-            <div className="px-6 py-4 bg-[#18232B] text-white flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-[#E88932]" />
-                <h3 className="text-sm font-heading font-bold">
-                  Tambah Bagian Aktivitas Baru
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowAddSectionModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-[8px] cursor-pointer"
+            {/* Add New Point Input Form */}
+            {canEdit && (
+              <form
+                onSubmit={handleAddPoint}
+                className="mt-4 pt-3 border-t border-[#E08A66]/40 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSection} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-[#263640] mb-1">
-                    Label Ribbon *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newSecBadge}
-                    onChange={(e) => setNewSecBadge(e.target.value)}
-                    placeholder="TRAINING"
-                    className="w-full h-[38px] px-3 text-xs font-mono uppercase bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932]"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-[#263640] mb-1">
-                    Judul Bagian Aktivitas *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newSecTitle}
-                    onChange={(e) => setNewSecTitle(e.target.value)}
-                    placeholder="Contoh: 2. Activitas Technical Trainer"
-                    className="w-full h-[38px] px-3 text-xs bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#263640] mb-1">
-                  Daftar Poin Aktivitas Awal (1 poin per baris)
-                </label>
-                <textarea
-                  rows={5}
-                  value={newSecFirstItem}
-                  onChange={(e) => setNewSecFirstItem(e.target.value)}
-                  placeholder={`Ketik 1 poin per baris:\nMelakukan Training Class dalam pemenuhan competency...\nMelakukan interview bagi candidate mekanik...`}
-                  className="w-full text-xs p-3 bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932] text-[#18232B]"
+                <span className="font-mono font-bold text-xs text-[#18232B] shrink-0">
+                  {draftItems.length + 1}.
+                </span>
+                <input
+                  type="text"
+                  value={newPointText}
+                  onChange={(e) => setNewPointText(e.target.value)}
+                  placeholder={`Tambah poin aktivitas baru untuk Minggu Ke-${selectedWeek} (${monthLabel} ${selectedYear})...`}
+                  className="flex-1 h-[38px] px-3 text-xs sm:text-sm bg-white border border-[#E2E8E8] focus:border-[#E88932] rounded-[8px] focus:outline-none text-[#18232B]"
                 />
-              </div>
-
-              <div className="pt-3 border-t border-[#E2E8E8] flex justify-end gap-2.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  onClick={() => setShowAddSectionModal(false)}
-                >
-                  Batal
-                </Button>
                 <Button
                   type="submit"
                   variant="primary"
-                  size="md"
-                  icon={<Plus className="w-4 h-4" />}
+                  size="sm"
+                  icon={<Plus className="w-3.5 h-3.5" />}
                 >
-                  Tambah Bagian
+                  Tambah & Simpan Poin
                 </Button>
-              </div>
-            </form>
+              </form>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-[#5A6B75] px-1">
+            <span>
+              Status Minggu Ke-{selectedWeek} ({monthLabel} {selectedYear}):{' '}
+              <strong className="text-[#18232B]">
+                {savedReportForWeek
+                  ? `Tersimpan (${draftItems.length} Poin Aktivitas)`
+                  : hasUnsavedChanges
+                  ? 'Draft Belum Disimpan'
+                  : 'Belum Ada Data'}
+              </strong>
+            </span>
+            {savedReportForWeek && (
+              <span>
+                Terakhir disimpan oleh: {savedReportForWeek.updated_by || 'Admin'}
+              </span>
+            )}
           </div>
         </div>
-      )}
+      </div>
+
+      {/* 4. DAFTAR RIWAYAT LAPORAN WEEKLY YANG SUDAH TERSIMPAN */}
+      <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
+        <div className="px-6 py-4 bg-[#F4F6F5] border-b border-[#E2E8E8] flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-heading font-bold text-[#18232B] uppercase tracking-wider">
+              Arsip Laporan Mingguan (Weekly) yang Sudah Tersimpan ({mockStore.trainerActivities.length} Minggu)
+            </h3>
+            <p className="text-[11px] text-[#5A6B75] mt-0.5">
+              Klik pada salah satu minggu di bawah untuk membuka atau mengedit laporan minggu tersebut.
+            </p>
+          </div>
+        </div>
+
+        <div className="divide-y divide-[#E2E8E8]">
+          {mockStore.trainerActivities.map((rep) => {
+            const repMonthName =
+              MONTH_OPTIONS.find((m) => m.value === (rep.month || '11'))?.label ||
+              'November';
+            const isCurrent =
+              (rep.year || '2026') === selectedYear &&
+              (rep.month || '11') === selectedMonth &&
+              (rep.week_number || 1) === selectedWeek;
+
+            return (
+              <div
+                key={rep.id}
+                onClick={() => {
+                  setSelectedYear(rep.year || '2026');
+                  setSelectedMonth(rep.month || '11');
+                  setSelectedWeek(rep.week_number || 1);
+                }}
+                className={`px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 cursor-pointer transition-colors ${
+                  isCurrent ? 'bg-[#E88932]/10' : 'hover:bg-[#F4F6F5]/60'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="px-2.5 py-1 rounded-[6px] bg-[#18232B] text-[#E88932] font-mono text-xs font-bold">
+                    Minggu Ke-{rep.week_number || 1}
+                  </span>
+                  <div>
+                    <div className="text-xs font-heading font-bold text-[#18232B]">
+                      {rep.title} — {repMonthName} {rep.year || '2026'}
+                    </div>
+                    <div className="text-[11px] text-[#5A6B75]">
+                      {rep.items.length} Poin Aktivitas • Diperbarui oleh {rep.updated_by || 'Admin'}
+                    </div>
+                  </div>
+                </div>
+
+                <span className="text-xs font-heading font-semibold text-[#E88932]">
+                  {isCurrent ? 'Sedang Dibuka' : 'Buka & Edit →'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

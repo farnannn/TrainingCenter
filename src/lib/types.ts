@@ -152,6 +152,10 @@ export interface TrainerActivityItem {
 
 export interface TrainerActivitySection {
   id: string;
+  year?: string;
+  month?: string;
+  week_number?: number;
+  period_label?: string;
   badge_label: string;
   title: string;
   items: TrainerActivityItem[];

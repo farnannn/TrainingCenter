@@ -713,6 +713,10 @@ export const INITIAL_SITES: SiteOption[] = [
 export const INITIAL_TRAINER_ACTIVITIES: TrainerActivitySection[] = [
   {
     id: 'trainer-sec-1',
+    year: '2026',
+    month: '11',
+    week_number: 1,
+    period_label: 'Minggu Ke-1 • November 2026',
     badge_label: 'TRAINING',
     title: '1. Activitas Technical Trainer',
     items: [
@@ -898,7 +902,16 @@ class DataStore {
       this.sites = snapshot.sites;
     }
     if (Array.isArray(snapshot.trainerActivities) && snapshot.trainerActivities.length > 0) {
-      this.trainerActivities = snapshot.trainerActivities;
+      this.trainerActivities = snapshot.trainerActivities.map(
+        (sec: TrainerActivitySection, idx: number) => ({
+          ...sec,
+          year: sec.year || '2026',
+          month: sec.month || '11',
+          week_number: sec.week_number || idx + 1,
+          period_label:
+            sec.period_label || `Minggu Ke-${sec.week_number || idx + 1} • November 2026`,
+        })
+      );
     }
     if (Array.isArray(snapshot.applications)) {
       this.applications = snapshot.applications;
@@ -2542,12 +2555,24 @@ class DataStore {
 
   addTrainerActivitySection(
     callerId: string,
-    payload: { badge_label?: string; title: string; items?: string[] }
+    payload: {
+      year?: string;
+      month?: string;
+      week_number?: number;
+      period_label?: string;
+      badge_label?: string;
+      title: string;
+      items?: string[];
+    }
   ): TrainerActivitySection {
     this.assertCanEditTrainerActivities(callerId);
     const title = payload.title.trim();
     if (!title) throw new Error('Judul bagian aktivitas wajib diisi.');
     const actor = this.users.find((u) => u.id === callerId);
+
+    const year = payload.year || '2026';
+    const month = payload.month || '11';
+    const weekNumber = payload.week_number || 1;
 
     const sectionItems: TrainerActivityItem[] = (payload.items || [])
       .map((c) => c.trim())
@@ -2560,6 +2585,10 @@ class DataStore {
 
     const newSection: TrainerActivitySection = {
       id: `trainer-sec-${crypto.randomUUID().slice(0, 8)}`,
+      year,
+      month,
+      week_number: weekNumber,
+      period_label: payload.period_label || `Minggu Ke-${weekNumber}`,
       badge_label: (payload.badge_label || 'TRAINING').trim().toUpperCase(),
       title,
       items: sectionItems,
@@ -2572,10 +2601,76 @@ class DataStore {
     return newSection;
   }
 
+  saveWeeklyTrainerReport(
+    callerId: string,
+    payload: {
+      year: string;
+      month: string;
+      week_number: number;
+      period_label?: string;
+      badge_label: string;
+      title: string;
+      items: string[];
+    }
+  ): TrainerActivitySection {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const cleanItems: TrainerActivityItem[] = payload.items
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .map((c) => ({
+        id: `act-item-${crypto.randomUUID().slice(0, 8)}`,
+        content: c,
+        updated_at: new Date().toISOString(),
+      }));
+
+    const existing = this.trainerActivities.find(
+      (s) =>
+        (s.year || '2026') === payload.year &&
+        (s.month || '11') === payload.month &&
+        (s.week_number || 1) === payload.week_number
+    );
+
+    if (existing) {
+      existing.badge_label = (payload.badge_label || 'TRAINING').trim().toUpperCase();
+      existing.title = payload.title.trim() || '1. Activitas Technical Trainer';
+      existing.period_label =
+        payload.period_label || `Minggu Ke-${payload.week_number}`;
+      existing.items = cleanItems;
+      existing.updated_at = new Date().toISOString();
+      existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+      this.persistState();
+      return existing;
+    }
+
+    const created: TrainerActivitySection = {
+      id: `trainer-sec-${crypto.randomUUID().slice(0, 8)}`,
+      year: payload.year,
+      month: payload.month,
+      week_number: payload.week_number,
+      period_label: payload.period_label || `Minggu Ke-${payload.week_number}`,
+      badge_label: (payload.badge_label || 'TRAINING').trim().toUpperCase(),
+      title: payload.title.trim() || '1. Activitas Technical Trainer',
+      items: cleanItems,
+      updated_at: new Date().toISOString(),
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    this.trainerActivities.push(created);
+    this.persistState();
+    return created;
+  }
+
   updateTrainerActivitySection(
     callerId: string,
     sectionId: string,
-    payload: { badge_label?: string; title: string }
+    payload: {
+      badge_label?: string;
+      title: string;
+      year?: string;
+      month?: string;
+      week_number?: number;
+      period_label?: string;
+    }
   ): TrainerActivitySection {
     this.assertCanEditTrainerActivities(callerId);
     const sec = this.trainerActivities.find((s) => s.id === sectionId);
@@ -2588,6 +2683,10 @@ class DataStore {
     if (payload.badge_label !== undefined) {
       sec.badge_label = payload.badge_label.trim().toUpperCase() || 'TRAINING';
     }
+    if (payload.year !== undefined) sec.year = payload.year;
+    if (payload.month !== undefined) sec.month = payload.month;
+    if (payload.week_number !== undefined) sec.week_number = payload.week_number;
+    if (payload.period_label !== undefined) sec.period_label = payload.period_label;
     sec.title = title;
     sec.updated_at = new Date().toISOString();
     sec.updated_by = actor?.role_name || actor?.full_name || 'Admin';

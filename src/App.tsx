@@ -54,7 +54,7 @@ export const App: React.FC = () => {
       case 'dashboard':
         return renderDashboardByRole();
       case 'achievement':
-        return <TrainingAchievementView />;
+        return <TrainingAchievementView onNavigate={setCurrentTab} />;
       case 'trainer_activities':
         return <TechnicalTrainerActivitiesView />;
       case 'applications':
