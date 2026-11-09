@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
-import { TrainingCategoryOption, TrainingTypeOption } from '../../lib/types';
+import { TrainingCategoryOption, TrainingTypeOption, SiteOption } from '../../lib/types';
 import { Button } from '../ui/Button';
 import {
   Tags,
   Layers,
+  MapPin,
   Plus,
   Edit3,
   Trash2,
@@ -40,6 +41,15 @@ export const TrainingCategoryTypeManager: React.FC = () => {
   const [confirmDeleteCat, setConfirmDeleteCat] = useState<TrainingCategoryOption | null>(null);
   const [confirmDeleteType, setConfirmDeleteType] = useState<TrainingTypeOption | null>(null);
 
+  // Master Site Modal State
+  const [showSiteModal, setShowSiteModal] = useState(false);
+  const [editingSite, setEditingSite] = useState<SiteOption | null>(null);
+  const [siteCode, setSiteCode] = useState('');
+  const [siteName, setSiteName] = useState('');
+  const [siteDesc, setSiteDesc] = useState('');
+  const [siteError, setSiteError] = useState<string | null>(null);
+  const [confirmDeleteSite, setConfirmDeleteSite] = useState<SiteOption | null>(null);
+
   // Banner Feedback
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -59,6 +69,7 @@ export const TrainingCategoryTypeManager: React.FC = () => {
 
   const categories = mockStore.trainingCategories;
   const trainingTypes = mockStore.trainingTypes;
+  const sites = mockStore.sites;
 
   // Category Handlers
   const openAddCategory = () => {
@@ -172,6 +183,65 @@ export const TrainingCategoryTypeManager: React.FC = () => {
       mockStore.deleteTrainingType(currentUser.id, confirmDeleteType.id);
       setSuccessMsg(`Training Type "${confirmDeleteType.name}" berhasil dihapus.`);
       setConfirmDeleteType(null);
+      refreshState();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  // Master Site Handlers
+  const openAddSite = () => {
+    setEditingSite(null);
+    setSiteCode('');
+    setSiteName('');
+    setSiteDesc('');
+    setSiteError(null);
+    setShowSiteModal(true);
+  };
+
+  const openEditSite = (site: SiteOption) => {
+    setEditingSite(site);
+    setSiteCode(site.code);
+    setSiteName(site.name);
+    setSiteDesc(site.description || '');
+    setSiteError(null);
+    setShowSiteModal(true);
+  };
+
+  const handleSaveSite = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSiteError(null);
+    setSuccessMsg(null);
+    try {
+      if (editingSite) {
+        mockStore.updateSite(currentUser.id, editingSite.id, {
+          code: siteCode,
+          name: siteName,
+          description: siteDesc,
+        });
+        setSuccessMsg(`Site "${siteName}" berhasil diperbarui.`);
+      } else {
+        mockStore.addSite(currentUser.id, {
+          code: siteCode,
+          name: siteName,
+          description: siteDesc,
+        });
+        setSuccessMsg(`Site baru "${siteName}" berhasil ditambahkan.`);
+      }
+      refreshState();
+      setShowSiteModal(false);
+    } catch (err: any) {
+      setSiteError(err.message || 'Gagal menyimpan Site.');
+    }
+  };
+
+  const executeDeleteSite = () => {
+    if (!confirmDeleteSite) return;
+    setSuccessMsg(null);
+    try {
+      mockStore.deleteSite(currentUser.id, confirmDeleteSite.id);
+      setSuccessMsg(`Site "${confirmDeleteSite.name}" berhasil dihapus.`);
+      setConfirmDeleteSite(null);
       refreshState();
     } catch (err: any) {
       alert(err.message);
@@ -357,6 +427,71 @@ export const TrainingCategoryTypeManager: React.FC = () => {
               ))
             )}
           </div>
+        </div>
+      </div>
+
+      {/* 3. MASTER OPSI SITE OPERASIONAL CARD */}
+      <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
+        <div className="px-6 py-4 bg-[#F4F6F5] border-b border-[#E2E8E8] flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-heading font-bold text-[#18232B] flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-[#E88932]" />
+              <span>Master Opsi Site Operasional ({sites.length})</span>
+            </h3>
+            <p className="text-[11px] text-[#5A6B75] mt-0.5">
+              Daftar Site lokasi kerja yang dapat dipilih pada setiap data karyawan (Site Tangofa, Site TPM, Site Gorontalo, Site Sampala, Site Head Office Makassar, Site Belopa, Site Genba, dll.)
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus className="w-3.5 h-3.5" />}
+            onClick={openAddSite}
+          >
+            Tambah Opsi Site
+          </Button>
+        </div>
+
+        <div className="divide-y divide-[#E2E8E8] grid grid-cols-1 md:grid-cols-2 md:divide-y-0 md:gap-px bg-[#E2E8E8]">
+          {sites.map((site) => (
+            <div
+              key={site.id}
+              className="bg-white px-6 py-4 flex items-center justify-between gap-4 hover:bg-[#F4F6F5]/50 transition-colors"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-[#E88932]/15 text-[#B86214] border border-[#E88932]/30">
+                    {site.code}
+                  </span>
+                  <span className="text-xs font-heading font-bold text-[#18232B]">
+                    {site.name}
+                  </span>
+                </div>
+                {site.description && (
+                  <p className="text-[11px] text-[#5A6B75] mt-1">{site.description}</p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Edit3 className="w-3.5 h-3.5" />}
+                  onClick={() => openEditSite(site)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon={<Trash2 className="w-3.5 h-3.5" />}
+                  onClick={() => setConfirmDeleteSite(site)}
+                >
+                  Hapus
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -610,6 +745,131 @@ export const TrainingCategoryTypeManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL ADD / EDIT SITE */}
+      {showSiteModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#18232B]/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[14px] shadow-2xl border border-[#E2E8E8] max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 bg-[#18232B] text-white flex justify-between items-center">
+              <h3 className="text-sm font-heading font-bold">
+                {editingSite ? 'Edit Opsi Site' : 'Tambah Opsi Site Baru'}
+              </h3>
+              <button
+                onClick={() => setShowSiteModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-[8px] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSite} className="p-6 space-y-4">
+              {siteError && (
+                <div className="p-3 bg-[#B94C45]/10 border border-[#B94C45]/30 rounded-[8px] text-xs text-[#B94C45] flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{siteError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-[#263640] mb-1">
+                  Nama Site *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={siteName}
+                  onChange={(e) => setSiteName(e.target.value)}
+                  placeholder="Contoh: Site Tangofa"
+                  className="w-full h-[38px] px-3 text-xs bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#263640] mb-1">
+                  Kode Site (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={siteCode}
+                  onChange={(e) => setSiteCode(e.target.value)}
+                  placeholder="Contoh: TANGOFA"
+                  className="w-full h-[38px] px-3 text-xs font-mono uppercase bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#263640] mb-1">
+                  Keterangan (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={siteDesc}
+                  onChange={(e) => setSiteDesc(e.target.value)}
+                  placeholder="Deskripsi lokasi operasional..."
+                  className="w-full h-[38px] px-3 text-xs bg-[#F4F6F5] border border-[#E2E8E8] rounded-[8px] focus:bg-white focus:outline-none focus:border-[#E88932]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-[#E2E8E8] flex justify-end gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={() => setShowSiteModal(false)}
+                >
+                  Batal
+                </Button>
+                <Button type="submit" variant="primary" size="md">
+                  {editingSite ? 'Simpan Perubahan' : 'Tambah Site'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRM DELETE SITE */}
+      {confirmDeleteSite && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#18232B]/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[14px] shadow-2xl border border-[#E2E8E8] max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 bg-[#B94C45] text-white flex justify-between items-center">
+              <h3 className="text-sm font-heading font-bold">Konfirmasi Hapus Site</h3>
+              <button
+                onClick={() => setConfirmDeleteSite(null)}
+                className="text-white/80 hover:text-white p-1 rounded-[8px] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-[#263640]">
+                Hapus Site <strong className="text-[#18232B]">{confirmDeleteSite.name}</strong> (
+                <code className="font-mono text-[#E88932]">{confirmDeleteSite.code}</code>) dari sistem?
+              </p>
+              <div className="pt-3 border-t border-[#E2E8E8] flex justify-end gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={() => setConfirmDeleteSite(null)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="md"
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={executeDeleteSite}
+                >
+                  Ya, Hapus Site
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

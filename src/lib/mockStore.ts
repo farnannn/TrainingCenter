@@ -29,6 +29,7 @@ import {
   TrainingType,
   TrainingCategoryOption,
   TrainingTypeOption,
+  SiteOption,
   getRolePermissions,
   SystemSettingsConfig,
 } from './types';
@@ -662,6 +663,51 @@ export const INITIAL_TRAINING_TYPES: TrainingTypeOption[] = [
   },
 ];
 
+export const INITIAL_SITES: SiteOption[] = [
+  {
+    id: 'site-1',
+    code: 'TANGOFA',
+    name: 'Site Tangofa',
+    description: 'Area operasional pertambangan Site Tangofa',
+  },
+  {
+    id: 'site-2',
+    code: 'TPM',
+    name: 'Site TPM',
+    description: 'Area operasional pertambangan Site TPM',
+  },
+  {
+    id: 'site-3',
+    code: 'GORONTALO',
+    name: 'Site Gorontalo',
+    description: 'Area operasional pertambangan Site Gorontalo',
+  },
+  {
+    id: 'site-4',
+    code: 'SAMPALA',
+    name: 'Site Sampala',
+    description: 'Area operasional pertambangan Site Sampala',
+  },
+  {
+    id: 'site-5',
+    code: 'HO_MAKASSAR',
+    name: 'Site Head Office (Makassar)',
+    description: 'Kantor Pusat PT. Roda Jaya Sakti — Makassar',
+  },
+  {
+    id: 'site-6',
+    code: 'BELOPA',
+    name: 'Site Belopa',
+    description: 'Area operasional pertambangan Site Belopa',
+  },
+  {
+    id: 'site-7',
+    code: 'GENBA',
+    name: 'Site Genba',
+    description: 'Area operasional lapangan Site Genba',
+  },
+];
+
 class DataStore {
   roles: Role[] = [...INITIAL_ROLES];
   departments: Department[] = [...INITIAL_DEPARTMENTS];
@@ -671,6 +717,7 @@ class DataStore {
   programs: TrainingProgram[] = [...INITIAL_PROGRAMS];
   trainingCategories: TrainingCategoryOption[] = [...INITIAL_TRAINING_CATEGORIES];
   trainingTypes: TrainingTypeOption[] = [...INITIAL_TRAINING_TYPES];
+  sites: SiteOption[] = [...INITIAL_SITES];
   applications: TrainingApplication[] = [];
   participants: TrainingApplicationParticipant[] = [];
   approvalHistory: TrainingApprovalHistory[] = [];
@@ -737,6 +784,7 @@ class DataStore {
       programs: this.programs,
       trainingCategories: this.trainingCategories,
       trainingTypes: this.trainingTypes,
+      sites: this.sites,
       applications: this.applications,
       participants: this.participants,
       approvalHistory: this.approvalHistory,
@@ -805,6 +853,9 @@ class DataStore {
     }
     if (Array.isArray(snapshot.trainingTypes) && snapshot.trainingTypes.length > 0) {
       this.trainingTypes = snapshot.trainingTypes;
+    }
+    if (Array.isArray(snapshot.sites) && snapshot.sites.length > 0) {
+      this.sites = snapshot.sites;
     }
     if (Array.isArray(snapshot.applications)) {
       this.applications = snapshot.applications;
@@ -2328,6 +2379,113 @@ class DataStore {
   }
 
   // ============================================================================
+  // RPC: MANAGE SITES (ADD, EDIT, DELETE)
+  // ============================================================================
+  private assertCanManageSites(callerId: string) {
+    const role = this.getUserRole(callerId);
+    const perms = this.getUserPermissions(callerId);
+    if (
+      !perms.canEditData ||
+      perms.employeeData === 'VIEW' ||
+      role === 'MANAGER_TC' ||
+      role === 'PJO'
+    ) {
+      throw new Error(
+        'PERMISSION_DENIED: Hanya Super Admin, Admin, Admin TC, dan Admin HRGA yang dapat mengelola Master Site.'
+      );
+    }
+  }
+
+  addSite(
+    callerId: string,
+    payload: { code?: string; name: string; description?: string }
+  ): SiteOption {
+    this.assertCanManageSites(callerId);
+    const name = payload.name.trim();
+    if (!name) {
+      throw new Error('Nama Site wajib diisi.');
+    }
+    const rawCode = (payload.code || name.replace(/^site\s+/i, '')).trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+    const code = rawCode || `SITE_${this.sites.length + 1}`;
+
+    if (
+      this.sites.some(
+        (s) => s.name.toLowerCase() === name.toLowerCase() || s.code.toUpperCase() === code
+      )
+    ) {
+      throw new Error(`Site "${name}" atau kode "${code}" sudah terdaftar.`);
+    }
+
+    const newSite: SiteOption = {
+      id: `site-${crypto.randomUUID().slice(0, 8)}`,
+      code,
+      name,
+      description: payload.description?.trim() || `Area operasional ${name}`,
+    };
+    this.sites.push(newSite);
+    this.persistState();
+    return newSite;
+  }
+
+  updateSite(
+    callerId: string,
+    id: string,
+    payload: { code?: string; name: string; description?: string }
+  ): SiteOption {
+    this.assertCanManageSites(callerId);
+    const siteObj = this.sites.find((s) => s.id === id);
+    if (!siteObj) throw new Error('Site tidak ditemukan.');
+
+    const name = payload.name.trim();
+    if (!name) {
+      throw new Error('Nama Site wajib diisi.');
+    }
+    const rawCode = (payload.code || siteObj.code || name.replace(/^site\s+/i, ''))
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_');
+    const code = rawCode || siteObj.code;
+
+    if (
+      this.sites.some(
+        (s) =>
+          s.id !== id &&
+          (s.name.toLowerCase() === name.toLowerCase() || s.code.toUpperCase() === code)
+      )
+    ) {
+      throw new Error(`Site "${name}" atau kode "${code}" sudah digunakan.`);
+    }
+
+    const oldName = siteObj.name;
+    siteObj.code = code;
+    siteObj.name = name;
+    if (payload.description !== undefined) {
+      siteObj.description = payload.description.trim();
+    }
+
+    // Sinkronisasi nama site pada data karyawan yang menggunakan site lama
+    if (oldName !== name) {
+      this.employees.forEach((emp) => {
+        if (emp.project_site === oldName) {
+          emp.project_site = name;
+        }
+      });
+    }
+
+    this.persistState();
+    return siteObj;
+  }
+
+  deleteSite(callerId: string, id: string) {
+    this.assertCanManageSites(callerId);
+    const idx = this.sites.findIndex((s) => s.id === id);
+    if (idx === -1) throw new Error('Site tidak ditemukan.');
+    this.sites.splice(idx, 1);
+    this.persistState();
+    return true;
+  }
+
+  // ============================================================================
   // RPC: EDIT TRAINING DATA
   // Enforces RBAC: Only roles with trainingData === 'EDIT' & canEditData === true
   // ============================================================================
@@ -3187,6 +3345,7 @@ class DataStore {
       position: string;
       job_level: string;
       employment_status?: 'PERMANENT' | 'CONTRACT' | 'INTERN';
+      project_site?: string;
       email?: string;
     }
   ): Employee {
@@ -3216,6 +3375,9 @@ class DataStore {
       throw new Error('Departemen tidak valid.');
     }
 
+    const selectedSite =
+      payload.project_site?.trim() || this.sites[0]?.name || 'Site Tangofa';
+
     const newEmp: Employee = {
       id: crypto.randomUUID(),
       nik: cleanNik,
@@ -3226,6 +3388,7 @@ class DataStore {
       department_name: dept.name,
       position: payload.position.trim() || 'Operator Tambang',
       job_level: payload.job_level.trim() || 'Staff / Operator',
+      project_site: selectedSite,
       hire_date: new Date().toISOString().split('T')[0],
       employment_status: payload.employment_status || 'PERMANENT',
       is_active: true,
@@ -3241,7 +3404,12 @@ class DataStore {
       table_name: 'employees',
       record_id: newEmp.id,
       action: 'INSERT',
-      new_values: { nik: newEmp.nik, full_name: newEmp.full_name, department: dept.code },
+      new_values: {
+        nik: newEmp.nik,
+        full_name: newEmp.full_name,
+        department: dept.code,
+        project_site: newEmp.project_site,
+      },
       created_at: new Date().toISOString(),
     });
 
@@ -3259,6 +3427,7 @@ class DataStore {
       position: string;
       job_level: string;
       employment_status: 'PERMANENT' | 'CONTRACT' | 'INTERN';
+      project_site?: string;
     }
   ): Employee {
     const callerRole = this.getUserRole(actorId);
@@ -3304,6 +3473,7 @@ class DataStore {
       position: emp.position,
       job_level: emp.job_level,
       employment_status: emp.employment_status,
+      project_site: emp.project_site,
     };
 
     emp.nik = cleanNik;
@@ -3313,6 +3483,9 @@ class DataStore {
     emp.position = updates.position.trim() || 'Operator Tambang';
     emp.job_level = updates.job_level.trim() || 'Staff / Operator';
     emp.employment_status = updates.employment_status || 'PERMANENT';
+    if (updates.project_site !== undefined) {
+      emp.project_site = updates.project_site.trim() || this.sites[0]?.name || 'Site Tangofa';
+    }
 
     this.auditLogs.unshift({
       id: crypto.randomUUID(),
@@ -3328,6 +3501,7 @@ class DataStore {
         position: emp.position,
         job_level: emp.job_level,
         employment_status: emp.employment_status,
+        project_site: emp.project_site,
       },
       created_at: new Date().toISOString(),
     });
@@ -3403,6 +3577,7 @@ class DataStore {
       position?: string;
       job_level?: string;
       employment_status?: string;
+      project_site?: string;
     }>
   ): { added: Employee[]; skipped: string[] } {
     const callerRole = this.getUserRole(actorId);
@@ -3458,6 +3633,7 @@ class DataStore {
           position: row.position || 'Specialist / Operator',
           job_level: row.job_level || 'Operator',
           employment_status: empStatus,
+          project_site: row.project_site || this.sites[0]?.name || 'Site Tangofa',
         });
         added.push(emp);
       } catch (err: any) {

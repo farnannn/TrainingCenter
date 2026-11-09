@@ -135,6 +135,13 @@ export interface TrainingTypeOption {
   description?: string;
 }
 
+export interface SiteOption {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+}
+
 export interface Role {
   id: string;
   code: RoleCode;

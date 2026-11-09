@@ -19,6 +19,7 @@ import {
   X,
   Table,
   IdCard,
+  MapPin,
 } from 'lucide-react';
 
 export const CertificationList: React.FC = () => {
@@ -394,6 +395,7 @@ export const CertificationList: React.FC = () => {
                       <th className="px-6 py-3 w-14 text-center">No</th>
                       <th className="px-6 py-3">Nama Karyawan & NIK</th>
                       <th className="px-6 py-3">Divisi / Departemen</th>
+                      <th className="px-6 py-3">Site / Lokasi</th>
                       <th className="px-6 py-3">Jabatan / Level</th>
                       <th className="px-6 py-3 text-center">Total Riwayat / Sertifikasi</th>
                       <th className="px-6 py-3 text-right">History Report</th>
@@ -430,6 +432,12 @@ export const CertificationList: React.FC = () => {
                             <div className="text-[11px] text-[#5A6B75] mt-0.5">
                               {dept?.name || emp.department_name}
                             </div>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-[#E88932]/10 text-[#C66B1A] border border-[#E88932]/30">
+                              <MapPin className="w-3 h-3 shrink-0" />
+                              <span>{emp.project_site || 'Site Tangofa'}</span>
+                            </span>
                           </td>
                           <td className="px-6 py-3.5">
                             <div className="font-medium text-[#18232B]">{emp.position}</div>
@@ -615,7 +623,7 @@ export const CertificationList: React.FC = () => {
                           Project / Site
                         </td>
                         <td className="py-2.5 px-4 font-medium text-[#18232B]">
-                          : {activeEmployee.project_site || 'Site Morowali (Sulawesi Tengah) / HO Makassar'}
+                          : {activeEmployee.project_site || 'Site Tangofa'}
                         </td>
                       </tr>
                     </tbody>
