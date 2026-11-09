@@ -33,7 +33,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
 }) => {
   const { currentUser, refreshState } = useAuth();
   const perms = getRolePermissions(currentUser.role_code);
-  const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN';
+  const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN' || perms.canDeleteData;
 
   const [selectedApp, setSelectedApp] = useState<TrainingApplication | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);

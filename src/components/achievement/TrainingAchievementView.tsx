@@ -10,6 +10,8 @@ import { KpiCard } from '../ui/KpiCard';
 import { Button } from '../ui/Button';
 import { StatusBadge } from '../ui/StatusBadge';
 import { CreateApplicationModal } from '../applications/CreateApplicationModal';
+import { TechnicalTrainingSummaryPanel } from './technical/TechnicalTrainingSummaryPanel';
+import { CollapsiblePanel } from '../ui/CollapsiblePanel';
 import {
   Target,
   CheckCircle2,
@@ -60,10 +62,12 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
 }) => {
   const { currentUser, refreshState } = useAuth();
   const perms = getRolePermissions(currentUser.role_code);
-  const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN';
-  const canEditAchievement = perms.trainingAchievement === 'EDIT' && perms.canEditData;
+  const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN' || perms.canDeleteData;
+  const canEditAchievement =
+    perms.trainingAchievement === 'EDIT' && perms.canEditData;
   const canDelete = isSuperAdmin;
-  const canInput = perms.trainingAchievement === 'EDIT' && perms.canInputData;
+  const canInput =
+    perms.trainingAchievement === 'EDIT' && perms.canInputData;
 
   const [confirmDeleteItem, setConfirmDeleteItem] = useState<TrainingPerformanceItem | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -550,7 +554,8 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
         />
       </div>
 
-      {/* 3B. LAPORAN WEEKLY — ACTIVITAS TECHNICAL TRAINER (TERINTEGRASI DARI SUB-SIDEBAR) */}
+      {/* 3B. LAPORAN WEEKLY — PROGRAM TECHNICAL TRAINING (TERINTEGRASI DARI SUB-SIDEBAR) */}
+      <CollapsiblePanel title="Laporan Weekly" subtitle="Rincian aktivitas mingguan Program Technical Training" icon={<Calendar className="w-4 h-4" />}>
       {(() => {
         const activeYear = yearFilter === 'ALL' ? '2026' : yearFilter;
         const effectiveMonth =
@@ -576,7 +581,7 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
                 <ClipboardList className="w-4 h-4 text-[#E88932]" />
                 <div>
                   <div className="text-xs font-heading font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                    <span>Laporan Weekly — Activitas Technical Trainer</span>
+                    <span>Laporan Weekly — Program Technical Training</span>
                     <span className="px-2 py-0.5 rounded bg-[#E88932]/20 text-[#E88932] font-mono text-[10px]">
                       {selectedActivityWeek === 'ALL'
                         ? `Semua Minggu • ${monthDisplay} ${activeYear}`
@@ -652,7 +657,7 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
                   </button>
                 </div>
 
-                {onNavigate && (
+                {onNavigate && canEditAchievement && (
                   <Button
                     variant="primary"
                     size="sm"
@@ -667,17 +672,17 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
 
             {/* Content of Selected Week's Technical Trainer Activities */}
             {matchingWeeklyReports.length === 0 ? (
-              <div className="p-6 bg-gradient-to-b from-[#FAF3DD]/40 to-[#EBF0F2]/40 text-center space-y-2.5">
-                <p className="text-xs text-[#263640]">
-                  Belum ada laporan <strong>Activitas Technical Trainer</strong> yang disimpan untuk{' '}
-                  <strong>
+              <div className="p-6 bg-[#F4F6F5] text-center space-y-2.5">
+                <p className="text-xs text-[#5A6B75]">
+                  Belum ada laporan <strong className="text-[#18232B]">Program Technical Training</strong> yang disimpan untuk{' '}
+                  <strong className="text-[#18232B]">
                     {selectedActivityWeek === 'ALL'
                       ? `Bulan ${monthDisplay} ${activeYear}`
                       : `Minggu Ke-${selectedActivityWeek} • ${monthDisplay} ${activeYear}`}
                   </strong>
                   .
                 </p>
-                {onNavigate && (
+                {onNavigate && canEditAchievement && (
                   <div>
                     <Button
                       variant="outline"
@@ -685,63 +690,48 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
                       icon={<Plus className="w-3.5 h-3.5 text-[#E88932]" />}
                       onClick={() => onNavigate('trainer_activities')}
                     >
-                      Isi & Simpan Laporan Minggu Ini di Sub-Menu Activitas Technical Trainer
+                      Isi & Simpan Laporan Minggu Ini di Sub-Menu Program Technical Training
                     </Button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="divide-y divide-[#E5C7B8]">
+              <div className="divide-y divide-[#E2E8E8]">
                 {matchingWeeklyReports.map((sec) => (
-                  <div key={sec.id}>
-                    {/* Ribbon Header matching screenshot: [TRAINING] | [1. Activitas Technical Trainer] */}
-                    <div className="bg-[#F9E6DE] border-b border-[#E5C7B8] flex flex-wrap items-stretch justify-between">
-                      <div className="flex items-stretch flex-1 min-w-[260px]">
-                        <div
-                          className="bg-[#F5E8C7] text-[#18232B] px-5 py-2.5 font-heading font-extrabold text-xs sm:text-sm tracking-wide uppercase flex items-center border-r border-[#DEC99A]"
-                          style={{
-                            clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0% 100%)',
-                            paddingRight: '1.75rem',
-                          }}
-                        >
-                          {sec.badge_label || 'TRAINING'}
-                        </div>
-                        <div className="flex-1 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
-                          <h4 className="text-sm sm:text-base font-heading font-extrabold text-[#18232B]">
-                            {sec.title}
-                          </h4>
-                          <span className="text-xs font-mono font-bold text-[#C66B1A] bg-white/80 px-2.5 py-0.5 rounded-full border border-[#E08A66]/50">
-                            Minggu Ke-{sec.week_number || 1} •{' '}
-                            {WEEKLY_MONTH_NAMES[sec.month || '11'] || 'November'}{' '}
-                            {sec.year || '2026'}
-                          </span>
-                        </div>
+                  <div key={sec.id} className="p-4 sm:p-5 bg-[#FAFBFB] space-y-3">
+                    {selectedActivityWeek === 'ALL' && (
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#18232B] text-[#E88932] font-mono text-[11px] font-bold">
+                          Minggu Ke-{sec.week_number || 1} •{' '}
+                          {WEEKLY_MONTH_NAMES[sec.month || '11'] || 'November'}{' '}
+                          {sec.year || '2026'}
+                        </span>
+                        <span className="text-[11px] font-mono text-[#5A6B75]">
+                          {sec.items.length} Poin Aktivitas
+                        </span>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Warm Rounded Container with Numbered Points */}
-                    <div className="p-4 sm:p-5 bg-gradient-to-b from-[#FAF3DD]/60 to-[#EBF0F2]/60">
-                      <div className="bg-[#F6B092]/35 border-2 border-[#E08A66]/60 rounded-[18px] p-4 sm:p-5 shadow-2xs">
-                        {sec.items.length === 0 ? (
-                          <div className="text-xs text-[#5A6B75] text-center py-3">
-                            Belum ada poin aktivitas pada minggu ini.
-                          </div>
-                        ) : (
-                          <ol className="space-y-2">
-                            {sec.items.map((item, idx) => (
-                              <li
-                                key={item.id}
-                                className="flex items-start gap-2.5 text-xs sm:text-sm text-[#18232B] leading-relaxed bg-white/80 rounded-[10px] px-3.5 py-2 border border-[#E08A66]/30"
-                              >
-                                <span className="font-mono font-bold text-[#18232B] shrink-0">
-                                  {idx + 1}.
-                                </span>
-                                <span className="font-medium">{item.content}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        )}
-                      </div>
+                    <div className="bg-white border border-[#E2E8E8] rounded-[12px] p-4 shadow-2xs">
+                      {sec.items.length === 0 ? (
+                        <div className="text-xs text-[#5A6B75] text-center py-3">
+                          Belum ada poin aktivitas pada minggu ini.
+                        </div>
+                      ) : (
+                        <ol className="space-y-2">
+                          {sec.items.map((item, idx) => (
+                            <li
+                              key={item.id}
+                              className="flex items-start gap-3 text-xs text-[#18232B] leading-relaxed bg-[#FAFBFB] hover:bg-[#F4F6F5]/80 transition-colors rounded-[10px] px-3.5 py-2.5 border border-[#E2E8E8]"
+                            >
+                              <span className="w-6 h-6 rounded-[6px] bg-[#18232B] text-[#E88932] font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="font-medium pt-0.5">{item.content}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -750,8 +740,16 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
           </div>
         );
       })()}
+      </CollapsiblePanel>
+
+      {/* 3C. PANEL BERURUTAN PROGRAM TECHNICAL TRAINING (TERINTEGRASI REAL-TIME) */}
+      <TechnicalTrainingSummaryPanel
+        canEdit={canEditAchievement}
+        onOpenEditor={onNavigate ? () => onNavigate('trainer_activities') : undefined}
+      />
 
       {/* 4. OVERALL ACHIEVEMENT PROGRESS BAR BANNER */}
+      <CollapsiblePanel title="Persentase Capaian Pelaksanaan Training" subtitle="Achievement progress (Realization / Plan)" icon={<TrendingUp className="w-4 h-4" />}>
       <div className="bg-white p-6 rounded-[12px] border border-[#E2E8E8]">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
           <div>
@@ -842,8 +840,10 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
           </div>
         </div>
       </div>
+      </CollapsiblePanel>
 
       {/* 5. CHARTS GRID: BAR CHART (PLAN VS REALIZATION) & DONUT CHART (STATUS COMPOSITION) */}
+      <CollapsiblePanel title="Grafik Plan vs Realisasi & Komposisi Status" subtitle="Bar chart per jenis training dan donut komposisi status" icon={<BarChart3 className="w-4 h-4" />}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* BAR CHART: Perbandingan Plan vs Realization per Departemen */}
         <div className="lg:col-span-7 bg-white p-6 rounded-[12px] border border-[#E2E8E8] flex flex-col justify-between">
@@ -1074,8 +1074,10 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
           </div>
         </div>
       </div>
+      </CollapsiblePanel>
 
       {/* 6. LINE CHART: TREN CAPAIAN TRAINING BULANAN (JAN - DES) */}
+      <CollapsiblePanel title="Tren Capaian Training Bulanan" subtitle="Grafik tren achievement Januari – Desember" icon={<Activity className="w-4 h-4" />}>
       <div className="bg-white p-6 rounded-[12px] border border-[#E2E8E8]">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div>
@@ -1176,8 +1178,10 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
           </div>
         </div>
       </div>
+      </CollapsiblePanel>
 
       {/* 7. DEPARTMENT ACHIEVEMENT & TRAINING PERFORMANCE */}
+      <CollapsiblePanel title="Capaian per Departemen & Top Training" subtitle="Breakdown capaian setiap departemen dan training dengan realisasi tertinggi" icon={<Building2 className="w-4 h-4" />}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Department Achievement Breakdown */}
         <div className="lg:col-span-7 bg-white p-6 rounded-[12px] border border-[#E2E8E8]">
@@ -1321,8 +1325,10 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
           </div>
         </div>
       </div>
+      </CollapsiblePanel>
 
       {/* 8. TABEL DETAIL DATA CAPAIAN TRAINING & MANAJEMEN TARGET/REALISASI */}
+      <CollapsiblePanel title="Tabel Detail Data Capaian Training" subtitle="Manajemen target, realisasi, edit & hapus data training" icon={<ClipboardList className="w-4 h-4" />}>
       <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
         <div className="px-6 py-4 bg-[#F4F6F5] border-b border-[#E2E8E8] flex flex-wrap justify-between items-center gap-3">
           <div>
@@ -1436,6 +1442,7 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
           </div>
         )}
       </div>
+      </CollapsiblePanel>
 
       {/* MODAL: EDIT TRAINING ACHIEVEMENT (TARGET, REALIZATION & STATUS) */}
       {editingItem && canEditAchievement && (

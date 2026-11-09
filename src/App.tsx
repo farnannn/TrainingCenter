@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from './context/AuthContext';
+import { getRolePermissions } from './lib/types';
 import { PublicCompanyLanding } from './components/public/PublicCompanyLanding';
 import { RoleSwitcher } from './components/layout/RoleSwitcher';
 import { Navbar } from './components/layout/Navbar';
@@ -10,6 +11,8 @@ import { PjoDashboard } from './components/dashboard/PjoDashboard';
 import { DepartmentUserDashboard } from './components/dashboard/DepartmentUserDashboard';
 import { TrainingAchievementView } from './components/achievement/TrainingAchievementView';
 import { TechnicalTrainerActivitiesView } from './components/achievement/TechnicalTrainerActivitiesView';
+import { ActivityTechnicalTrainingView } from './components/achievement/technical/ActivityTechnicalTrainingSection';
+import { SkillAuditRefreshOperatorView } from './components/achievement/technical/SkillAuditRefreshOperatorSection';
 import { ApplicationList } from './components/applications/ApplicationList';
 import { TrainingCategoryTypeManager } from './components/applications/TrainingCategoryTypeManager';
 import { TrainingScheduleManager } from './components/schedules/TrainingScheduleManager';
@@ -55,8 +58,33 @@ export const App: React.FC = () => {
         return renderDashboardByRole();
       case 'achievement':
         return <TrainingAchievementView onNavigate={setCurrentTab} />;
-      case 'trainer_activities':
+      case 'trainer_activities': {
+        const perms = getRolePermissions(currentUser.role_code);
+        const canAccessTrainerActivities =
+          perms.trainingAchievement === 'EDIT' && perms.canEditData;
+        if (!canAccessTrainerActivities) {
+          return <TrainingAchievementView onNavigate={setCurrentTab} />;
+        }
         return <TechnicalTrainerActivitiesView />;
+      }
+      case 'activity_technical_training': {
+        const perms = getRolePermissions(currentUser.role_code);
+        const canAccessTrainerActivities =
+          perms.trainingAchievement === 'EDIT' && perms.canEditData;
+        if (!canAccessTrainerActivities) {
+          return <TrainingAchievementView onNavigate={setCurrentTab} />;
+        }
+        return <ActivityTechnicalTrainingView />;
+      }
+      case 'skill_audit_refresh_operator': {
+        const perms = getRolePermissions(currentUser.role_code);
+        const canAccessTrainerActivities =
+          perms.trainingAchievement === 'EDIT' && perms.canEditData;
+        if (!canAccessTrainerActivities) {
+          return <TrainingAchievementView onNavigate={setCurrentTab} />;
+        }
+        return <SkillAuditRefreshOperatorView />;
+      }
       case 'applications':
         return <ApplicationList />;
       case 'training_master':

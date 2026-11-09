@@ -38,7 +38,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, currentTab }) 
       case 'achievement':
         return 'Training Achievement / Capaian Pelaksanaan Training';
       case 'trainer_activities':
-        return 'Training Achievement • Activitas Technical Trainer';
+        return 'Training Achievement • Program Technical Training';
+      case 'activity_technical_training':
+        return 'Training Achievement • Activity Technical Training';
+      case 'skill_audit_refresh_operator':
+        return 'Training Achievement • Program Skill Audit & Refresh Operator';
       case 'applications':
         return 'Manajemen Data Training & Pengajuan';
       case 'training_master':

@@ -32,9 +32,35 @@ import {
   SiteOption,
   TrainerActivityItem,
   TrainerActivitySection,
+  RolePermissionMatrix,
+  DEFAULT_ROLE_PERMISSIONS,
+  ROLE_PERMISSIONS,
+  syncRolePermissionsRegistry,
   getRolePermissions,
   SystemSettingsConfig,
+  TechnicalTrainingClassProgram,
+  InterviewCandidateSummaryConfig,
+  CandidateMechanicPositionRow,
+  CandidateMechanicAssessmentRecord,
+  OjtBmcMonitoringRecord,
+  SharingSessionBmcRecord,
+  PlmAssessmentCategoryItem,
+  PlmCompetencyGapRow,
+  PlmTrainingClassMonthlyItem,
+  PlmTrainingCorrectiveAction,
+  TechnicalTrainerDailyActivityItem,
+  TechnicalTrainingPlanBar,
+  SharingSessionBmcScheduleItem,
+  SkillAuditCategoryCode,
+  SkillAuditOperatorRecord,
+  SkillAuditHeavyEquipmentSummaryRow,
+  TechnicalTrainingModuleState,
 } from './types';
+import {
+  INITIAL_SKILL_AUDIT_OPERATOR_RECORDS,
+  INITIAL_SKILL_AUDIT_SUMMARY_ROWS,
+  INITIAL_SKILL_AUDIT_PHOTOS,
+} from './skillAuditSeedData';
 import {
   fetchCloudDatabaseState,
   saveCloudDatabaseState,
@@ -718,7 +744,7 @@ export const INITIAL_TRAINER_ACTIVITIES: TrainerActivitySection[] = [
     week_number: 1,
     period_label: 'Minggu Ke-1 • November 2026',
     badge_label: 'TRAINING',
-    title: '1. Activitas Technical Trainer',
+    title: '1. Program Technical Training',
     items: [
       {
         id: 'act-item-1',
@@ -750,6 +776,902 @@ export const INITIAL_TRAINER_ACTIVITIES: TrainerActivitySection[] = [
   },
 ];
 
+// ==============================================================================
+// INITIAL REAL DATA — PROGRAM TECHNICAL TRAINING (WEEKLY REPORT WEEK 01 NOV 2026)
+// ==============================================================================
+export const INITIAL_TECHNICAL_TRAINING_MODULE_DATA: TechnicalTrainingModuleState = {
+  report_header: {
+    issue_date: '05-Nov-26',
+    owner_name: 'Abdul Rachman',
+    owner_role: 'HOS Technical Trainer',
+    member_dept: 'PLM (Plant & Logistics Management)',
+    period_label: 'Week 01 • November 2026',
+  },
+  // A. Training Class & Competency GAP (Crew PLM Tangofa & Genba)
+  trainingClassPrograms: [
+    {
+      id: 'ttc-prog-1',
+      program_name: 'Training Class Pemenuhan Competency GAP TNA — Basic Engine (BEG)',
+      department_area: 'PLM • Site Tangofa & Site Genba',
+      target_participants: 67,
+      actual_participants: 12,
+      execution_period: 'Mei – November 2026',
+      status: 'On Going',
+      remarks: 'Pemenuhan GAP sesuai data TNA bagi Crew PLM Tangofa (57) & Genba (10)',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+    {
+      id: 'ttc-prog-2',
+      program_name: 'Training Class Pemenuhan Competency GAP TNA — Torqflow & T/M (TQ)',
+      department_area: 'PLM • Site Tangofa & Site Genba',
+      target_participants: 65,
+      actual_participants: 19,
+      execution_period: 'Mei – November 2026',
+      status: 'On Going',
+      remarks: 'Fill Gap tertinggi (25% dari 76 Total Gap All)',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+    {
+      id: 'ttc-prog-3',
+      program_name: 'Training Class Pemenuhan Competency GAP TNA — Maintenance Management Concept (MMC)',
+      department_area: 'PLM • Site Tangofa & All GL',
+      target_participants: 24,
+      actual_participants: 16,
+      execution_period: 'Mei – Oktober 2026',
+      status: 'On Going',
+      remarks: 'Capaian Fill Gap 67% (16 dari 24 personel)',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+    {
+      id: 'ttc-prog-4',
+      program_name: 'Training Class Pemenuhan Competency GAP TNA — Hydraulic (HYD) & Maintenance (MTN)',
+      department_area: 'PLM • Site Tangofa & Site Genba',
+      target_participants: 81,
+      actual_participants: 12,
+      execution_period: 'Juni – November 2026',
+      status: 'On Going',
+      remarks: 'Fokus mekanik Tangofa (60) & Genba (10) serta All GL (11)',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+    {
+      id: 'ttc-prog-5',
+      program_name: 'Training Class Pemenuhan Competency GAP TNA — Differential & F/D (DFD) & Steering Brake (SB)',
+      department_area: 'PLM • Site Tangofa & Site Genba',
+      target_participants: 48,
+      actual_participants: 12,
+      execution_period: 'Agustus – November 2026',
+      status: 'On Going',
+      remarks: 'Progress Fill Gap masing-masing mencapai 25%',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+  ],
+  // B. Interview Candidate Mechanic & Tabel 2. Data Assessment Candidate Mechanic (Slide 2)
+  interviewSummary: {
+    headline_label: 'Update interview candidate crew PLM al : 94x Done',
+    done_count: 94,
+    status: 'On Going',
+    area_scope: 'Site Tangofa, Site Genba & Site TPM',
+    notes:
+      'Kegiatan interview kandidat mekanik untuk area Tangofa, Genba, dan TPM. Total peserta masuk 120 kandidat, sudah interview 94x Done (Status: On Going), dengan 79 kandidat Recommended (M3 Middle Up).',
+    updated_at: '2026-11-05T08:00:00Z',
+    updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+  },
+  candidatePositionRecap: [
+    {
+      id: 'cand-pos-1',
+      no: 1,
+      candidate_position: 'Trainer Maintenance',
+      total_masuk: 2,
+      sudah_itv: 2,
+      recommended_m3_up: 2,
+      site_tangofa: 2,
+      site_tpm: 0,
+      remark: 'TC',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-2',
+      no: 2,
+      candidate_position: 'GL PLM',
+      total_masuk: 18,
+      sudah_itv: 14,
+      recommended_m3_up: 13,
+      site_tangofa: 11,
+      site_tpm: 3,
+      remark: '1 POP BNSP Mati',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-3',
+      no: 3,
+      candidate_position: 'Planner',
+      total_masuk: 4,
+      sudah_itv: 3,
+      recommended_m3_up: 3,
+      site_tangofa: 2,
+      site_tpm: 2,
+      remark: '',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-4',
+      no: 4,
+      candidate_position: 'Plant Engineer',
+      total_masuk: 1,
+      sudah_itv: 1,
+      recommended_m3_up: 1,
+      site_tangofa: 1,
+      site_tpm: 0,
+      remark: '',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-5',
+      no: 5,
+      candidate_position: 'Autolub',
+      total_masuk: 2,
+      sudah_itv: 2,
+      recommended_m3_up: 1,
+      site_tangofa: 2,
+      site_tpm: 0,
+      remark: '',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-6',
+      no: 6,
+      candidate_position: 'DT medium & Support',
+      total_masuk: 26,
+      sudah_itv: 25,
+      recommended_m3_up: 21,
+      site_tangofa: 25,
+      site_tpm: 2,
+      remark: '2 Mundur',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-7',
+      no: 7,
+      candidate_position: 'A2B Track',
+      total_masuk: 18,
+      sudah_itv: 14,
+      recommended_m3_up: 13,
+      site_tangofa: 15,
+      site_tpm: 3,
+      remark: '2 mundur, 2 no respon',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-8',
+      no: 8,
+      candidate_position: 'A2B Wheel',
+      total_masuk: 21,
+      sudah_itv: 11,
+      recommended_m3_up: 6,
+      site_tangofa: 15,
+      site_tpm: 5,
+      remark: '1 no respon',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-9',
+      no: 9,
+      candidate_position: 'Electrican',
+      total_masuk: 10,
+      sudah_itv: 9,
+      recommended_m3_up: 8,
+      site_tangofa: 6,
+      site_tpm: 3,
+      remark: '1 no respon',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-10',
+      no: 10,
+      candidate_position: 'Tyreman',
+      total_masuk: 14,
+      sudah_itv: 10,
+      recommended_m3_up: 9,
+      site_tangofa: 11,
+      site_tpm: 3,
+      remark: '1 no respon',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'cand-pos-11',
+      no: 11,
+      candidate_position: 'Welder',
+      total_masuk: 4,
+      sudah_itv: 3,
+      recommended_m3_up: 2,
+      site_tangofa: 4,
+      site_tpm: 0,
+      remark: '1 mundur',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+  ],
+  // C. Assessment Candidate Mechanic — dikosongkan: diisi admin dengan data kandidat asli (tidak ada data individu di laporan)
+  candidateAssessments: [],
+  // D. Monitoring OJT BMC (31 Siswa di PLM Tangofa & 7 Siswa di TPM)
+  ojtBmcRecords: [
+    {
+      id: 'ojt-bmc-1',
+      student_name: 'Kelompok Siswa BMC OJT — Departemen PLM Tangofa (31 Siswa)',
+      batch: 'BMC Reguler 2026',
+      department_placement: 'PLM (Plant & Logistics Management)',
+      location: 'Site Tangofa',
+      student_count: 31,
+      ojt_period: 'Mei – November 2026',
+      mentor_name: 'Abdul Rachman, Edison & Idris (Tim Technical Trainer PLM)',
+      ojt_status: 'On Going',
+      ojt_evaluation:
+        'Memonitor & mengontrol 31x Siswa BMC yang mengikuti OJT di Dept PLM Tangofa. Koordinasi dengan Pengawas PLM untuk menyesuaikan Time Frame (TF) OJT.',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+    {
+      id: 'ojt-bmc-2',
+      student_name: 'Kelompok Siswa BMC OJT — Departemen PLM Site TPM (7 Siswa)',
+      batch: 'BMC Reguler 2026',
+      department_placement: 'PLM (Plant & Logistics Management)',
+      location: 'Site TPM',
+      student_count: 7,
+      ojt_period: 'Juni – November 2026',
+      mentor_name: 'Tim Technical Trainer & Pengawas PLM Site TPM',
+      ojt_status: 'On Going',
+      ojt_evaluation:
+        'Memonitor & mengontrol 7x Siswa BMC yang mengikuti OJT di Site TPM. Section dan pembagian Job Pengawas dibuat Fix.',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+  ],
+  // E. Sharing Session BMC Batch VII (17 Siswa BMC Batch VII)
+  sharingSessionRecords: [
+    {
+      id: 'share-bmc-1',
+      session_title: 'Sharing Session Siswa BMC Batch VII — Safety, Basic Maintenance & Workshop Culture',
+      batch: 'BMC Batch VII',
+      schedule_date: '2026-11-05',
+      location: 'Training Center PT. RAJA — Site Tangofa',
+      instructor_name: 'Abdul Rachman, Edison & Idris (Technical Trainer)',
+      target_participants: 17,
+      actual_attendance: 17,
+      execution_status: 'Done',
+      documentation_notes:
+        'Melakukan Sharing Session bagi 17x Siswa BMC Batch VII (Kehadiran 100%: 17 dari 17 siswa). Penambahan materi Safety dan Refresh Materi.',
+      created_at: '2026-11-05T08:00:00Z',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+  ],
+  // 3. Resume Assessment Crew Mechanic PLM 2026 (Slide 3)
+  plmAssessmentCategories: [
+    {
+      id: 'plm-cat-1',
+      category_name: 'M1, M2, M3',
+      class_count: 122,
+      period_year: '2026',
+      description: 'Kategori Mechanic Tangofa & Mechanic Genba (M1, M2, M3) sesuai Resume Assessment Crew Mechanic PLM 2026',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+    {
+      id: 'plm-cat-2',
+      category_name: '2GL, 2 FGDP/GLDP',
+      class_count: 113,
+      period_year: '2026',
+      description: 'Kategori Group Leader (All GL) & FGDP/GLDP sesuai Resume Assessment Crew Mechanic PLM 2026',
+      updated_at: '2026-11-05T08:00:00Z',
+      updated_by: 'Abdul Rachman (HOS Technical Trainer)',
+    },
+  ],
+  plmCompetencyGapRows: [
+    {
+      id: 'gap-row-1',
+      no: 1,
+      code: 'PK',
+      training_name: 'Product Knowledge',
+      gap_all: 14,
+      mechanic_tangofa: 7,
+      mechanic_genba: 0,
+      all_gl: 7,
+      fgdp_gldp: 6,
+      fill_gap: 2,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-2',
+      no: 2,
+      code: 'BEG',
+      training_name: 'Basic Engine',
+      gap_all: 77,
+      mechanic_tangofa: 57,
+      mechanic_genba: 10,
+      all_gl: 10,
+      fgdp_gldp: 6,
+      fill_gap: 12,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-3',
+      no: 3,
+      code: 'BEL',
+      training_name: 'Basic Electric',
+      gap_all: 78,
+      mechanic_tangofa: 59,
+      mechanic_genba: 10,
+      all_gl: 9,
+      fgdp_gldp: 6,
+      fill_gap: 10,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-4',
+      no: 4,
+      code: 'TM',
+      training_name: 'Tool & Measurement',
+      gap_all: 66,
+      mechanic_tangofa: 56,
+      mechanic_genba: 10,
+      all_gl: 0,
+      fgdp_gldp: 6,
+      fill_gap: 7,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-5',
+      no: 5,
+      code: 'TQ',
+      training_name: 'Torqflow & T/M',
+      gap_all: 76,
+      mechanic_tangofa: 55,
+      mechanic_genba: 10,
+      all_gl: 11,
+      fgdp_gldp: 6,
+      fill_gap: 19,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-6',
+      no: 6,
+      code: 'HYD',
+      training_name: 'Hydraulic',
+      gap_all: 81,
+      mechanic_tangofa: 60,
+      mechanic_genba: 10,
+      all_gl: 11,
+      fgdp_gldp: 6,
+      fill_gap: 12,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-7',
+      no: 7,
+      code: 'UC',
+      training_name: 'Under Carriage',
+      gap_all: 25,
+      mechanic_tangofa: 24,
+      mechanic_genba: 1,
+      all_gl: 0,
+      fgdp_gldp: 6,
+      fill_gap: 8,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-8',
+      no: 8,
+      code: 'MTN',
+      training_name: 'Maintenance',
+      gap_all: 81,
+      mechanic_tangofa: 60,
+      mechanic_genba: 10,
+      all_gl: 11,
+      fgdp_gldp: 6,
+      fill_gap: 12,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-9',
+      no: 9,
+      code: 'BMT',
+      training_name: 'Basic Material',
+      gap_all: 79,
+      mechanic_tangofa: 58,
+      mechanic_genba: 10,
+      all_gl: 11,
+      fgdp_gldp: 6,
+      fill_gap: 9,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-10',
+      no: 10,
+      code: 'MMC',
+      training_name: 'Maintenance Management Concept',
+      gap_all: 24,
+      mechanic_tangofa: 10,
+      mechanic_genba: 0,
+      all_gl: 14,
+      fgdp_gldp: 9,
+      fill_gap: 16,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-11',
+      no: 11,
+      code: 'AC',
+      training_name: 'AC System',
+      gap_all: 65,
+      mechanic_tangofa: 56,
+      mechanic_genba: 0,
+      all_gl: 9,
+      fgdp_gldp: 6,
+      fill_gap: 5,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-12',
+      no: 12,
+      code: 'SB',
+      training_name: 'Steering & Brake',
+      gap_all: 44,
+      mechanic_tangofa: 25,
+      mechanic_genba: 10,
+      all_gl: 9,
+      fgdp_gldp: 6,
+      fill_gap: 11,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-13',
+      no: 13,
+      code: 'ATF',
+      training_name: 'Auto Lube & Fire Suppression',
+      gap_all: 9,
+      mechanic_tangofa: 0,
+      mechanic_genba: 0,
+      all_gl: 9,
+      fgdp_gldp: 6,
+      fill_gap: 0,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-14',
+      no: 14,
+      code: 'BFA',
+      training_name: 'Basic First Aid',
+      gap_all: 0,
+      mechanic_tangofa: 0,
+      mechanic_genba: 0,
+      all_gl: 0,
+      fgdp_gldp: 6,
+      fill_gap: 0,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-15',
+      no: 15,
+      code: 'LTO',
+      training_name: 'Log out & Tag Out',
+      gap_all: 51,
+      mechanic_tangofa: 51,
+      mechanic_genba: 0,
+      all_gl: 0,
+      fgdp_gldp: 6,
+      fill_gap: 0,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-16',
+      no: 16,
+      code: 'DFD',
+      training_name: 'Differential and F/D',
+      gap_all: 48,
+      mechanic_tangofa: 40,
+      mechanic_genba: 0,
+      all_gl: 8,
+      fgdp_gldp: 6,
+      fill_gap: 12,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'gap-row-17',
+      no: 17,
+      code: 'SL',
+      training_name: 'Slinging & Lifting',
+      gap_all: 35,
+      mechanic_tangofa: 26,
+      mechanic_genba: 9,
+      all_gl: 0,
+      fgdp_gldp: 6,
+      fill_gap: 0,
+      period_year: '2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+  ],
+  // 4. Resume Training Class Crew Mechanic PLM 2026 (Slide 4)
+  plmMonthlyTrainingClasses: [
+    {
+      id: 'plm-month-5',
+      month_index: 5,
+      month_name: 'Mei',
+      year: '2026',
+      plan: 10,
+      actual: 30,
+      frequency_plan: 3,
+      frequency_actual: 3,
+      period_status: 'FINAL',
+      notes: 'Melampaui target (+20 kehadiran peserta)',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'plm-month-6',
+      month_index: 6,
+      month_name: 'Juni',
+      year: '2026',
+      plan: 42,
+      actual: 39,
+      frequency_plan: 5,
+      frequency_actual: 5,
+      period_status: 'FINAL',
+      notes: 'Achiev. Peserta bln Juni/26 < 95% (92,86%)',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'plm-month-7',
+      month_index: 7,
+      month_name: 'Juli',
+      year: '2026',
+      plan: 36,
+      actual: 26,
+      frequency_plan: 6,
+      frequency_actual: 7,
+      period_status: 'FINAL',
+      notes: 'Frekuensi in-class 7 sesi (Plan 6 sesi)',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'plm-month-8',
+      month_index: 8,
+      month_name: 'Agustus',
+      year: '2026',
+      plan: 44,
+      actual: 63,
+      frequency_plan: 6,
+      frequency_actual: 8,
+      period_status: 'FINAL',
+      notes: 'Melampaui target (+19 kehadiran peserta)',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'plm-month-9',
+      month_index: 9,
+      month_name: 'September',
+      year: '2026',
+      plan: 44,
+      actual: 67,
+      frequency_plan: 6,
+      frequency_actual: 8,
+      period_status: 'FINAL',
+      notes: 'Melampaui target (+23 kehadiran peserta)',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'plm-month-10',
+      month_index: 10,
+      month_name: 'Oktober',
+      year: '2026',
+      plan: 44,
+      actual: 23,
+      frequency_plan: 6,
+      frequency_actual: 7,
+      period_status: 'FINAL',
+      notes: 'Frekuensi sesi tercapai 117% (7/6), kehadiran peserta 23x',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'plm-month-11',
+      month_index: 11,
+      month_name: 'November',
+      year: '2026',
+      plan: 36,
+      actual: 3,
+      frequency_plan: 6,
+      frequency_actual: 1,
+      period_status: 'ON_GOING',
+      notes: 'Periode berjalan (Week 01 November 2026 — On Going)',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+  ],
+  plmCorrectiveActions: [
+    {
+      id: 'pca-prob-1',
+      section_type: 'PROBLEM',
+      no: 1,
+      description: 'Cutway untuk Praktek di TC Sangat kurang',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-prob-2',
+      section_type: 'PROBLEM',
+      no: 2,
+      description: "Achiev. Peserta bln Juni'26 < 95%",
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-prob-3',
+      section_type: 'PROBLEM',
+      no: 3,
+      description: 'Pemenuhan Target time Frame OJT Tidak sesuai',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-cause-1',
+      section_type: 'CAUSE',
+      no: 1,
+      description: 'Pengadaan Cutway Praktek Terbatas',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-cause-2',
+      section_type: 'CAUSE',
+      no: 2,
+      description: 'Peserta Training sering Tidak hadir',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-cause-3',
+      section_type: 'CAUSE',
+      no: 3,
+      description: 'Section dan pembagian Job Pengawas di buat Fix',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-act-1',
+      section_type: 'CORRECTIVE_ACTION',
+      no: 1,
+      description:
+        'Koordinasi dengan PIC area Metal scrab Pak anwar, Pelaksanaan Praktek Training sementara ke Metal Scrab',
+      pic: 'Abdul R',
+      due_date: '17 Mei 2026',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-act-2',
+      section_type: 'CORRECTIVE_ACTION',
+      no: 2,
+      description:
+        'Informasi saat meeting koordinasi dan weekly ke rekan PLM untuk menjaga konsistensi peserta training dan membuat schedule dengan benar',
+      pic: 'Edison + Idris + Abdul R',
+      due_date: 'Continue',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-act-3',
+      section_type: 'CORRECTIVE_ACTION',
+      no: 3,
+      description: 'Support Interview Kandidat Pemenuhan MPP PLM',
+      pic: 'Edison + Idris + Abdul R',
+      due_date: 'Continue',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-act-4',
+      section_type: 'CORRECTIVE_ACTION',
+      no: 4,
+      description: 'Koordinasi dengan Pengawas PLM untuk Menyesuaikan TF OJT',
+      pic: 'HRGA',
+      due_date: "W4 Sept' 2026",
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-act-5',
+      section_type: 'CORRECTIVE_ACTION',
+      no: 5,
+      description: 'Penambahan Materi safety dan Refresh Materi',
+      pic: 'Abdul R',
+      due_date: 'Continue',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-fup-1',
+      section_type: 'FOLLOW_UP',
+      no: 1,
+      description: 'Ada 2 komponen 1 Eg dan 1 TM → Continue dgn Praktek',
+      pic: 'Abdul R',
+      due_date: 'Continue',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+    {
+      id: 'pca-fup-2',
+      section_type: 'FOLLOW_UP',
+      no: 2,
+      description: 'Achievement Training menjadi KPI HOD PLM',
+      pic: 'Edison + Idris + Abdul R',
+      due_date: 'Continue',
+      updated_at: '2026-11-05T08:00:00Z',
+    },
+  ],
+  dailyTrainerActivities: [
+    {
+      id: 'dta-1',
+      no: 1,
+      date_label: '29 Oct. 2026',
+      attendents: '3x Siswa OJT',
+      dept: 'PLM',
+      activities:
+        'Diskusi dengan HOS PLM tentang 3x mekanik yang pindah ke Metal Scrab & pencapain Assessmnet BMC batch VI',
+      remarks: 'Done',
+      photos: ['/images/activity-trainer/doc-1a.jpg', '/images/activity-trainer/doc-1b.jpg'],
+      week_label: 'WEEK 1 NOVEMBER 2026',
+      year: '2026',
+      month: '11',
+      week_number: 1,
+      updated_at: '2026-11-09T08:00:00Z',
+    },
+    {
+      id: 'dta-2',
+      no: 2,
+      date_label: '31 Oct. 2026',
+      attendents: 'Gunawan P & Suwandi',
+      dept: 'PLM',
+      activities: 'Interview 1x GLM & Tyre Man crew PLM dari TPM',
+      remarks: 'Done',
+      photos: ['/images/activity-trainer/doc-2a.jpg', '/images/activity-trainer/doc-2b.jpg'],
+      week_label: 'WEEK 1 NOVEMBER 2026',
+      year: '2026',
+      month: '11',
+      week_number: 1,
+      updated_at: '2026-11-09T08:00:00Z',
+    },
+    {
+      id: 'dta-3',
+      no: 3,
+      date_label: '31 Oct. 2026',
+      attendents: '4x FGDP',
+      dept: 'All dept',
+      activities: 'Pengenalan serta Support TC dalam Busines proses di RJS kepada 4x FGDP',
+      remarks: 'Continue',
+      photos: ['/images/activity-trainer/doc-3a.jpg', '/images/activity-trainer/doc-3b.jpg'],
+      week_label: 'WEEK 1 NOVEMBER 2026',
+      year: '2026',
+      month: '11',
+      week_number: 1,
+      updated_at: '2026-11-09T08:00:00Z',
+    },
+    {
+      id: 'dta-4',
+      no: 4,
+      date_label: '01-2 Nov. 2026',
+      attendents: '8x Siswa BMC batch VI & VII',
+      dept: 'PLM',
+      activities:
+        'Sharing session bagi 4x Siswa BMC Batch VII tentang kendala serta performa serta jobdesk mereka selama OJT di dept. PLM',
+      remarks: 'Continue',
+      photos: ['/images/activity-trainer/doc-4a.jpg', '/images/activity-trainer/doc-4b.jpg'],
+      week_label: 'WEEK 1 NOVEMBER 2026',
+      year: '2026',
+      month: '11',
+      week_number: 1,
+      updated_at: '2026-11-09T08:00:00Z',
+    },
+    {
+      id: 'dta-5',
+      no: 5,
+      date_label: '02-Nov-26',
+      attendents: '3x Siswa BMC batch VI',
+      dept: 'PLM',
+      activities: 'Inclass tentang Clutch & Transmission bagi 3x Siswa BMC',
+      remarks: 'Continue',
+      photos: ['/images/activity-trainer/doc-5a.jpg', '/images/activity-trainer/doc-5b.jpg'],
+      week_label: 'WEEK 1 NOVEMBER 2026',
+      year: '2026',
+      month: '11',
+      week_number: 1,
+      updated_at: '2026-11-09T08:00:00Z',
+    },
+    {
+      id: 'dta-6',
+      no: 6,
+      date_label: '03-04 Nov. 2026',
+      attendents: '8x Siswa BMC batch VI & VII',
+      dept: 'PLM',
+      activities:
+        'Sharing session bagi 4x Siswa BMC Batch VII tentang kendala serta performa serta jobdesk mereka selama OJT di dept. PLM',
+      remarks: 'Continue',
+      photos: ['/images/activity-trainer/doc-6a.jpg', '/images/activity-trainer/doc-6b.jpg'],
+      week_label: 'WEEK 1 NOVEMBER 2026',
+      year: '2026',
+      month: '11',
+      week_number: 1,
+      updated_at: '2026-11-09T08:00:00Z',
+    },
+  ],
+  monthlyPlanBars: [
+    // Existing | Mech/GL
+    { id: 'mpb-1', month_label: 'Nov-26', row_key: 'EXISTING_MECH_GL', start_day: 3, end_day: 6, title: 'Clutch& Transmission', bg_color: '#E6DEC8', text_color: '#18232B', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-2', month_label: 'Nov-26', row_key: 'EXISTING_MECH_GL', start_day: 9, end_day: 12, title: 'Steering & Brake', bg_color: '#BFBFBF', text_color: '#18232B', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-3', month_label: 'Nov-26', row_key: 'EXISTING_MECH_GL', start_day: 15, end_day: 16, title: 'Tools', bg_color: '#312B4B', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-4', month_label: 'Nov-26', row_key: 'EXISTING_MECH_GL', start_day: 19, end_day: 20, title: 'Material', bg_color: '#C4BD97', text_color: '#18232B', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-5', month_label: 'Nov-26', row_key: 'EXISTING_MECH_GL', start_day: 23, end_day: 24, title: 'MMC', bg_color: '#C6D9F1', text_color: '#18232B', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-6', month_label: 'Nov-26', row_key: 'EXISTING_MECH_GL', start_day: 27, end_day: 29, title: 'F/D & Undercarriage', bg_color: '#95B3D7', text_color: '#18232B', updated_at: '2026-11-09T08:00:00Z' },
+    // Fresh | Ojt/FGDP
+    { id: 'mpb-7', month_label: 'Nov-26', row_key: 'FRESH_OJT_FGDP', start_day: 2, end_day: 2, title: 'Obs.OJT', bg_color: '#E46C0A', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-8', month_label: 'Nov-26', row_key: 'FRESH_OJT_FGDP', start_day: 6, end_day: 6, title: 'Obs.OJT', bg_color: '#E46C0A', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-9', month_label: 'Nov-26', row_key: 'FRESH_OJT_FGDP', start_day: 10, end_day: 10, title: 'Obs.OJT', bg_color: '#E46C0A', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-10', month_label: 'Nov-26', row_key: 'FRESH_OJT_FGDP', start_day: 14, end_day: 14, title: 'Obs.OJT', bg_color: '#E46C0A', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-11', month_label: 'Nov-26', row_key: 'FRESH_OJT_FGDP', start_day: 18, end_day: 18, title: 'Obs.OJT', bg_color: '#E46C0A', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-12', month_label: 'Nov-26', row_key: 'FRESH_OJT_FGDP', start_day: 22, end_day: 22, title: 'Obs.OJT', bg_color: '#E46C0A', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-13', month_label: 'Nov-26', row_key: 'FRESH_OJT_FGDP', start_day: 25, end_day: 25, title: 'Obs.OJT', bg_color: '#E46C0A', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'mpb-14', month_label: 'Nov-26', row_key: 'FRESH_OJT_FGDP', start_day: 29, end_day: 29, title: 'Obs.OJT', bg_color: '#E46C0A', text_color: '#FFFFFF', updated_at: '2026-11-09T08:00:00Z' },
+    // Andi Rizal -> Site Genba
+    { id: 'mpb-15', month_label: 'Nov-26', row_key: 'ANDI_RIZAL', start_day: 3, end_day: 7, title: 'Site Genba', bg_color: '#FFFF00', text_color: '#18232B', updated_at: '2026-11-09T08:00:00Z' },
+  ],
+  sharingSessionScheduleRows: [
+    { id: 'sss-1', no: 1, tanggal: '29 OKT 2026', hari: 'KAMIS', waktu: '08.00-17.00', nama: 'Riyan Ardianto', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-2', no: 2, tanggal: '29 OKT 2026', hari: 'KAMIS', waktu: '08.00-17.00', nama: 'Indra Putra Ardiansyah', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-3', no: 3, tanggal: '29 OKT 2026', hari: 'KAMIS', waktu: '08.00-17.00', nama: 'Muhammad Farrel Damario', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-4', no: 4, tanggal: '29 OKT 2026', hari: 'KAMIS', waktu: '08.00-17.00', nama: 'Mulia Adi Hariono', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-5', no: 5, tanggal: '29 OKT 2026', hari: 'KAMIS', waktu: '08.00-17.00', nama: 'Sandya Aryananda', jabatan: 'OJT Elektrik', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-6', no: 6, tanggal: '30 OKT 2026', hari: 'JUMAT', waktu: '08.00-17.00', nama: 'Muhammad Anwar Syaifudin', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-7', no: 7, tanggal: '30 OKT 2026', hari: 'JUMAT', waktu: '08.00-17.00', nama: 'Andi Pangestu', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-8', no: 8, tanggal: '30 OKT 2026', hari: 'JUMAT', waktu: '08.00-17.00', nama: 'Muhammad Hamed Ramadhani', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-9', no: 9, tanggal: '30 OKT 2026', hari: 'JUMAT', waktu: '08.00-17.00', nama: 'Erwin Fihadi Pradana', jabatan: 'OJT Tyreman', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-10', no: 10, tanggal: '31 OKT 2026', hari: 'SABTU', waktu: '08.00-17.00', nama: 'Syahval Finanda Fitradhani', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-11', no: 11, tanggal: '31 OKT 2026', hari: 'SABTU', waktu: '08.00-17.00', nama: 'Dito Apriliana Afarisqi', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-12', no: 12, tanggal: '31 OKT 2026', hari: 'SABTU', waktu: '08.00-17.00', nama: 'Alip Alfitrah', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-13', no: 13, tanggal: '31 OKT 2026', hari: 'SABTU', waktu: '08.00-17.00', nama: 'Faisal Yuli Prasetyo', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-14', no: 14, tanggal: '01 NOV 2026', hari: 'MINGGU', waktu: '08.00-17.00', nama: 'Alfan Fauzi Ananta', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-15', no: 15, tanggal: '01 NOV 2026', hari: 'MINGGU', waktu: '08.00-17.00', nama: 'Yusuf Waloyo', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-16', no: 16, tanggal: '01 NOV 2026', hari: 'MINGGU', waktu: '08.00-17.00', nama: 'Fahad Santoso', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+    { id: 'sss-17', no: 17, tanggal: '01 NOV 2026', hari: 'MINGGU', waktu: '08.00-17.00', nama: 'Muhammad Rizky Ramadhan', jabatan: 'OJT Mekanik DT', instruktur: 'Bpk. Andi Risal', year: '2026', month: '11', month_label: 'November 2026', week_number: 1, week_label: 'Minggu 1 - November 2026', batch_label: 'BMC BATCH VII', status: 'Done', updated_at: '2026-11-09T08:00:00Z' },
+  ],
+  skillAuditOperatorRecords: JSON.parse(JSON.stringify(INITIAL_SKILL_AUDIT_OPERATOR_RECORDS)),
+  skillAuditSummaryRows: JSON.parse(JSON.stringify(INITIAL_SKILL_AUDIT_SUMMARY_ROWS)),
+  skillAuditPhotos: JSON.parse(JSON.stringify(INITIAL_SKILL_AUDIT_PHOTOS)),
+  updated_at: '2026-11-09T08:00:00Z',
+  updated_by: 'Super Admin',
+};
+
 class DataStore {
   roles: Role[] = [...INITIAL_ROLES];
   departments: Department[] = [...INITIAL_DEPARTMENTS];
@@ -761,6 +1683,12 @@ class DataStore {
   trainingTypes: TrainingTypeOption[] = [...INITIAL_TRAINING_TYPES];
   sites: SiteOption[] = [...INITIAL_SITES];
   trainerActivities: TrainerActivitySection[] = [...INITIAL_TRAINER_ACTIVITIES];
+  technicalTrainingModule: TechnicalTrainingModuleState = JSON.parse(
+    JSON.stringify(INITIAL_TECHNICAL_TRAINING_MODULE_DATA)
+  );
+  rolePermissions: Record<RoleCode, RolePermissionMatrix> = JSON.parse(
+    JSON.stringify(DEFAULT_ROLE_PERMISSIONS)
+  );
   applications: TrainingApplication[] = [];
   participants: TrainingApplicationParticipant[] = [];
   approvalHistory: TrainingApprovalHistory[] = [];
@@ -829,6 +1757,8 @@ class DataStore {
       trainingTypes: this.trainingTypes,
       sites: this.sites,
       trainerActivities: this.trainerActivities,
+      technicalTrainingModule: this.technicalTrainingModule,
+      rolePermissions: this.rolePermissions,
       applications: this.applications,
       participants: this.participants,
       approvalHistory: this.approvalHistory,
@@ -905,6 +1835,10 @@ class DataStore {
       this.trainerActivities = snapshot.trainerActivities.map(
         (sec: TrainerActivitySection, idx: number) => ({
           ...sec,
+          title:
+            sec.title === '1. Activitas Technical Trainer'
+              ? '1. Program Technical Training'
+              : sec.title,
           year: sec.year || '2026',
           month: sec.month || '11',
           week_number: sec.week_number || idx + 1,
@@ -912,6 +1846,113 @@ class DataStore {
             sec.period_label || `Minggu Ke-${sec.week_number || idx + 1} • November 2026`,
         })
       );
+    }
+    if (
+      snapshot.technicalTrainingModule &&
+      typeof snapshot.technicalTrainingModule === 'object'
+    ) {
+      this.technicalTrainingModule = {
+        ...JSON.parse(JSON.stringify(INITIAL_TECHNICAL_TRAINING_MODULE_DATA)),
+        ...snapshot.technicalTrainingModule,
+      };
+      // Bersihkan data kandidat contoh (cma-1 s/d cma-7) yang sempat tersimpan — bukan data produksi
+      const sampleIds = new Set(['cma-1', 'cma-2', 'cma-3', 'cma-4', 'cma-5', 'cma-6', 'cma-7']);
+      this.technicalTrainingModule.candidateAssessments = (
+        this.technicalTrainingModule.candidateAssessments || []
+      ).filter((c) => !sampleIds.has(c.id));
+      if (
+        !Array.isArray(this.technicalTrainingModule.dailyTrainerActivities) ||
+        this.technicalTrainingModule.dailyTrainerActivities.length === 0
+      ) {
+        this.technicalTrainingModule.dailyTrainerActivities = JSON.parse(
+          JSON.stringify(INITIAL_TECHNICAL_TRAINING_MODULE_DATA.dailyTrainerActivities)
+        );
+      } else {
+        // Pulihkan foto default jika ada baris awal (dta-1 s/d dta-6) yang fotonya terhapus
+        const defaultPhotoMap = new Map(
+          INITIAL_TECHNICAL_TRAINING_MODULE_DATA.dailyTrainerActivities.map((d) => [d.id, d.photos])
+        );
+        this.technicalTrainingModule.dailyTrainerActivities =
+          this.technicalTrainingModule.dailyTrainerActivities.map((item) => {
+            const defPhotos = defaultPhotoMap.get(item.id);
+            if (defPhotos && (!Array.isArray(item.photos) || item.photos.length === 0)) {
+              return { ...item, photos: [...defPhotos] };
+            }
+            return item;
+          });
+      }
+      if (
+        !Array.isArray(this.technicalTrainingModule.monthlyPlanBars) ||
+        this.technicalTrainingModule.monthlyPlanBars.length === 0
+      ) {
+        this.technicalTrainingModule.monthlyPlanBars = JSON.parse(
+          JSON.stringify(INITIAL_TECHNICAL_TRAINING_MODULE_DATA.monthlyPlanBars)
+        );
+      }
+      if (
+        !Array.isArray(this.technicalTrainingModule.sharingSessionScheduleRows) ||
+        this.technicalTrainingModule.sharingSessionScheduleRows.length === 0
+      ) {
+        this.technicalTrainingModule.sharingSessionScheduleRows = JSON.parse(
+          JSON.stringify(INITIAL_TECHNICAL_TRAINING_MODULE_DATA.sharingSessionScheduleRows)
+        );
+      } else {
+        this.technicalTrainingModule.sharingSessionScheduleRows =
+          this.technicalTrainingModule.sharingSessionScheduleRows.map((row) => ({
+            ...row,
+            year: row.year || '2026',
+            month: row.month || '11',
+            month_label: row.month_label || 'November 2026',
+            week_number: row.week_number || 1,
+            week_label: row.week_label || 'Minggu 1 - November 2026',
+            batch_label: row.batch_label || 'BMC BATCH VII',
+            status: row.status || 'Done',
+          }));
+        this.repairSharingSessionScheduleIfNeeded();
+      }
+      if (
+        !Array.isArray(this.technicalTrainingModule.skillAuditOperatorRecords) ||
+        this.technicalTrainingModule.skillAuditOperatorRecords.length === 0
+      ) {
+        this.technicalTrainingModule.skillAuditOperatorRecords = JSON.parse(
+          JSON.stringify(INITIAL_SKILL_AUDIT_OPERATOR_RECORDS)
+        );
+      }
+      if (
+        !Array.isArray(this.technicalTrainingModule.skillAuditSummaryRows) ||
+        this.technicalTrainingModule.skillAuditSummaryRows.length === 0
+      ) {
+        this.technicalTrainingModule.skillAuditSummaryRows = JSON.parse(
+          JSON.stringify(INITIAL_SKILL_AUDIT_SUMMARY_ROWS)
+        );
+      }
+      if (
+        !this.technicalTrainingModule.skillAuditPhotos ||
+        typeof this.technicalTrainingModule.skillAuditPhotos !== 'object'
+      ) {
+        this.technicalTrainingModule.skillAuditPhotos = JSON.parse(
+          JSON.stringify(INITIAL_SKILL_AUDIT_PHOTOS)
+        );
+      } else {
+        // Pastikan foto default tetap ada jika kategori belum punya foto atau foto default DRIVER_DT terhapus
+        Object.keys(INITIAL_SKILL_AUDIT_PHOTOS).forEach((k) => {
+          const currentArr = Array.isArray(this.technicalTrainingModule.skillAuditPhotos[k])
+            ? this.technicalTrainingModule.skillAuditPhotos[k]
+            : [];
+          const defaultArr = INITIAL_SKILL_AUDIT_PHOTOS[k] || [];
+          const missingDefaults = defaultArr.filter((defUrl) => !currentArr.includes(defUrl));
+          if (currentArr.length === 0 || (k === 'DRIVER_DT' && missingDefaults.length > 0)) {
+            this.technicalTrainingModule.skillAuditPhotos[k] = [
+              ...defaultArr,
+              ...currentArr.filter((u) => !defaultArr.includes(u)),
+            ];
+          }
+        });
+      }
+    }
+    if (snapshot.rolePermissions && typeof snapshot.rolePermissions === 'object') {
+      syncRolePermissionsRegistry(snapshot.rolePermissions);
+      this.rolePermissions = JSON.parse(JSON.stringify(ROLE_PERMISSIONS));
     }
     if (Array.isArray(snapshot.applications)) {
       this.applications = snapshot.applications;
@@ -2214,10 +3255,9 @@ class DataStore {
   // RPC: DELETE TRAINING RECORD & DELETE ALL TRAININGS (SUPER ADMIN EXCLUSIVE)
   // ============================================================================
   deleteTrainingApplication(callerId: string, appId: string) {
-    const callerRole = this.getUserRole(callerId);
     const perms = this.getUserPermissions(callerId);
-    if (callerRole !== 'SUPER_ADMIN' || !perms.canDeleteData) {
-      throw new Error('PERMISSION_DENIED: Hanya Super Admin yang memiliki izin untuk menghapus data training.');
+    if (!perms.canDeleteData) {
+      throw new Error('PERMISSION_DENIED: Role Anda tidak memiliki izin Delete Data pada matriks RBAC.');
     }
 
     const index = this.applications.findIndex((a) => a.id === appId);
@@ -2251,9 +3291,9 @@ class DataStore {
   }
 
   deleteAllTrainingApplications(callerId: string) {
-    const callerRole = this.getUserRole(callerId);
-    if (callerRole !== 'SUPER_ADMIN') {
-      throw new Error('PERMISSION_DENIED: Hanya Super Admin yang dapat menghapus seluruh data training.');
+    const perms = this.getUserPermissions(callerId);
+    if (!perms.canDeleteData) {
+      throw new Error('PERMISSION_DENIED: Role Anda tidak memiliki izin Delete Data pada matriks RBAC.');
     }
 
     const removedCount = this.applications.length;
@@ -2542,13 +3582,13 @@ class DataStore {
   }
 
   // ============================================================================
-  // RPC: MANAGE TECHNICAL TRAINER ACTIVITIES (TRAINING ACHIEVEMENT SUB-SIDEBAR)
+  // RPC: MANAGE PROGRAM TECHNICAL TRAINING (TRAINING ACHIEVEMENT SUB-SIDEBAR)
   // ============================================================================
   private assertCanEditTrainerActivities(callerId: string) {
     const perms = this.getUserPermissions(callerId);
-    if (!perms.canEditData && !perms.canInputData) {
+    if (perms.trainingAchievement !== 'EDIT' || !perms.canEditData) {
       throw new Error(
-        'PERMISSION_DENIED: Role Anda hanya memiliki akses Lihat (View Only) dan tidak dapat mengubah Activitas Technical Trainer.'
+        'PERMISSION_DENIED: Role Anda hanya memiliki akses Lihat (View Only) pada Training Achievement dan tidak dapat mengubah Program Technical Training.'
       );
     }
   }
@@ -2633,7 +3673,7 @@ class DataStore {
 
     if (existing) {
       existing.badge_label = (payload.badge_label || 'TRAINING').trim().toUpperCase();
-      existing.title = payload.title.trim() || '1. Activitas Technical Trainer';
+      existing.title = payload.title.trim() || '1. Program Technical Training';
       existing.period_label =
         payload.period_label || `Minggu Ke-${payload.week_number}`;
       existing.items = cleanItems;
@@ -2650,7 +3690,7 @@ class DataStore {
       week_number: payload.week_number,
       period_label: payload.period_label || `Minggu Ke-${payload.week_number}`,
       badge_label: (payload.badge_label || 'TRAINING').trim().toUpperCase(),
-      title: payload.title.trim() || '1. Activitas Technical Trainer',
+      title: payload.title.trim() || '1. Program Technical Training',
       items: cleanItems,
       updated_at: new Date().toISOString(),
       updated_by: actor?.role_name || actor?.full_name || 'Admin',
@@ -2769,6 +3809,1933 @@ class DataStore {
     sec.updated_by = actor?.role_name || actor?.full_name || 'Admin';
     this.persistState();
     return true;
+  }
+
+  // ============================================================================
+  // RPC: PROGRAM TECHNICAL TRAINING — FULL MODULE CRUD & REAL-TIME METRICS
+  // ============================================================================
+  private recordTechnicalModuleAudit(
+    callerId: string,
+    tableName: string,
+    recordId: string,
+    action: string,
+    oldValues: any,
+    newValues: any
+  ) {
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    this.technicalTrainingModule.updated_at = now;
+    this.technicalTrainingModule.updated_by =
+      actor?.role_name || actor?.full_name || 'Admin';
+
+    this.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      table_name: tableName,
+      record_id: recordId,
+      action,
+      actor_id: callerId,
+      actor_name: actor?.role_name || actor?.full_name || 'Admin',
+      old_values: oldValues,
+      new_values: newValues,
+      created_at: now,
+    });
+  }
+
+  // A. Training Class & Competency GAP Programs
+  saveTechnicalTrainingClassProgram(
+    callerId: string,
+    payload: Omit<TechnicalTrainingClassProgram, 'id' | 'created_at' | 'updated_at'> & {
+      id?: string;
+    }
+  ): TechnicalTrainingClassProgram {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.trainingClassPrograms;
+
+    if (payload.id) {
+      const existing = list.find((p) => p.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.program_name = payload.program_name.trim();
+        existing.department_area = payload.department_area.trim();
+        existing.target_participants = Math.max(0, Number(payload.target_participants));
+        existing.actual_participants = Math.max(0, Number(payload.actual_participants));
+        existing.execution_period = payload.execution_period.trim();
+        existing.status = payload.status;
+        existing.remarks = payload.remarks.trim();
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'technical_training_programs',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: TechnicalTrainingClassProgram = {
+      id: `ttc-prog-${crypto.randomUUID().slice(0, 8)}`,
+      program_name: payload.program_name.trim(),
+      department_area: payload.department_area.trim(),
+      target_participants: Math.max(0, Number(payload.target_participants)),
+      actual_participants: Math.max(0, Number(payload.actual_participants)),
+      execution_period: payload.execution_period.trim(),
+      status: payload.status,
+      remarks: payload.remarks.trim(),
+      created_at: now,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'technical_training_programs',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteTechnicalTrainingClassProgram(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.trainingClassPrograms;
+    const idx = list.findIndex((p) => p.id === id);
+    if (idx === -1) throw new Error('Data program tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'technical_training_programs',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  // B. Interview Candidate Mechanic Summary & Recap Table (Slide 2)
+  updateInterviewCandidateSummary(
+    callerId: string,
+    payload: Partial<InterviewCandidateSummaryConfig>
+  ): InterviewCandidateSummaryConfig {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const oldSnap = { ...this.technicalTrainingModule.interviewSummary };
+
+    this.technicalTrainingModule.interviewSummary = {
+      ...this.technicalTrainingModule.interviewSummary,
+      ...payload,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'interview_candidate_summary',
+      'SUMMARY_CONFIG',
+      'UPDATE',
+      oldSnap,
+      this.technicalTrainingModule.interviewSummary
+    );
+    this.persistState();
+    return this.technicalTrainingModule.interviewSummary;
+  }
+
+  saveCandidatePositionRecapRow(
+    callerId: string,
+    payload: Omit<CandidateMechanicPositionRow, 'id' | 'no' | 'created_at' | 'updated_at'> & {
+      id?: string;
+    }
+  ): CandidateMechanicPositionRow {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.candidatePositionRecap;
+
+    if (payload.id) {
+      const existing = list.find((r) => r.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.candidate_position = payload.candidate_position.trim();
+        existing.total_masuk = Math.max(0, Number(payload.total_masuk));
+        existing.sudah_itv = Math.max(0, Number(payload.sudah_itv));
+        existing.recommended_m3_up = Math.max(0, Number(payload.recommended_m3_up));
+        existing.site_tangofa = Math.max(0, Number(payload.site_tangofa));
+        existing.site_tpm = Math.max(0, Number(payload.site_tpm));
+        existing.remark = (payload.remark || '').trim();
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        // Sync headline done_count automatically from sum of sudah_itv
+        const totalItv = list.reduce((s, r) => s + r.sudah_itv, 0);
+        this.technicalTrainingModule.interviewSummary.done_count = totalItv;
+        this.technicalTrainingModule.interviewSummary.headline_label = `Update interview candidate crew PLM al : ${totalItv}x Done`;
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'candidate_position_recap',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: CandidateMechanicPositionRow = {
+      id: `cand-pos-${crypto.randomUUID().slice(0, 8)}`,
+      no: list.length + 1,
+      candidate_position: payload.candidate_position.trim(),
+      total_masuk: Math.max(0, Number(payload.total_masuk)),
+      sudah_itv: Math.max(0, Number(payload.sudah_itv)),
+      recommended_m3_up: Math.max(0, Number(payload.recommended_m3_up)),
+      site_tangofa: Math.max(0, Number(payload.site_tangofa)),
+      site_tpm: Math.max(0, Number(payload.site_tpm)),
+      remark: (payload.remark || '').trim(),
+      created_at: now,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+
+    const totalItv = list.reduce((s, r) => s + r.sudah_itv, 0);
+    this.technicalTrainingModule.interviewSummary.done_count = totalItv;
+    this.technicalTrainingModule.interviewSummary.headline_label = `Update interview candidate crew PLM al : ${totalItv}x Done`;
+
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'candidate_position_recap',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteCandidatePositionRecapRow(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.candidatePositionRecap;
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) throw new Error('Baris posisi kandidat tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    list.forEach((r, i) => {
+      r.no = i + 1;
+    });
+    const totalItv = list.reduce((s, r) => s + r.sudah_itv, 0);
+    this.technicalTrainingModule.interviewSummary.done_count = totalItv;
+    this.technicalTrainingModule.interviewSummary.headline_label = `Update interview candidate crew PLM al : ${totalItv}x Done`;
+
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'candidate_position_recap',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  // C. Assessment Candidate Mechanic (Individual Candidate Records)
+  saveCandidateAssessmentRecord(
+    callerId: string,
+    payload: Omit<CandidateMechanicAssessmentRecord, 'id' | 'created_at' | 'updated_at'> & {
+      id?: string;
+    }
+  ): CandidateMechanicAssessmentRecord {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.candidateAssessments;
+
+    if (payload.id) {
+      const existing = list.find((c) => c.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.candidate_name = payload.candidate_name.trim();
+        existing.nik = payload.nik.trim();
+        existing.department = payload.department.trim();
+        existing.current_position = payload.current_position.trim();
+        existing.target_position = payload.target_position.trim();
+        existing.site_location = payload.site_location || 'Site Tangofa';
+        existing.assessment_date = payload.assessment_date;
+        existing.assessor = payload.assessor.trim();
+        existing.assessment_result = payload.assessment_result.trim();
+        existing.status = payload.status;
+        existing.assessor_notes = (payload.assessor_notes || '').trim();
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'assessment_candidate_mechanic',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: CandidateMechanicAssessmentRecord = {
+      id: `cma-${crypto.randomUUID().slice(0, 8)}`,
+      candidate_name: payload.candidate_name.trim(),
+      nik: payload.nik.trim(),
+      department: payload.department.trim(),
+      current_position: payload.current_position.trim(),
+      target_position: payload.target_position.trim(),
+      site_location: payload.site_location || 'Site Tangofa',
+      assessment_date: payload.assessment_date,
+      assessor: payload.assessor.trim(),
+      assessment_result: payload.assessment_result.trim(),
+      status: payload.status,
+      assessor_notes: (payload.assessor_notes || '').trim(),
+      created_at: now,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.unshift(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'assessment_candidate_mechanic',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteCandidateAssessmentRecord(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.candidateAssessments;
+    const idx = list.findIndex((c) => c.id === id);
+    if (idx === -1) throw new Error('Data kandidat assessment tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'assessment_candidate_mechanic',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  // D. Monitoring OJT BMC
+  saveOjtBmcRecord(
+    callerId: string,
+    payload: Omit<OjtBmcMonitoringRecord, 'id' | 'created_at' | 'updated_at'> & {
+      id?: string;
+    }
+  ): OjtBmcMonitoringRecord {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.ojtBmcRecords;
+
+    if (payload.id) {
+      const existing = list.find((o) => o.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.student_name = payload.student_name.trim();
+        existing.batch = payload.batch.trim();
+        existing.department_placement = payload.department_placement.trim();
+        existing.location = payload.location.trim();
+        existing.student_count = Math.max(1, Number(payload.student_count));
+        existing.ojt_period = payload.ojt_period.trim();
+        existing.mentor_name = payload.mentor_name.trim();
+        existing.ojt_status = payload.ojt_status;
+        existing.ojt_evaluation = (payload.ojt_evaluation || '').trim();
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'ojt_bmc_monitoring',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: OjtBmcMonitoringRecord = {
+      id: `ojt-bmc-${crypto.randomUUID().slice(0, 8)}`,
+      student_name: payload.student_name.trim(),
+      batch: payload.batch.trim(),
+      department_placement: payload.department_placement.trim(),
+      location: payload.location.trim(),
+      student_count: Math.max(1, Number(payload.student_count)),
+      ojt_period: payload.ojt_period.trim(),
+      mentor_name: payload.mentor_name.trim(),
+      ojt_status: payload.ojt_status,
+      ojt_evaluation: (payload.ojt_evaluation || '').trim(),
+      created_at: now,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'ojt_bmc_monitoring',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteOjtBmcRecord(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.ojtBmcRecords;
+    const idx = list.findIndex((o) => o.id === id);
+    if (idx === -1) throw new Error('Data Monitoring OJT BMC tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'ojt_bmc_monitoring',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  // E. Sharing Session BMC Batch VII
+  saveSharingSessionBmcRecord(
+    callerId: string,
+    payload: Omit<SharingSessionBmcRecord, 'id' | 'created_at' | 'updated_at'> & {
+      id?: string;
+    }
+  ): SharingSessionBmcRecord {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.sharingSessionRecords;
+
+    if (payload.id) {
+      const existing = list.find((s) => s.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.session_title = payload.session_title.trim();
+        existing.batch = payload.batch.trim();
+        existing.schedule_date = payload.schedule_date;
+        existing.location = payload.location.trim();
+        existing.instructor_name = payload.instructor_name.trim();
+        existing.target_participants = Math.max(0, Number(payload.target_participants));
+        existing.actual_attendance = Math.max(0, Number(payload.actual_attendance));
+        existing.execution_status = payload.execution_status;
+        existing.documentation_notes = (payload.documentation_notes || '').trim();
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'sharing_session_bmc',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: SharingSessionBmcRecord = {
+      id: `share-bmc-${crypto.randomUUID().slice(0, 8)}`,
+      session_title: payload.session_title.trim(),
+      batch: payload.batch.trim(),
+      schedule_date: payload.schedule_date,
+      location: payload.location.trim(),
+      instructor_name: payload.instructor_name.trim(),
+      target_participants: Math.max(0, Number(payload.target_participants)),
+      actual_attendance: Math.max(0, Number(payload.actual_attendance)),
+      execution_status: payload.execution_status,
+      documentation_notes: (payload.documentation_notes || '').trim(),
+      created_at: now,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'sharing_session_bmc',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteSharingSessionBmcRecord(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.sharingSessionRecords;
+    const idx = list.findIndex((s) => s.id === id);
+    if (idx === -1) throw new Error('Data Sharing Session BMC tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'sharing_session_bmc',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  // 3. Resume Assessment Crew Mechanic PLM 2026 (Categories & 17 Competency GAP Rows)
+  savePlmAssessmentCategory(
+    callerId: string,
+    payload: Omit<PlmAssessmentCategoryItem, 'id' | 'updated_at'> & { id?: string }
+  ): PlmAssessmentCategoryItem {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.plmAssessmentCategories;
+
+    if (payload.id) {
+      const existing = list.find((c) => c.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.category_name = payload.category_name.trim();
+        existing.class_count = Math.max(0, Number(payload.class_count));
+        existing.period_year = payload.period_year || '2026';
+        existing.description = (payload.description || '').trim();
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'plm_assessment_categories',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: PlmAssessmentCategoryItem = {
+      id: `plm-cat-${crypto.randomUUID().slice(0, 8)}`,
+      category_name: payload.category_name.trim(),
+      class_count: Math.max(0, Number(payload.class_count)),
+      period_year: payload.period_year || '2026',
+      description: (payload.description || '').trim(),
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'plm_assessment_categories',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deletePlmAssessmentCategory(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.plmAssessmentCategories;
+    const idx = list.findIndex((c) => c.id === id);
+    if (idx === -1) throw new Error('Kategori assessment tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'plm_assessment_categories',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  savePlmCompetencyGapRow(
+    callerId: string,
+    payload: Omit<PlmCompetencyGapRow, 'id' | 'no' | 'updated_at'> & { id?: string }
+  ): PlmCompetencyGapRow {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.plmCompetencyGapRows;
+
+    if (payload.id) {
+      const existing = list.find((r) => r.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.code = payload.code.trim().toUpperCase();
+        existing.training_name = payload.training_name.trim();
+        existing.gap_all = Math.max(0, Number(payload.gap_all));
+        existing.mechanic_tangofa = Math.max(0, Number(payload.mechanic_tangofa));
+        existing.mechanic_genba = Math.max(0, Number(payload.mechanic_genba));
+        existing.all_gl = Math.max(0, Number(payload.all_gl));
+        existing.fgdp_gldp = Math.max(0, Number(payload.fgdp_gldp));
+        existing.fill_gap = Math.max(0, Number(payload.fill_gap));
+        existing.period_year = payload.period_year || '2026';
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'plm_competency_gap_rows',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: PlmCompetencyGapRow = {
+      id: `gap-row-${crypto.randomUUID().slice(0, 8)}`,
+      no: list.length + 1,
+      code: payload.code.trim().toUpperCase(),
+      training_name: payload.training_name.trim(),
+      gap_all: Math.max(0, Number(payload.gap_all)),
+      mechanic_tangofa: Math.max(0, Number(payload.mechanic_tangofa)),
+      mechanic_genba: Math.max(0, Number(payload.mechanic_genba)),
+      all_gl: Math.max(0, Number(payload.all_gl)),
+      fgdp_gldp: Math.max(0, Number(payload.fgdp_gldp)),
+      fill_gap: Math.max(0, Number(payload.fill_gap)),
+      period_year: payload.period_year || '2026',
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'plm_competency_gap_rows',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deletePlmCompetencyGapRow(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.plmCompetencyGapRows;
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) throw new Error('Baris jenis training GAP tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    list.forEach((r, i) => {
+      r.no = i + 1;
+    });
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'plm_competency_gap_rows',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  // 4. Resume Training Class Crew Mechanic PLM 2026 (Monthly Plan vs Actual & Corrective Actions)
+  savePlmMonthlyTrainingClass(
+    callerId: string,
+    payload: Omit<PlmTrainingClassMonthlyItem, 'id' | 'updated_at'> & {
+      id?: string;
+      finalizePreviousOngoing?: boolean;
+    }
+  ): PlmTrainingClassMonthlyItem {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.plmMonthlyTrainingClasses;
+
+    const targetId =
+      payload.id ||
+      list.find(
+        (m) =>
+          m.month_index === Number(payload.month_index) &&
+          (m.year || '2026') === (payload.year || '2026')
+      )?.id;
+
+    if (payload.finalizePreviousOngoing && payload.period_status === 'ON_GOING') {
+      list.forEach((m) => {
+        if (m.id !== targetId && m.period_status === 'ON_GOING') {
+          m.period_status = 'FINAL';
+          m.updated_at = now;
+          m.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+        }
+      });
+    }
+
+    if (targetId) {
+      const existing = list.find((m) => m.id === targetId);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.month_index = Number(payload.month_index);
+        existing.month_name = payload.month_name.trim();
+        existing.year = payload.year || '2026';
+        existing.plan = Math.max(0, Number(payload.plan));
+        existing.actual = Math.max(0, Number(payload.actual));
+        existing.frequency_plan = Math.max(0, Number(payload.frequency_plan));
+        existing.frequency_actual = Math.max(0, Number(payload.frequency_actual));
+        existing.period_status = payload.period_status;
+        existing.notes = (payload.notes || '').trim();
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        list.sort(
+          (a, b) =>
+            Number(a.year || 2026) - Number(b.year || 2026) ||
+            a.month_index - b.month_index
+        );
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'plm_monthly_training_classes',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: PlmTrainingClassMonthlyItem = {
+      id: `plm-month-${crypto.randomUUID().slice(0, 8)}`,
+      month_index: Number(payload.month_index),
+      month_name: payload.month_name.trim(),
+      year: payload.year || '2026',
+      plan: Math.max(0, Number(payload.plan)),
+      actual: Math.max(0, Number(payload.actual)),
+      frequency_plan: Math.max(0, Number(payload.frequency_plan)),
+      frequency_actual: Math.max(0, Number(payload.frequency_actual)),
+      period_status: payload.period_status,
+      notes: (payload.notes || '').trim(),
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    list.sort(
+      (a, b) =>
+        Number(a.year || 2026) - Number(b.year || 2026) ||
+        a.month_index - b.month_index
+    );
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'plm_monthly_training_classes',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deletePlmMonthlyTrainingClass(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.plmMonthlyTrainingClasses;
+    const idx = list.findIndex((m) => m.id === id);
+    if (idx === -1) throw new Error('Data bulanan Training Class tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'plm_monthly_training_classes',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  savePlmCorrectiveAction(
+    callerId: string,
+    payload: Omit<PlmTrainingCorrectiveAction, 'id' | 'no' | 'updated_at'> & { id?: string }
+  ): PlmTrainingCorrectiveAction {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    const list = this.technicalTrainingModule.plmCorrectiveActions;
+
+    if (payload.id) {
+      const existing = list.find((c) => c.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.section_type = payload.section_type;
+        existing.description = payload.description.trim();
+        existing.pic = (payload.pic || '').trim();
+        existing.due_date = (payload.due_date || '').trim();
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'plm_corrective_actions',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const sameTypeCount = list.filter((c) => c.section_type === payload.section_type).length;
+    const created: PlmTrainingCorrectiveAction = {
+      id: `pca-${crypto.randomUUID().slice(0, 8)}`,
+      section_type: payload.section_type,
+      no: sameTypeCount + 1,
+      description: payload.description.trim(),
+      pic: (payload.pic || '').trim(),
+      due_date: (payload.due_date || '').trim(),
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'plm_corrective_actions',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deletePlmCorrectiveAction(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.plmCorrectiveActions;
+    const idx = list.findIndex((c) => c.id === id);
+    if (idx === -1) throw new Error('Item evaluasi/corrective action tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'plm_corrective_actions',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  // 5. Activity Technical Training — OTHER DAILY ACTIVITAS TECHNICAL TRAINER
+  saveDailyTrainerActivity(
+    callerId: string,
+    payload: Omit<TechnicalTrainerDailyActivityItem, 'id' | 'no' | 'updated_at'> & {
+      id?: string;
+    }
+  ): TechnicalTrainerDailyActivityItem {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    if (!Array.isArray(this.technicalTrainingModule.dailyTrainerActivities)) {
+      this.technicalTrainingModule.dailyTrainerActivities = [];
+    }
+    const list = this.technicalTrainingModule.dailyTrainerActivities;
+
+    if (payload.id) {
+      const existing = list.find((a) => a.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.date_label = payload.date_label.trim();
+        existing.attendents = payload.attendents.trim();
+        existing.dept = payload.dept.trim();
+        existing.activities = payload.activities.trim();
+        existing.remarks = payload.remarks.trim();
+        existing.photos = Array.isArray(payload.photos) ? payload.photos : [];
+        existing.week_label = (payload.week_label || 'WEEK 1 NOVEMBER 2026').trim();
+        existing.year = payload.year || '2026';
+        existing.month = payload.month || '11';
+        existing.week_number = Number(payload.week_number || 1);
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'daily_trainer_activities',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: TechnicalTrainerDailyActivityItem = {
+      id: `dta-${crypto.randomUUID().slice(0, 8)}`,
+      no: list.length + 1,
+      date_label: payload.date_label.trim(),
+      attendents: payload.attendents.trim(),
+      dept: payload.dept.trim(),
+      activities: payload.activities.trim(),
+      remarks: payload.remarks.trim(),
+      photos: Array.isArray(payload.photos) ? payload.photos : [],
+      week_label: (payload.week_label || 'WEEK 1 NOVEMBER 2026').trim(),
+      year: payload.year || '2026',
+      month: payload.month || '11',
+      week_number: Number(payload.week_number || 1),
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'daily_trainer_activities',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteDailyTrainerActivity(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.dailyTrainerActivities || [];
+    const idx = list.findIndex((a) => a.id === id);
+    if (idx === -1) throw new Error('Data aktivitas harian tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    list.forEach((item, i) => {
+      item.no = i + 1;
+    });
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'daily_trainer_activities',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  restoreDefaultDailyTrainerPhotos(callerId: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const defaultMap = new Map(
+      INITIAL_TECHNICAL_TRAINING_MODULE_DATA.dailyTrainerActivities.map((d) => [d.id, d])
+    );
+    const current = this.technicalTrainingModule.dailyTrainerActivities || [];
+    const existingIds = new Set(current.map((c) => c.id));
+    // Restore photos on existing default items
+    current.forEach((item, idx) => {
+      const def = defaultMap.get(item.id) || INITIAL_TECHNICAL_TRAINING_MODULE_DATA.dailyTrainerActivities[idx];
+      if (def) {
+        item.photos = [...def.photos];
+      }
+    });
+    // Also re-add any deleted default rows
+    INITIAL_TECHNICAL_TRAINING_MODULE_DATA.dailyTrainerActivities.forEach((def) => {
+      if (!existingIds.has(def.id) && current.length < 6) {
+        current.push(JSON.parse(JSON.stringify(def)));
+      }
+    });
+    current.forEach((item, i) => {
+      item.no = i + 1;
+    });
+    this.persistState();
+    return current;
+  }
+
+  // 6. Plan Training Technical Bulanan (Gantt / Matrix Tanggal 1..30)
+  saveMonthlyPlanBar(
+    callerId: string,
+    payload: Omit<TechnicalTrainingPlanBar, 'id' | 'updated_at'> & { id?: string }
+  ): TechnicalTrainingPlanBar {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    if (!Array.isArray(this.technicalTrainingModule.monthlyPlanBars)) {
+      this.technicalTrainingModule.monthlyPlanBars = [];
+    }
+    const list = this.technicalTrainingModule.monthlyPlanBars;
+
+    if (payload.id) {
+      const existing = list.find((b) => b.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.month_label = (payload.month_label || 'Nov-26').trim();
+        existing.row_key = payload.row_key;
+        existing.start_day = Math.max(1, Math.min(31, Number(payload.start_day)));
+        existing.end_day = Math.max(existing.start_day, Math.min(31, Number(payload.end_day)));
+        existing.title = payload.title.trim();
+        existing.bg_color = payload.bg_color || '#E6DEC8';
+        existing.text_color = payload.text_color || '#18232B';
+        existing.plan_participants = payload.plan_participants;
+        existing.actual_participants = payload.actual_participants;
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'monthly_plan_bars',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const startDay = Math.max(1, Math.min(31, Number(payload.start_day)));
+    const endDay = Math.max(startDay, Math.min(31, Number(payload.end_day)));
+    const created: TechnicalTrainingPlanBar = {
+      id: `mpb-${crypto.randomUUID().slice(0, 8)}`,
+      month_label: (payload.month_label || 'Nov-26').trim(),
+      row_key: payload.row_key,
+      start_day: startDay,
+      end_day: endDay,
+      title: payload.title.trim(),
+      bg_color: payload.bg_color || '#E6DEC8',
+      text_color: payload.text_color || '#18232B',
+      plan_participants: payload.plan_participants,
+      actual_participants: payload.actual_participants,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'monthly_plan_bars',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteMonthlyPlanBar(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.monthlyPlanBars || [];
+    const idx = list.findIndex((b) => b.id === id);
+    if (idx === -1) throw new Error('Item jadwal plan bulanan tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'monthly_plan_bars',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  // 7. Jadwal Sharing Session 17x Siswa BMC Batch VII
+  saveSharingSessionScheduleRow(
+    callerId: string,
+    payload: Omit<SharingSessionBmcScheduleItem, 'id' | 'no' | 'updated_at'> & { id?: string }
+  ): SharingSessionBmcScheduleItem {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    if (!Array.isArray(this.technicalTrainingModule.sharingSessionScheduleRows)) {
+      this.technicalTrainingModule.sharingSessionScheduleRows = [];
+    }
+    const list = this.technicalTrainingModule.sharingSessionScheduleRows;
+
+    if (payload.id) {
+      const existing = list.find((r) => r.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.tanggal = payload.tanggal.trim();
+        existing.hari = payload.hari.trim();
+        existing.waktu = payload.waktu.trim();
+        existing.nama = payload.nama.trim();
+        existing.jabatan = payload.jabatan.trim();
+        existing.instruktur = payload.instruktur.trim();
+        existing.year = payload.year || existing.year || '2026';
+        existing.month = payload.month || existing.month || '11';
+        existing.month_label = payload.month_label || existing.month_label || 'November 2026';
+        existing.week_number = Number(payload.week_number) || existing.week_number || 1;
+        existing.week_label =
+          payload.week_label ||
+          existing.week_label ||
+          `Minggu ${existing.week_number} - ${existing.month_label}`;
+        existing.batch_label = payload.batch_label || existing.batch_label || 'BMC BATCH VII';
+        existing.status = payload.status || existing.status || 'Done';
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'sharing_session_schedule_rows',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const weekNum = Number(payload.week_number) || 1;
+    const monthLabel = payload.month_label || 'November 2026';
+    const created: SharingSessionBmcScheduleItem = {
+      id: `sss-${crypto.randomUUID().slice(0, 8)}`,
+      no: list.length + 1,
+      tanggal: payload.tanggal.trim(),
+      hari: payload.hari.trim(),
+      waktu: payload.waktu.trim(),
+      nama: payload.nama.trim(),
+      jabatan: payload.jabatan.trim(),
+      instruktur: payload.instruktur.trim(),
+      year: payload.year || '2026',
+      month: payload.month || '11',
+      month_label: monthLabel,
+      week_number: weekNum,
+      week_label: payload.week_label || `Minggu ${weekNum} - ${monthLabel}`,
+      batch_label: payload.batch_label || 'BMC BATCH VII',
+      status: payload.status || 'On Going',
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'sharing_session_schedule_rows',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  /**
+   * Auto-repair jika Minggu 2 November 2026 sebelumnya lompat ke 05 NOV 2026 (melewati tgl 2, 3, 4) atau terduplikasi >17 baris
+   */
+  repairSharingSessionScheduleIfNeeded(): boolean {
+    const list = this.technicalTrainingModule.sharingSessionScheduleRows || [];
+    const w2Nov = list.filter(
+      (r) => (r.month_label || 'November 2026') === 'November 2026' && (r.week_number || 1) === 2
+    );
+    if (w2Nov.length === 0) return false;
+
+    const skippedTwoThreeFour = !w2Nov.some((r) => r.tanggal.startsWith('02 NOV'));
+    const hasDuplicates = w2Nov.length > 17;
+
+    if (!skippedTwoThreeFour && !hasDuplicates) return false;
+
+    // Bangun ulang Minggu 2 November 2026 mulai 02 NOV 2026 (02 NOV, 03 NOV, 04 NOV, 05 NOV) untuk 17 siswa
+    const otherRows = list.filter(
+      (r) => !((r.month_label || 'November 2026') === 'November 2026' && (r.week_number || 1) === 2)
+    );
+    const w2Dates = [
+      { tanggal: '02 NOV 2026', hari: 'SENIN' },
+      { tanggal: '03 NOV 2026', hari: 'SELASA' },
+      { tanggal: '04 NOV 2026', hari: 'RABU' },
+      { tanggal: '05 NOV 2026', hari: 'KAMIS' },
+    ];
+    const cleanW2: SharingSessionBmcScheduleItem[] =
+      INITIAL_TECHNICAL_TRAINING_MODULE_DATA.sharingSessionScheduleRows.map((src, idx) => {
+        const dayGroupIdx = idx < 5 ? 0 : idx < 9 ? 1 : idx < 13 ? 2 : 3;
+        const dInfo = w2Dates[dayGroupIdx];
+        return {
+          ...src,
+          id: `sss-w2-${idx + 1}`,
+          no: otherRows.length + idx + 1,
+          tanggal: dInfo.tanggal,
+          hari: dInfo.hari,
+          year: '2026',
+          month: '11',
+          month_label: 'November 2026',
+          week_number: 2,
+          week_label: 'Minggu 2 - November 2026',
+          batch_label: 'BMC BATCH VII',
+          status: 'On Going',
+          updated_at: new Date().toISOString(),
+        };
+      });
+
+    this.technicalTrainingModule.sharingSessionScheduleRows = [...otherRows, ...cleanW2];
+    return true;
+  }
+
+  /**
+   * Parse tanggal format "29 OKT 2026" / "01 NOV 2026" ke objek Date
+   */
+  parseIndoDateLabel(raw: string): Date | null {
+    const MONTH_PARSE: Record<string, number> = {
+      JAN: 0,
+      FEB: 1,
+      MAR: 2,
+      APR: 3,
+      MEI: 4,
+      MAY: 4,
+      JUN: 5,
+      JUL: 6,
+      AGU: 7,
+      AUG: 7,
+      SEP: 8,
+      OKT: 9,
+      OCT: 9,
+      NOV: 10,
+      DES: 11,
+      DEC: 11,
+    };
+    const m = raw.trim().match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+    if (!m) return null;
+    const day = Number(m[1]);
+    const monIdx = MONTH_PARSE[m[2].toUpperCase().slice(0, 3)];
+    const yr = Number(m[3]);
+    if (monIdx === undefined) return null;
+    return new Date(yr, monIdx, day);
+  }
+
+  formatIndoDateLabel(dt: Date): { tanggal: string; hari: string } {
+    const MONTHS_SHORT_ID = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MEI',
+      'JUN',
+      'JUL',
+      'AGU',
+      'SEP',
+      'OKT',
+      'NOV',
+      'DES',
+    ];
+    const DAYS_ID = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+    const dd = String(dt.getDate()).padStart(2, '0');
+    const monStr = MONTHS_SHORT_ID[dt.getMonth()];
+    const yyyy = dt.getFullYear();
+    return {
+      tanggal: `${dd} ${monStr} ${yyyy}`,
+      hari: DAYS_ID[dt.getDay()],
+    };
+  }
+
+  /**
+   * Generate / Duplikasi Jadwal Sharing Session BMC ke Minggu / Bulan Selanjutnya
+   * Otomatis melanjutkan H+1 dari tanggal terakhir periode sebelumnya agar tidak ada tanggal yang terlewat!
+   */
+  generateSharingSessionPeriod(
+    callerId: string,
+    params: {
+      sourceMonthLabel: string;
+      sourceWeekNumber: number;
+      targetYear: string;
+      targetMonth: string;
+      targetMonthLabel: string;
+      targetWeekNumber: number;
+      startDateIso?: string; // e.g., "2026-11-02"
+      daysPattern?: 4 | 7; // 4 hari berurutan (5+4+4+4) atau 7 hari penuh (3+3+3+2+2+2+2)
+      batchLabel?: string;
+    }
+  ): SharingSessionBmcScheduleItem[] {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    if (!Array.isArray(this.technicalTrainingModule.sharingSessionScheduleRows)) {
+      this.technicalTrainingModule.sharingSessionScheduleRows = [];
+    }
+
+    // Gunakan 17 siswa standar dari template
+    const baseStudents = INITIAL_TECHNICAL_TRAINING_MODULE_DATA.sharingSessionScheduleRows;
+
+    // Tentukan Tanggal Mulai (Start Date):
+    // Jika startDateIso dikirim, gunakan itu. Jika tidak, cari tanggal paling akhir dari periode sebelumnya + 1 hari!
+    let startDt: Date | null = null;
+    if (params.startDateIso) {
+      const [y, m, d] = params.startDateIso.split('-').map(Number);
+      if (y && m && d) {
+        startDt = new Date(y, m - 1, d);
+      }
+    }
+
+    if (!startDt) {
+      const allExisting = this.technicalTrainingModule.sharingSessionScheduleRows.filter(
+        (r) =>
+          !(
+            (r.month_label || 'November 2026') === params.targetMonthLabel &&
+            (r.week_number || 1) === params.targetWeekNumber
+          )
+      );
+      let maxTime = 0;
+      allExisting.forEach((r) => {
+        const parsed = this.parseIndoDateLabel(r.tanggal);
+        if (parsed && parsed.getTime() > maxTime) {
+          maxTime = parsed.getTime();
+        }
+      });
+      if (maxTime > 0) {
+        const nextDay = new Date(maxTime);
+        nextDay.setDate(nextDay.getDate() + 1);
+        startDt = nextDay;
+      } else {
+        startDt = new Date(Number(params.targetYear), Number(params.targetMonth) - 1, 2);
+      }
+    }
+
+    const daysPattern = params.daysPattern || 4;
+    const targetWeekLabel = `Minggu ${params.targetWeekNumber} - ${params.targetMonthLabel}`;
+
+    const createdRows: SharingSessionBmcScheduleItem[] = baseStudents.map((src, idx) => {
+      let dayOffset = 0;
+      if (daysPattern === 7) {
+        // Bagi 17 siswa ke 7 hari berurutan (3, 3, 3, 2, 2, 2, 2)
+        if (idx < 3) dayOffset = 0;
+        else if (idx < 6) dayOffset = 1;
+        else if (idx < 9) dayOffset = 2;
+        else if (idx < 11) dayOffset = 3;
+        else if (idx < 13) dayOffset = 4;
+        else if (idx < 15) dayOffset = 5;
+        else dayOffset = 6;
+      } else {
+        // 4 hari berurutan seperti pola asli (5, 4, 4, 4)
+        if (idx < 5) dayOffset = 0;
+        else if (idx < 9) dayOffset = 1;
+        else if (idx < 13) dayOffset = 2;
+        else dayOffset = 3;
+      }
+
+      const rowDate = new Date(
+        startDt!.getFullYear(),
+        startDt!.getMonth(),
+        startDt!.getDate() + dayOffset
+      );
+      const formatted = this.formatIndoDateLabel(rowDate);
+
+      return {
+        id: `sss-${crypto.randomUUID().slice(0, 8)}`,
+        no: idx + 1,
+        tanggal: formatted.tanggal,
+        hari: formatted.hari,
+        waktu: src.waktu,
+        nama: src.nama,
+        jabatan: src.jabatan,
+        instruktur: src.instruktur,
+        year: params.targetYear,
+        month: params.targetMonth,
+        month_label: params.targetMonthLabel,
+        week_number: params.targetWeekNumber,
+        week_label: targetWeekLabel,
+        batch_label: params.batchLabel || src.batch_label || 'BMC BATCH VII',
+        status: 'On Going',
+        updated_at: now,
+        updated_by: actor?.role_name || actor?.full_name || 'Admin',
+      };
+    });
+
+    // Hapus baris lama pada periode (targetMonthLabel, targetWeekNumber) yang sama agar tidak pernah dobel (34x)
+    const remaining = this.technicalTrainingModule.sharingSessionScheduleRows.filter(
+      (r) =>
+        !(
+          (r.month_label || 'November 2026') === params.targetMonthLabel &&
+          (r.week_number || 1) === params.targetWeekNumber
+        )
+    );
+    this.technicalTrainingModule.sharingSessionScheduleRows = [...remaining, ...createdRows].map(
+      (item, i) => ({
+        ...item,
+        no: i + 1,
+      })
+    );
+
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'sharing_session_schedule_rows',
+      targetWeekLabel,
+      'INSERT',
+      null,
+      { count: createdRows.length, targetWeekLabel }
+    );
+    this.persistState();
+    return createdRows;
+  }
+
+  deleteSharingSessionPeriod(callerId: string, monthLabel: string, weekNumber: number) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.sharingSessionScheduleRows || [];
+    const remaining = list.filter(
+      (r) => !((r.month_label || 'November 2026') === monthLabel && (r.week_number || 1) === weekNumber)
+    );
+    this.technicalTrainingModule.sharingSessionScheduleRows = remaining.map((item, i) => ({
+      ...item,
+      no: i + 1,
+    }));
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'sharing_session_schedule_rows',
+      `Minggu ${weekNumber} - ${monthLabel}`,
+      'DELETE',
+      { monthLabel, weekNumber },
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  /**
+   * Duplikasi Plan Training Technical Bulanan ke Bulan Selanjutnya
+   */
+  generateMonthlyPlanForNextMonth(
+    callerId: string,
+    sourceMonthLabel: string,
+    targetMonthLabel: string
+  ): TechnicalTrainingPlanBar[] {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    if (!Array.isArray(this.technicalTrainingModule.monthlyPlanBars)) {
+      this.technicalTrainingModule.monthlyPlanBars = [];
+    }
+    const list = this.technicalTrainingModule.monthlyPlanBars;
+    const existingTarget = list.filter((b) => b.month_label === targetMonthLabel);
+    if (existingTarget.length > 0) return existingTarget;
+
+    const sourceBars = list.filter((b) => b.month_label === sourceMonthLabel);
+    const templateBars =
+      sourceBars.length > 0
+        ? sourceBars
+        : INITIAL_TECHNICAL_TRAINING_MODULE_DATA.monthlyPlanBars;
+
+    const created = templateBars.map((b) => ({
+      ...b,
+      id: `mpb-${crypto.randomUUID().slice(0, 8)}`,
+      month_label: targetMonthLabel,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    }));
+
+    list.push(...created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'monthly_plan_bars',
+      targetMonthLabel,
+      'INSERT',
+      null,
+      { count: created.length, targetMonthLabel }
+    );
+    this.persistState();
+    return created;
+  }
+
+  // ============================================================================
+  // 8. PROGRAM SKILL AUDIT & REFRESH OPERATOR (ADT, EXCAVATOR, DOSER, DRIVER DT)
+  // ============================================================================
+  private adjustSkillAuditSummaryCount(category: SkillAuditCategoryCode, delta: number) {
+    if (!delta) return;
+    const rows = this.technicalTrainingModule.skillAuditSummaryRows || [];
+    const matchRow = rows.find((r) => {
+      const j = r.jabatan.toLowerCase();
+      if (category === 'ADT') return j.includes('adt');
+      if (category === 'EXCAVATOR') return j.includes('excavator') || j.includes('exa');
+      if (category === 'DOSER') return j.includes('buldozer') || j.includes('dozer') || j.includes('doser');
+      if (category === 'DRIVER_DT') return j.includes('driver dt') || j.includes('dt');
+      return false;
+    });
+    if (!matchRow) return;
+    const prevTotal = Math.max(matchRow.total_karyawan, matchRow.close_count + matchRow.open_count);
+    const nextClose = Math.max(0, matchRow.close_count + delta);
+    const nextTotal = Math.max(prevTotal, nextClose);
+    const nextOpen = Math.max(0, nextTotal - nextClose);
+    matchRow.close_count = nextClose;
+    matchRow.open_count = nextOpen;
+    matchRow.total_karyawan = nextTotal;
+    matchRow.percentage = nextTotal > 0 ? Math.round((nextClose / nextTotal) * 100) : 0;
+    matchRow.updated_at = new Date().toISOString();
+  }
+
+  syncSkillAuditSummaryFromActualRecords(callerId: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const records = this.technicalTrainingModule.skillAuditOperatorRecords || [];
+    const rows = this.technicalTrainingModule.skillAuditSummaryRows || [];
+    const counts: Record<SkillAuditCategoryCode, number> = {
+      ADT: records.filter((r) => r.category === 'ADT').length,
+      EXCAVATOR: records.filter((r) => r.category === 'EXCAVATOR').length,
+      DOSER: records.filter((r) => r.category === 'DOSER').length,
+      DRIVER_DT: records.filter((r) => r.category === 'DRIVER_DT').length,
+    };
+
+    rows.forEach((row) => {
+      const j = row.jabatan.toLowerCase();
+      let actualClose: number | null = null;
+      if (j.includes('adt')) actualClose = counts.ADT;
+      else if (j.includes('excavator') || j.includes('exa')) actualClose = counts.EXCAVATOR;
+      else if (j.includes('buldozer') || j.includes('dozer') || j.includes('doser'))
+        actualClose = counts.DOSER;
+      else if (j.includes('driver dt')) actualClose = counts.DRIVER_DT;
+
+      if (actualClose !== null) {
+        const baseTotal = Math.max(row.total_karyawan, actualClose);
+        row.close_count = actualClose;
+        row.total_karyawan = baseTotal;
+        row.open_count = Math.max(0, baseTotal - actualClose);
+        row.percentage = baseTotal > 0 ? Math.round((actualClose / baseTotal) * 100) : 0;
+        row.updated_at = new Date().toISOString();
+      }
+    });
+
+    this.persistState();
+    return rows;
+  }
+
+  saveSkillAuditOperatorRecord(
+    callerId: string,
+    payload: Omit<SkillAuditOperatorRecord, 'id' | 'no' | 'updated_at'> & { id?: string }
+  ): SkillAuditOperatorRecord {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    if (!Array.isArray(this.technicalTrainingModule.skillAuditOperatorRecords)) {
+      this.technicalTrainingModule.skillAuditOperatorRecords = [];
+    }
+    const list = this.technicalTrainingModule.skillAuditOperatorRecords;
+
+    if (payload.id) {
+      const existing = list.find((r) => r.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        const oldCat = existing.category;
+        existing.category = payload.category;
+        existing.tanggal = payload.tanggal.trim();
+        existing.nama = payload.nama.trim();
+        existing.posisi = payload.posisi.trim();
+        existing.jenis_unit = payload.jenis_unit.trim();
+        existing.keterangan = payload.keterangan.trim() || 'INTERNAL';
+        existing.provider = payload.provider.trim() || 'TC';
+        existing.program = payload.program.trim() || 'Refresh';
+        existing.instructor = payload.instructor.trim();
+        existing.period_label = payload.period_label || existing.period_label;
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        if (oldCat !== payload.category) {
+          this.adjustSkillAuditSummaryCount(oldCat, -1);
+          this.adjustSkillAuditSummaryCount(payload.category, 1);
+        }
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'skill_audit_operator_records',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const catCount = list.filter((r) => r.category === payload.category).length;
+    const created: SkillAuditOperatorRecord = {
+      id: `sao-${crypto.randomUUID().slice(0, 8)}`,
+      no: catCount + 1,
+      category: payload.category,
+      tanggal: payload.tanggal.trim(),
+      nama: payload.nama.trim(),
+      posisi: payload.posisi.trim(),
+      jenis_unit: payload.jenis_unit.trim(),
+      keterangan: payload.keterangan.trim() || 'INTERNAL',
+      provider: payload.provider.trim() || 'TC',
+      program: payload.program.trim() || 'Refresh',
+      instructor: payload.instructor.trim(),
+      period_label: payload.period_label || 'October - November 2026',
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.adjustSkillAuditSummaryCount(payload.category, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'skill_audit_operator_records',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteSkillAuditOperatorRecord(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.skillAuditOperatorRecords || [];
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) throw new Error('Data operator tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.adjustSkillAuditSummaryCount(removed.category, -1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'skill_audit_operator_records',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  saveSkillAuditSummaryRow(
+    callerId: string,
+    payload: Omit<SkillAuditHeavyEquipmentSummaryRow, 'id' | 'no' | 'updated_at'> & { id?: string }
+  ): SkillAuditHeavyEquipmentSummaryRow {
+    this.assertCanEditTrainerActivities(callerId);
+    const actor = this.users.find((u) => u.id === callerId);
+    const now = new Date().toISOString();
+    if (!Array.isArray(this.technicalTrainingModule.skillAuditSummaryRows)) {
+      this.technicalTrainingModule.skillAuditSummaryRows = [];
+    }
+    const list = this.technicalTrainingModule.skillAuditSummaryRows;
+    const closeVal = Math.max(0, Number(payload.close_count) || 0);
+    const openVal = Math.max(0, Number(payload.open_count) || 0);
+    const totalVal = closeVal + openVal;
+    const pctVal = totalVal > 0 ? Math.round((closeVal / totalVal) * 100) : 0;
+
+    if (payload.id) {
+      const existing = list.find((r) => r.id === payload.id);
+      if (existing) {
+        const oldSnap = { ...existing };
+        existing.jabatan = payload.jabatan.trim();
+        existing.close_count = closeVal;
+        existing.open_count = openVal;
+        existing.total_karyawan = totalVal;
+        existing.percentage = pctVal;
+        existing.updated_at = now;
+        existing.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+        this.recordTechnicalModuleAudit(
+          callerId,
+          'skill_audit_summary_rows',
+          existing.id,
+          'UPDATE',
+          oldSnap,
+          existing
+        );
+        this.persistState();
+        return existing;
+      }
+    }
+
+    const created: SkillAuditHeavyEquipmentSummaryRow = {
+      id: `sas-${crypto.randomUUID().slice(0, 8)}`,
+      no: list.length + 1,
+      jabatan: payload.jabatan.trim(),
+      close_count: closeVal,
+      open_count: openVal,
+      total_karyawan: totalVal,
+      percentage: pctVal,
+      updated_at: now,
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+    list.push(created);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'skill_audit_summary_rows',
+      created.id,
+      'INSERT',
+      null,
+      created
+    );
+    this.persistState();
+    return created;
+  }
+
+  deleteSkillAuditSummaryRow(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.skillAuditSummaryRows || [];
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) throw new Error('Baris summary tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'skill_audit_summary_rows',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  saveSkillAuditPhotos(callerId: string, categoryKey: string, photos: string[]) {
+    this.assertCanEditTrainerActivities(callerId);
+    if (!this.technicalTrainingModule.skillAuditPhotos) {
+      this.technicalTrainingModule.skillAuditPhotos = { ...INITIAL_SKILL_AUDIT_PHOTOS };
+    }
+    this.technicalTrainingModule.skillAuditPhotos[categoryKey] = photos;
+    this.persistState();
+    return photos;
+  }
+
+  restoreDefaultSkillAuditPhotos(callerId: string, categoryKey?: string) {
+    if (callerId) {
+      this.assertCanEditTrainerActivities(callerId);
+    }
+    if (!this.technicalTrainingModule.skillAuditPhotos) {
+      this.technicalTrainingModule.skillAuditPhotos = JSON.parse(
+        JSON.stringify(INITIAL_SKILL_AUDIT_PHOTOS)
+      );
+    }
+    if (categoryKey && INITIAL_SKILL_AUDIT_PHOTOS[categoryKey]) {
+      const defaults = INITIAL_SKILL_AUDIT_PHOTOS[categoryKey];
+      const existing = this.technicalTrainingModule.skillAuditPhotos[categoryKey] || [];
+      const customExtras = existing.filter((u) => !defaults.includes(u));
+      this.technicalTrainingModule.skillAuditPhotos[categoryKey] = [...defaults, ...customExtras];
+    } else {
+      Object.keys(INITIAL_SKILL_AUDIT_PHOTOS).forEach((k) => {
+        const defaults = INITIAL_SKILL_AUDIT_PHOTOS[k];
+        const existing = this.technicalTrainingModule.skillAuditPhotos[k] || [];
+        const customExtras = existing.filter((u) => !defaults.includes(u));
+        this.technicalTrainingModule.skillAuditPhotos[k] = [...defaults, ...customExtras];
+      });
+    }
+    this.persistState();
+    return this.technicalTrainingModule.skillAuditPhotos;
+  }
+
+  deleteSharingSessionScheduleRow(callerId: string, id: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const list = this.technicalTrainingModule.sharingSessionScheduleRows || [];
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) throw new Error('Baris jadwal Sharing Session tidak ditemukan.');
+    const removed = list[idx];
+    list.splice(idx, 1);
+    list.forEach((item, i) => {
+      item.no = i + 1;
+    });
+    this.recordTechnicalModuleAudit(
+      callerId,
+      'sharing_session_schedule_rows',
+      id,
+      'DELETE',
+      removed,
+      null
+    );
+    this.persistState();
+    return true;
+  }
+
+  /**
+   * Real-time calculated summary metrics for Program Technical Training
+   * (Strictly separates different units: Programs, Candidates, Assessment Classes, and Attendance/Plan vs Actual)
+   */
+  getTechnicalTrainingSummaryMetrics() {
+    const mod = this.technicalTrainingModule;
+
+    // 1. Total Program Technical Training (Section A + 17 Modul TNA)
+    const totalPrograms = mod.trainingClassPrograms.length;
+    const totalTnaModules = mod.plmCompetencyGapRows.length;
+
+    // 2. Interview & Assessment Candidate Mechanic (Section B & C — Unit: Kandidat)
+    const totalCandidateMasuk = mod.candidatePositionRecap.reduce(
+      (s, r) => s + r.total_masuk,
+      0
+    );
+    const totalCandidateSudahItv = mod.candidatePositionRecap.reduce(
+      (s, r) => s + r.sudah_itv,
+      0
+    );
+    const totalCandidateRecommended = mod.candidatePositionRecap.reduce(
+      (s, r) => s + r.recommended_m3_up,
+      0
+    );
+    const totalCandidateTangofa = mod.candidatePositionRecap.reduce(
+      (s, r) => s + r.site_tangofa,
+      0
+    );
+    const totalCandidateTpm = mod.candidatePositionRecap.reduce(
+      (s, r) => s + r.site_tpm,
+      0
+    );
+    const totalIndividualAssessments = mod.candidateAssessments.length;
+
+    // 3. Monitoring OJT BMC & Sharing Session BMC Batch VII (Section D & E — Unit: Siswa)
+    const totalOjtStudents = mod.ojtBmcRecords.reduce((s, r) => s + r.student_count, 0);
+    const ojtTangofaStudents = mod.ojtBmcRecords
+      .filter((r) => r.location.toLowerCase().includes('tangofa'))
+      .reduce((s, r) => s + r.student_count, 0);
+    const ojtTpmStudents = mod.ojtBmcRecords
+      .filter((r) => r.location.toLowerCase().includes('tpm'))
+      .reduce((s, r) => s + r.student_count, 0);
+    const totalSharingSessionTarget = mod.sharingSessionRecords.reduce(
+      (s, r) => s + r.target_participants,
+      0
+    );
+    const totalSharingSessionActual = mod.sharingSessionRecords.reduce(
+      (s, r) => s + r.actual_attendance,
+      0
+    );
+
+    // 4. Resume Assessment Crew Mechanic PLM 2026 (Slide 3 — Unit: Class & GAP)
+    const totalPlmAssessmentClass = mod.plmAssessmentCategories.reduce(
+      (s, c) => s + c.class_count,
+      0
+    );
+    const totalGapAll = mod.plmCompetencyGapRows.reduce((s, r) => s + r.gap_all, 0);
+    const totalMechanicTangofaGap = mod.plmCompetencyGapRows.reduce(
+      (s, r) => s + r.mechanic_tangofa,
+      0
+    );
+    const totalMechanicGenbaGap = mod.plmCompetencyGapRows.reduce(
+      (s, r) => s + r.mechanic_genba,
+      0
+    );
+    const totalAllGlGap = mod.plmCompetencyGapRows.reduce((s, r) => s + r.all_gl, 0);
+    const totalFgdpGldpGap = mod.plmCompetencyGapRows.reduce(
+      (s, r) => s + r.fgdp_gldp,
+      0
+    );
+    const totalFillGap = mod.plmCompetencyGapRows.reduce((s, r) => s + r.fill_gap, 0);
+    const overallFillGapPercent =
+      totalGapAll > 0 ? Math.round((totalFillGap / totalGapAll) * 100) : 0;
+
+    // 5. Resume Training Class Crew Mechanic PLM 2026 (Slide 4 — Unit: Kehadiran Plan vs Actual)
+    const totalClassPlan = mod.plmMonthlyTrainingClasses.reduce((s, m) => s + m.plan, 0);
+    const totalClassActual = mod.plmMonthlyTrainingClasses.reduce(
+      (s, m) => s + m.actual,
+      0
+    );
+    const classSelisih = totalClassActual - totalClassPlan;
+    const classAchievementPercent =
+      totalClassPlan > 0
+        ? Math.round((totalClassActual / totalClassPlan) * 10000) / 100
+        : 0;
+    const totalFrequencyPlan = mod.plmMonthlyTrainingClasses.reduce(
+      (s, m) => s + m.frequency_plan,
+      0
+    );
+    const totalFrequencyActual = mod.plmMonthlyTrainingClasses.reduce(
+      (s, m) => s + m.frequency_actual,
+      0
+    );
+
+    // 6. Program Skill Audit & Refresh Operator (Live Aktual dari Tabel Peserta & Summary)
+    const skillOps = mod.skillAuditOperatorRecords || [];
+    const adtRefreshCount = skillOps.filter((r) => r.category === 'ADT').length;
+    const excRefreshCount = skillOps.filter((r) => r.category === 'EXCAVATOR').length;
+    const doserRefreshCount = skillOps.filter((r) => r.category === 'DOSER').length;
+    const dtRefreshCount = skillOps.filter((r) => r.category === 'DRIVER_DT').length;
+    const totalSkillAuditOperators = skillOps.length;
+    const summaryRows = mod.skillAuditSummaryRows || [];
+    const skillSummaryClose = summaryRows.reduce((s, r) => s + r.close_count, 0);
+    const skillSummaryOpen = summaryRows.reduce((s, r) => s + r.open_count, 0);
+    const skillSummaryTotalKaryawan = summaryRows.reduce((s, r) => s + r.total_karyawan, 0);
+    const skillSummaryPct =
+      skillSummaryTotalKaryawan > 0
+        ? Math.round((skillSummaryClose / skillSummaryTotalKaryawan) * 100)
+        : 0;
+
+    return {
+      totalPrograms,
+      totalTnaModules,
+      totalCandidateMasuk,
+      totalCandidateSudahItv,
+      totalCandidateRecommended,
+      totalCandidateTangofa,
+      totalCandidateTpm,
+      totalIndividualAssessments,
+      totalOjtStudents,
+      ojtTangofaStudents,
+      ojtTpmStudents,
+      totalSharingSessionTarget,
+      totalSharingSessionActual,
+      totalPlmAssessmentClass,
+      totalGapAll,
+      totalMechanicTangofaGap,
+      totalMechanicGenbaGap,
+      totalAllGlGap,
+      totalFgdpGldpGap,
+      totalFillGap,
+      overallFillGapPercent,
+      totalClassPlan,
+      totalClassActual,
+      classSelisih,
+      classAchievementPercent,
+      totalFrequencyPlan,
+      totalFrequencyActual,
+      adtRefreshCount,
+      excRefreshCount,
+      doserRefreshCount,
+      dtRefreshCount,
+      totalSkillAuditOperators,
+      skillSummaryClose,
+      skillSummaryOpen,
+      skillSummaryTotalKaryawan,
+      skillSummaryPct,
+    };
   }
 
   // ============================================================================
@@ -3055,6 +6022,73 @@ class DataStore {
     this.recalculateKpis(2026);
     this.persistState();
     return this.systemSettings;
+  }
+
+  // ============================================================================
+  // RPC: UPDATE RBAC PERMISSION MATRIX (SUPER ADMIN EXCLUSIVE)
+  // ============================================================================
+  updateRolePermission(
+    callerId: string,
+    targetRole: RoleCode,
+    updates: Partial<RolePermissionMatrix>
+  ): Record<RoleCode, RolePermissionMatrix> {
+    const callerRole = this.getUserRole(callerId);
+    const perms = this.getUserPermissions(callerId);
+    if (callerRole !== 'SUPER_ADMIN' && !perms.canManageSystemSettings) {
+      throw new Error(
+        'PERMISSION_DENIED: Hanya Super Admin yang dapat mengatur Matriks Hak Akses (RBAC).'
+      );
+    }
+
+    const prevValue = { ...ROLE_PERMISSIONS[targetRole] };
+    syncRolePermissionsRegistry({
+      [targetRole]: {
+        ...ROLE_PERMISSIONS[targetRole],
+        ...updates,
+      },
+    });
+    this.rolePermissions = JSON.parse(JSON.stringify(ROLE_PERMISSIONS));
+
+    this.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      table_name: 'role_permissions',
+      record_id: targetRole,
+      action: 'UPDATE_RBAC_MATRIX',
+      actor_id: callerId,
+      old_values: prevValue,
+      new_values: this.rolePermissions[targetRole],
+      created_at: new Date().toISOString(),
+    });
+
+    this.persistState();
+    return this.rolePermissions;
+  }
+
+  resetRolePermissionsToDefault(callerId: string): Record<RoleCode, RolePermissionMatrix> {
+    const callerRole = this.getUserRole(callerId);
+    const perms = this.getUserPermissions(callerId);
+    if (callerRole !== 'SUPER_ADMIN' && !perms.canManageSystemSettings) {
+      throw new Error(
+        'PERMISSION_DENIED: Hanya Super Admin yang dapat mereset Matriks Hak Akses (RBAC).'
+      );
+    }
+
+    syncRolePermissionsRegistry(DEFAULT_ROLE_PERMISSIONS);
+    this.rolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
+
+    this.auditLogs.unshift({
+      id: crypto.randomUUID(),
+      table_name: 'role_permissions',
+      record_id: 'ALL_ROLES',
+      action: 'RESET_RBAC_MATRIX',
+      actor_id: callerId,
+      old_values: null,
+      new_values: this.rolePermissions,
+      created_at: new Date().toISOString(),
+    });
+
+    this.persistState();
+    return this.rolePermissions;
   }
 
   // ============================================================================
@@ -3635,9 +6669,8 @@ class DataStore {
       email?: string;
     }
   ): Employee {
-    const callerRole = this.getUserRole(actorId);
     const perms = this.getUserPermissions(actorId);
-    if (!perms.canInputData || perms.employeeData === 'VIEW' || callerRole === 'MANAGER_TC' || callerRole === 'PJO') {
+    if (!perms.canInputData || perms.employeeData === 'VIEW') {
       throw new Error('Forbidden: Role Anda hanya memiliki akses Lihat (View Only) pada Data Karyawan dan tidak dapat menambah data karyawan.');
     }
 
@@ -3716,16 +6749,10 @@ class DataStore {
       project_site?: string;
     }
   ): Employee {
-    const callerRole = this.getUserRole(actorId);
     const perms = this.getUserPermissions(actorId);
-    if (
-      !perms.canEditData ||
-      perms.employeeData === 'VIEW' ||
-      callerRole === 'MANAGER_TC' ||
-      callerRole === 'PJO'
-    ) {
+    if (!perms.canEditData || perms.employeeData === 'VIEW') {
       throw new Error(
-        'PERMISSION_DENIED: Hanya Super Admin, Admin, Admin TC, dan Admin HRGA yang dapat mengedit data karyawan.'
+        'PERMISSION_DENIED: Role Anda tidak memiliki akses Edit pada Data Karyawan.'
       );
     }
 
@@ -3798,9 +6825,9 @@ class DataStore {
   }
 
   deleteEmployee(actorId: string, employeeId: string) {
-    const callerRole = this.getUserRole(actorId);
-    if (callerRole !== 'SUPER_ADMIN') {
-      throw new Error('PERMISSION_DENIED: Hanya Super Admin yang dapat menghapus data karyawan.');
+    const perms = this.getUserPermissions(actorId);
+    if (!perms.canDeleteData) {
+      throw new Error('PERMISSION_DENIED: Role Anda tidak memiliki hak akses Delete Data.');
     }
     const index = this.employees.findIndex((e) => e.id === employeeId);
     if (index === -1) throw new Error('Karyawan tidak ditemukan.');
@@ -3827,9 +6854,9 @@ class DataStore {
   }
 
   deleteAllEmployees(actorId: string) {
-    const callerRole = this.getUserRole(actorId);
-    if (callerRole !== 'SUPER_ADMIN') {
-      throw new Error('PERMISSION_DENIED: Hanya Super Admin yang dapat menghapus seluruh data karyawan.');
+    const perms = this.getUserPermissions(actorId);
+    if (!perms.canDeleteData) {
+      throw new Error('PERMISSION_DENIED: Role Anda tidak memiliki hak akses Delete Data.');
     }
 
     const removedCount = this.employees.length;
@@ -3866,9 +6893,8 @@ class DataStore {
       project_site?: string;
     }>
   ): { added: Employee[]; skipped: string[] } {
-    const callerRole = this.getUserRole(actorId);
     const perms = this.getUserPermissions(actorId);
-    if (!perms.canInputData || perms.employeeData === 'VIEW' || callerRole === 'MANAGER_TC' || callerRole === 'PJO') {
+    if (!perms.canInputData || perms.employeeData === 'VIEW') {
       throw new Error('Forbidden: Role Anda hanya memiliki akses Lihat (View Only) pada Data Karyawan dan tidak dapat mengunggah data karyawan.');
     }
 

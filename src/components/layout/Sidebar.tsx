@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Tags,
   ClipboardList,
+  Truck,
   LogOut,
   X,
 } from 'lucide-react';
@@ -42,6 +43,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const role: RoleCode = currentUser.role_code;
   const perms = getRolePermissions(role);
   const canManageTrainingMaster = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  const canEditTrainerActivities =
+    perms.trainingAchievement === 'EDIT' && perms.canEditData;
   const [achievementSubOpen, setAchievementSubOpen] = useState(true);
   const [trainingSubOpen, setTrainingSubOpen] = useState(true);
 
@@ -109,14 +112,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'User Management',
       icon: <ShieldCheck className="w-4 h-4 shrink-0" />,
       visible: perms.canManageUsers,
-      roles: ['SUPER_ADMIN'] as RoleCode[],
+      roles: allSixRoles,
     },
     {
       id: 'system_settings',
       label: 'System Settings',
       icon: <Settings className="w-4 h-4 shrink-0" />,
       visible: perms.canManageSystemSettings,
-      roles: ['SUPER_ADMIN'] as RoleCode[],
+      roles: allSixRoles,
     },
   ];
 
@@ -197,14 +200,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const isTrainingGroup = item.id === 'applications';
             const isActive =
               currentTab === item.id ||
-              (isAchievementGroup && currentTab === 'trainer_activities') ||
+              (isAchievementGroup &&
+                (currentTab === 'trainer_activities' ||
+                  currentTab === 'activity_technical_training' ||
+                  currentTab === 'skill_audit_refresh_operator')) ||
               (isTrainingGroup && currentTab === 'training_master');
 
             return (
               <div key={item.id} className="space-y-1">
                 <button
                   onClick={() => {
-                    if (isAchievementGroup && !isCollapsed) {
+                    if (isAchievementGroup && canEditTrainerActivities && !isCollapsed) {
                       setAchievementSubOpen((prev) => !prev);
                     }
                     if (isTrainingGroup && canManageTrainingMaster && !isCollapsed) {
@@ -237,7 +243,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
                   </div>
 
-                  {!isCollapsed && isAchievementGroup && (
+                  {!isCollapsed && isAchievementGroup && canEditTrainerActivities && (
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
                         achievementSubOpen ? 'rotate-0' : '-rotate-90'
@@ -254,8 +260,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   )}
                 </button>
 
-                {/* Sub-Sidebar under Training Achievement */}
-                {!isCollapsed && isAchievementGroup && achievementSubOpen && (
+                {/* Sub-Sidebar under Training Achievement (Hanya untuk Role yang berhak Edit Training Achievement, tidak muncul di Admin HRGA & PJO) */}
+                {!isCollapsed &&
+                  isAchievementGroup &&
+                  canEditTrainerActivities &&
+                  achievementSubOpen && (
                   <div className="ml-5 pl-3 border-l border-[#263640] space-y-1 py-0.5">
                     <button
                       type="button"
@@ -280,7 +289,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }`}
                     >
                       <ClipboardList className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Activitas Technical Trainer</span>
+                      <span className="truncate">Program Technical Training</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleNavClick('activity_technical_training')}
+                      className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                        currentTab === 'activity_technical_training'
+                          ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                          : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                      }`}
+                    >
+                      <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Activity Technical Training</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleNavClick('skill_audit_refresh_operator')}
+                      className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                        currentTab === 'skill_audit_refresh_operator'
+                          ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                          : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                      }`}
+                    >
+                      <Truck className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Program Skill Audit & Refresh Operator</span>
                     </button>
                   </div>
                 )}

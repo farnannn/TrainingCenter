@@ -60,13 +60,10 @@ export const EmployeeRoster: React.FC = () => {
 
   const employees = mockStore.getVisibleEmployees(currentUser.id);
   const perms = getRolePermissions(currentUser.role_code);
-  const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN';
+  const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN' || perms.canDeleteData;
   const isDeptUser = false;
   const canModify =
-    (perms.canInputData || perms.canEditData) &&
-    perms.employeeData !== 'VIEW' &&
-    currentUser.role_code !== 'MANAGER_TC' &&
-    currentUser.role_code !== 'PJO';
+    (perms.canInputData || perms.canEditData) && perms.employeeData !== 'VIEW';
 
   const [confirmDeleteEmp, setConfirmDeleteEmp] = useState<Employee | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
