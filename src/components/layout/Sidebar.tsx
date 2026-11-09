@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ChevronDown,
   Tags,
+  ClipboardList,
   LogOut,
   X,
 } from 'lucide-react';
@@ -41,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const role: RoleCode = currentUser.role_code;
   const perms = getRolePermissions(role);
   const canManageTrainingMaster = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  const [achievementSubOpen, setAchievementSubOpen] = useState(true);
   const [trainingSubOpen, setTrainingSubOpen] = useState(true);
 
   const allSixRoles: RoleCode[] = [
@@ -191,15 +193,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           {visibleItems.map((item) => {
+            const isAchievementGroup = item.id === 'achievement';
             const isTrainingGroup = item.id === 'applications';
             const isActive =
               currentTab === item.id ||
+              (isAchievementGroup && currentTab === 'trainer_activities') ||
               (isTrainingGroup && currentTab === 'training_master');
 
             return (
               <div key={item.id} className="space-y-1">
                 <button
                   onClick={() => {
+                    if (isAchievementGroup && !isCollapsed) {
+                      setAchievementSubOpen((prev) => !prev);
+                    }
                     if (isTrainingGroup && canManageTrainingMaster && !isCollapsed) {
                       setTrainingSubOpen((prev) => !prev);
                     }
@@ -230,6 +237,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
                   </div>
 
+                  {!isCollapsed && isAchievementGroup && (
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                        achievementSubOpen ? 'rotate-0' : '-rotate-90'
+                      }`}
+                    />
+                  )}
+
                   {!isCollapsed && isTrainingGroup && canManageTrainingMaster && (
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
@@ -238,6 +253,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                   )}
                 </button>
+
+                {/* Sub-Sidebar under Training Achievement */}
+                {!isCollapsed && isAchievementGroup && achievementSubOpen && (
+                  <div className="ml-5 pl-3 border-l border-[#263640] space-y-1 py-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleNavClick('achievement')}
+                      className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                        currentTab === 'achievement'
+                          ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                          : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                      }`}
+                    >
+                      <Target className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Capaian Training</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleNavClick('trainer_activities')}
+                      className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                        currentTab === 'trainer_activities'
+                          ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                          : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                      }`}
+                    >
+                      <ClipboardList className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Activitas Technical Trainer</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Sub-Sidebar under Data Training (Khusus Admin & Super Admin) */}
                 {!isCollapsed &&

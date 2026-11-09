@@ -37,6 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileMenu, currentTab }) 
         return 'Executive & Operational Dashboard';
       case 'achievement':
         return 'Training Achievement / Capaian Pelaksanaan Training';
+      case 'trainer_activities':
+        return 'Training Achievement • Activitas Technical Trainer';
       case 'applications':
         return 'Manajemen Data Training & Pengajuan';
       case 'training_master':

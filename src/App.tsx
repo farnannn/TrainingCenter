@@ -9,6 +9,7 @@ import { HodDashboard } from './components/dashboard/HodDashboard';
 import { PjoDashboard } from './components/dashboard/PjoDashboard';
 import { DepartmentUserDashboard } from './components/dashboard/DepartmentUserDashboard';
 import { TrainingAchievementView } from './components/achievement/TrainingAchievementView';
+import { TechnicalTrainerActivitiesView } from './components/achievement/TechnicalTrainerActivitiesView';
 import { ApplicationList } from './components/applications/ApplicationList';
 import { TrainingCategoryTypeManager } from './components/applications/TrainingCategoryTypeManager';
 import { TrainingScheduleManager } from './components/schedules/TrainingScheduleManager';
@@ -54,6 +55,8 @@ export const App: React.FC = () => {
         return renderDashboardByRole();
       case 'achievement':
         return <TrainingAchievementView />;
+      case 'trainer_activities':
+        return <TechnicalTrainerActivitiesView />;
       case 'applications':
         return <ApplicationList />;
       case 'training_master':

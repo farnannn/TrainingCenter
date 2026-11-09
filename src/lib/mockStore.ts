@@ -30,6 +30,8 @@ import {
   TrainingCategoryOption,
   TrainingTypeOption,
   SiteOption,
+  TrainerActivityItem,
+  TrainerActivitySection,
   getRolePermissions,
   SystemSettingsConfig,
 } from './types';
@@ -708,6 +710,42 @@ export const INITIAL_SITES: SiteOption[] = [
   },
 ];
 
+export const INITIAL_TRAINER_ACTIVITIES: TrainerActivitySection[] = [
+  {
+    id: 'trainer-sec-1',
+    badge_label: 'TRAINING',
+    title: '1. Activitas Technical Trainer',
+    items: [
+      {
+        id: 'act-item-1',
+        content:
+          'Melakukan Training Class dalam pemenuhan competency pada GAP sesuai data TNA bagi Crew PLM Tangofa & Genba.',
+      },
+      {
+        id: 'act-item-2',
+        content:
+          'Melakukan interview bagi candidate mekanik baik di Tangofa juga di Genba.',
+      },
+      {
+        id: 'act-item-3',
+        content:
+          'Melakukan Assessment bagi candidate mekanik yang di promosikan ke Posisi tertentu.',
+      },
+      {
+        id: 'act-item-4',
+        content:
+          'Memonitor & mengontrol 31x Siswa BMC yang mengikuti OJT di dept PLM. Tangofa & 7x di TPM.',
+      },
+      {
+        id: 'act-item-5',
+        content: 'Melakukan Sharing Session bagi 17x Siswa BMC Batch VII',
+      },
+    ],
+    updated_at: '2026-11-09T07:00:00Z',
+    updated_by: 'Super Admin',
+  },
+];
+
 class DataStore {
   roles: Role[] = [...INITIAL_ROLES];
   departments: Department[] = [...INITIAL_DEPARTMENTS];
@@ -718,6 +756,7 @@ class DataStore {
   trainingCategories: TrainingCategoryOption[] = [...INITIAL_TRAINING_CATEGORIES];
   trainingTypes: TrainingTypeOption[] = [...INITIAL_TRAINING_TYPES];
   sites: SiteOption[] = [...INITIAL_SITES];
+  trainerActivities: TrainerActivitySection[] = [...INITIAL_TRAINER_ACTIVITIES];
   applications: TrainingApplication[] = [];
   participants: TrainingApplicationParticipant[] = [];
   approvalHistory: TrainingApprovalHistory[] = [];
@@ -785,6 +824,7 @@ class DataStore {
       trainingCategories: this.trainingCategories,
       trainingTypes: this.trainingTypes,
       sites: this.sites,
+      trainerActivities: this.trainerActivities,
       applications: this.applications,
       participants: this.participants,
       approvalHistory: this.approvalHistory,
@@ -856,6 +896,9 @@ class DataStore {
     }
     if (Array.isArray(snapshot.sites) && snapshot.sites.length > 0) {
       this.sites = snapshot.sites;
+    }
+    if (Array.isArray(snapshot.trainerActivities) && snapshot.trainerActivities.length > 0) {
+      this.trainerActivities = snapshot.trainerActivities;
     }
     if (Array.isArray(snapshot.applications)) {
       this.applications = snapshot.applications;
@@ -2481,6 +2524,150 @@ class DataStore {
     const idx = this.sites.findIndex((s) => s.id === id);
     if (idx === -1) throw new Error('Site tidak ditemukan.');
     this.sites.splice(idx, 1);
+    this.persistState();
+    return true;
+  }
+
+  // ============================================================================
+  // RPC: MANAGE TECHNICAL TRAINER ACTIVITIES (TRAINING ACHIEVEMENT SUB-SIDEBAR)
+  // ============================================================================
+  private assertCanEditTrainerActivities(callerId: string) {
+    const perms = this.getUserPermissions(callerId);
+    if (!perms.canEditData && !perms.canInputData) {
+      throw new Error(
+        'PERMISSION_DENIED: Role Anda hanya memiliki akses Lihat (View Only) dan tidak dapat mengubah Activitas Technical Trainer.'
+      );
+    }
+  }
+
+  addTrainerActivitySection(
+    callerId: string,
+    payload: { badge_label?: string; title: string; items?: string[] }
+  ): TrainerActivitySection {
+    this.assertCanEditTrainerActivities(callerId);
+    const title = payload.title.trim();
+    if (!title) throw new Error('Judul bagian aktivitas wajib diisi.');
+    const actor = this.users.find((u) => u.id === callerId);
+
+    const sectionItems: TrainerActivityItem[] = (payload.items || [])
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .map((c) => ({
+        id: `act-item-${crypto.randomUUID().slice(0, 8)}`,
+        content: c,
+        updated_at: new Date().toISOString(),
+      }));
+
+    const newSection: TrainerActivitySection = {
+      id: `trainer-sec-${crypto.randomUUID().slice(0, 8)}`,
+      badge_label: (payload.badge_label || 'TRAINING').trim().toUpperCase(),
+      title,
+      items: sectionItems,
+      updated_at: new Date().toISOString(),
+      updated_by: actor?.role_name || actor?.full_name || 'Admin',
+    };
+
+    this.trainerActivities.push(newSection);
+    this.persistState();
+    return newSection;
+  }
+
+  updateTrainerActivitySection(
+    callerId: string,
+    sectionId: string,
+    payload: { badge_label?: string; title: string }
+  ): TrainerActivitySection {
+    this.assertCanEditTrainerActivities(callerId);
+    const sec = this.trainerActivities.find((s) => s.id === sectionId);
+    if (!sec) throw new Error('Bagian aktivitas tidak ditemukan.');
+
+    const title = payload.title.trim();
+    if (!title) throw new Error('Judul bagian aktivitas wajib diisi.');
+    const actor = this.users.find((u) => u.id === callerId);
+
+    if (payload.badge_label !== undefined) {
+      sec.badge_label = payload.badge_label.trim().toUpperCase() || 'TRAINING';
+    }
+    sec.title = title;
+    sec.updated_at = new Date().toISOString();
+    sec.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+
+    this.persistState();
+    return sec;
+  }
+
+  deleteTrainerActivitySection(callerId: string, sectionId: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const idx = this.trainerActivities.findIndex((s) => s.id === sectionId);
+    if (idx === -1) throw new Error('Bagian aktivitas tidak ditemukan.');
+    this.trainerActivities.splice(idx, 1);
+    this.persistState();
+    return true;
+  }
+
+  addTrainerActivityItem(
+    callerId: string,
+    sectionId: string,
+    content: string
+  ): TrainerActivityItem {
+    this.assertCanEditTrainerActivities(callerId);
+    const sec = this.trainerActivities.find((s) => s.id === sectionId);
+    if (!sec) throw new Error('Bagian aktivitas tidak ditemukan.');
+
+    const cleanContent = content.trim();
+    if (!cleanContent) throw new Error('Isi poin aktivitas wajib diisi.');
+    const actor = this.users.find((u) => u.id === callerId);
+
+    const newItem: TrainerActivityItem = {
+      id: `act-item-${crypto.randomUUID().slice(0, 8)}`,
+      content: cleanContent,
+      updated_at: new Date().toISOString(),
+    };
+
+    sec.items.push(newItem);
+    sec.updated_at = new Date().toISOString();
+    sec.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+    this.persistState();
+    return newItem;
+  }
+
+  updateTrainerActivityItem(
+    callerId: string,
+    sectionId: string,
+    itemId: string,
+    content: string
+  ): TrainerActivityItem {
+    this.assertCanEditTrainerActivities(callerId);
+    const sec = this.trainerActivities.find((s) => s.id === sectionId);
+    if (!sec) throw new Error('Bagian aktivitas tidak ditemukan.');
+
+    const item = sec.items.find((i) => i.id === itemId);
+    if (!item) throw new Error('Poin aktivitas tidak ditemukan.');
+
+    const cleanContent = content.trim();
+    if (!cleanContent) throw new Error('Isi poin aktivitas tidak boleh kosong.');
+    const actor = this.users.find((u) => u.id === callerId);
+
+    item.content = cleanContent;
+    item.updated_at = new Date().toISOString();
+    sec.updated_at = new Date().toISOString();
+    sec.updated_by = actor?.role_name || actor?.full_name || 'Admin';
+    this.persistState();
+    return item;
+  }
+
+  deleteTrainerActivityItem(callerId: string, sectionId: string, itemId: string) {
+    this.assertCanEditTrainerActivities(callerId);
+    const sec = this.trainerActivities.find((s) => s.id === sectionId);
+    if (!sec) throw new Error('Bagian aktivitas tidak ditemukan.');
+
+    const idx = sec.items.findIndex((i) => i.id === itemId);
+    if (idx === -1) throw new Error('Poin aktivitas tidak ditemukan.');
+    const actor = this.users.find((u) => u.id === callerId);
+
+    sec.items.splice(idx, 1);
+    sec.updated_at = new Date().toISOString();
+    sec.updated_by = actor?.role_name || actor?.full_name || 'Admin';
     this.persistState();
     return true;
   }

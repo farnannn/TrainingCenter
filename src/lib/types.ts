@@ -142,6 +142,23 @@ export interface SiteOption {
   description?: string;
 }
 
+export interface TrainerActivityItem {
+  id: string;
+  content: string;
+  site?: string;
+  department?: string;
+  updated_at?: string;
+}
+
+export interface TrainerActivitySection {
+  id: string;
+  badge_label: string;
+  title: string;
+  items: TrainerActivityItem[];
+  updated_at: string;
+  updated_by?: string;
+}
+
 export interface Role {
   id: string;
   code: RoleCode;
