@@ -8,6 +8,7 @@ import {
   SiteGenbaRecord,
   OperationProgramStatus,
   TRAINING_SITE_OPTIONS,
+  normalizeSiteName,
   INITIAL_SIMPER_PHOTOS,
   INITIAL_CROSS_PHOTOS,
   INITIAL_SKILL_UP_PHOTOS,
@@ -105,7 +106,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   const assessPageSize = 25;
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  // Modals for Unified Assessment (Tangofa SIMPER + Site Gemba Assessment)
+  // Modals for Unified Assessment (Tangofa SIMPER + Site Genba Assessment)
   const [editingAssessSource, setEditingAssessSource] = useState<{
     source: 'SIMPER' | 'GENBA';
     id: string;
@@ -121,7 +122,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
     ket: 'INTERNAL PT RJS',
     instructor: 'Yusran yusuf',
     status: 'CLOSE' as 'CLOSE' | 'ON PROGRESS',
-    site: 'Site Tangofa',
+    site: 'Tangofa',
   });
   const [showEditYtdModal, setShowEditYtdModal] = useState(false);
   const [ytdInput, setYtdInput] = useState(state.simperCumulativeYtd);
@@ -146,14 +147,14 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
     keteranganStatus: 'SIMPER DONE',
     pic: 'TC',
     catatanTambahan: '',
-    site: 'Site Tangofa',
+    site: 'Tangofa',
   });
 
   // Current Tab Photos (Site-aware for Assessment tab!)
   const currentPhotos = useMemo(() => {
     if (activeTab === 'SIMPER') {
-      if (siteFilter === 'Site Gemba') return state.genbaAssessmentPhotos;
-      if (siteFilter === 'Site Tangofa') return state.simperPhotos;
+      if (siteFilter === 'Genba') return state.genbaAssessmentPhotos;
+      if (siteFilter === 'Tangofa') return state.simperPhotos;
       return [...state.simperPhotos, ...state.genbaAssessmentPhotos];
     }
     if (activeTab === 'CROSS_TRAINING') return state.crossPhotos;
@@ -174,7 +175,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
       const dataUrl = await compressImageFile(file);
       operationTrainerStore.updateState((prev) => {
         if (activeTab === 'SIMPER') {
-          if (siteFilter === 'Site Gemba') {
+          if (siteFilter === 'Genba') {
             return { ...prev, genbaAssessmentPhotos: [...prev.genbaAssessmentPhotos, dataUrl] };
           }
           return { ...prev, simperPhotos: [...prev.simperPhotos, dataUrl] };
@@ -193,7 +194,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   const handleDeletePhoto = (idx: number) => {
     operationTrainerStore.updateState((prev) => {
       if (activeTab === 'SIMPER') {
-        if (siteFilter === 'Site Gemba') {
+        if (siteFilter === 'Genba') {
           return {
             ...prev,
             genbaAssessmentPhotos: prev.genbaAssessmentPhotos.filter((_, i) => i !== idx),
@@ -231,13 +232,13 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
     bump();
   };
 
-  // Unified Assessment Rows (Tangofa SIMPER + Site Gemba 157x Assessment, Orientasi & Refresh)
+  // Unified Assessment Rows (Tangofa SIMPER + Genba 157x Assessment, Orientasi & Refresh)
   const allAssessmentRows = useMemo(() => {
     const tangofaRows = state.simperAssessments.map((r) => ({
       id: r.id,
       source: 'SIMPER' as const,
       tanggal: r.tanggal,
-      site: r.site || 'Site Tangofa',
+      site: normalizeSiteName(r.site, 'Tangofa'),
       actual: Number(r.actual) || 1,
       kandidatNama: r.kandidatNama,
       posisi: 'Kandidat SIMPER',
@@ -253,7 +254,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
       id: r.id,
       source: 'GENBA' as const,
       tanggal: r.tanggal,
-      site: r.site || 'Site Gemba',
+      site: normalizeSiteName(r.site, 'Genba'),
       actual: 1,
       kandidatNama: r.nama,
       posisi: r.posisi,
@@ -299,9 +300,9 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   );
   const gembaAssessCount = state.genbaAssessmentRecords.length;
   const combinedAssessmentTotal =
-    siteFilter === 'Site Gemba'
+    siteFilter === 'Genba'
       ? gembaAssessCount
-      : siteFilter === 'Site Tangofa'
+      : siteFilter === 'Tangofa'
       ? state.simperCumulativeYtd
       : state.simperCumulativeYtd + gembaAssessCount;
 
@@ -312,7 +313,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   const siteFilteredCrossOrSkillUpRows = useMemo(
     () =>
       activeCrossOrSkillUpRows.filter(
-        (r) => siteFilter === 'ALL' || (r.site || 'Site Tangofa') === siteFilter
+        (r) => siteFilter === 'ALL' || normalizeSiteName(r.site, 'Tangofa') === siteFilter
       ),
     [activeCrossOrSkillUpRows, siteFilter]
   );
@@ -329,7 +330,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
         r.jabatanTarget.toLowerCase().includes(q) ||
         r.pengajuanSimperUnit.toLowerCase().includes(q) ||
         r.catatanTambahan.toLowerCase().includes(q) ||
-        (r.site || 'Site Tangofa').toLowerCase().includes(q)
+        (r.site || 'Tangofa').toLowerCase().includes(q)
       );
     });
   }, [siteFilteredCrossOrSkillUpRows, searchQuery, statusFilter]);
@@ -359,17 +360,17 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   // Handlers for Unified Assessment CRUD
   const openAddSimper = () => {
     setEditingAssessSource(null);
-    const defaultSite = siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa';
+    const defaultSite = siteFilter !== 'ALL' ? siteFilter : 'Tangofa';
     setSimperForm({
       tanggal: '5-Nov-26',
       actual: 1,
       kandidatNama: '',
-      posisi: defaultSite === 'Site Gemba' ? 'Candidate' : 'Kandidat SIMPER',
+      posisi: defaultSite === 'Genba' ? 'Candidate' : 'Kandidat SIMPER',
       unit:
-        defaultSite === 'Site Gemba'
+        defaultSite === 'Genba'
           ? 'DT — Assessment candidate driver DT'
           : '1x Tes Praktek pada unit LV',
-      ket: defaultSite === 'Site Gemba' ? 'RJS / Subcont' : 'INTERNAL PT RJS',
+      ket: defaultSite === 'Genba' ? 'RJS / Subcont' : 'INTERNAL PT RJS',
       instructor: 'Yusran yusuf',
       status: 'CLOSE',
       site: defaultSite,
@@ -399,11 +400,11 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
 
   const handleSaveSimper = (e: React.FormEvent) => {
     e.preventDefault();
-    const isGembaTarget =
+    const isGenbaTarget =
       editingAssessSource?.source === 'GENBA' ||
-      (!editingAssessSource && simperForm.site === 'Site Gemba');
+      (!editingAssessSource && simperForm.site === 'Genba');
 
-    if (isGembaTarget) {
+    if (isGenbaTarget) {
       const [unitPart, ...actParts] = simperForm.unit.split('—');
       const cleanUnit = (unitPart || 'DT').trim();
       const cleanAct = actParts.join('—').trim() || simperForm.unit;
@@ -548,7 +549,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
       keteranganStatus: 'ON PROGRESS',
       pic: 'TC',
       catatanTambahan: '',
-      site: siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa',
+      site: siteFilter !== 'ALL' ? siteFilter : 'Tangofa',
     });
     setShowCrossSkillModal(true);
   };
@@ -572,7 +573,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
       keteranganStatus: row.keteranganStatus,
       pic: row.pic,
       catatanTambahan: row.catatanTambahan,
-      site: row.site || 'Site Tangofa',
+      site: row.site || 'Tangofa',
     });
     setShowCrossSkillModal(true);
   };
@@ -661,7 +662,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
       ],
       filteredCrossOrSkillUp.map((r) => [
         r.no,
-        r.site || 'Site Tangofa',
+        r.site || 'Tangofa',
         r.nik,
         r.nama,
         r.dept,
@@ -722,7 +723,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
       ],
       filteredCrossOrSkillUp.map((r) => [
         r.no,
-        r.site || 'Site Tangofa',
+        r.site || 'Tangofa',
         r.nik,
         r.nama,
         r.dept,
@@ -760,7 +761,10 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-300 bg-[#263640] border border-slate-700">
                 <MapPin className="w-3 h-3 text-[#E88932]" />
-                {siteFilter === 'ALL' ? 'Semua Lokasi Site (Tangofa • Gemba • TPM)' : siteFilter} • Periode 2026
+                {siteFilter === 'ALL'
+                  ? 'Semua Lokasi Site (HO • Tangofa • Genba • Sampala • Gorontalo • Belopa • TPM)'
+                  : siteFilter}{' '}
+                • Periode 2026
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
@@ -933,9 +937,9 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#18232B]">
                   {activeTab === 'SIMPER'
-                    ? siteFilter === 'Site Gemba'
-                      ? 'Rekap Assessment Operator & Driver (Site Gemba)'
-                      : siteFilter === 'Site Tangofa'
+                    ? siteFilter === 'Genba'
+                      ? 'Rekap Assessment Operator & Driver (Site Genba)'
+                      : siteFilter === 'Tangofa'
                       ? 'Rekap Assessment SIMPER (Site Tangofa)'
                       : 'Rekap Assessment Operator & Driver per Site'
                     : activeTab === 'CROSS_TRAINING'
@@ -946,7 +950,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
                   Klik baris untuk memfilter tabel peserta di bawah
                 </p>
               </div>
-              {activeTab === 'SIMPER' && siteFilter !== 'Site Gemba' && canEdit && (
+              {activeTab === 'SIMPER' && siteFilter !== 'Genba' && canEdit && (
                 <button
                   type="button"
                   onClick={() => {
@@ -961,12 +965,12 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
             </div>
 
             {activeTab === 'SIMPER' ? (
-              siteFilter === 'Site Gemba' ? (
+              siteFilter === 'Genba' ? (
                 <div className="overflow-hidden rounded-[9px] border border-slate-200">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-[#18232B] text-white text-[10px] font-mono uppercase">
-                        <th className="py-2.5 px-3">Kategori Posisi (Site Gemba)</th>
+                        <th className="py-2.5 px-3">Kategori Posisi (Site Genba)</th>
                         <th className="py-2.5 px-3 text-right">Peserta</th>
                         <th className="py-2.5 px-3 text-right">%</th>
                       </tr>
@@ -1011,7 +1015,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-200 text-xs">
                       <tr
-                        onClick={() => setSiteFilter('Site Tangofa')}
+                        onClick={() => setSiteFilter('Tangofa')}
                         className="hover:bg-slate-50 cursor-pointer transition-colors"
                       >
                         <td className="py-2.5 px-3 font-semibold text-[#18232B]">Site Tangofa</td>
@@ -1021,10 +1025,10 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
                         </td>
                       </tr>
                       <tr
-                        onClick={() => setSiteFilter('Site Gemba')}
+                        onClick={() => setSiteFilter('Genba')}
                         className="hover:bg-slate-50 cursor-pointer transition-colors"
                       >
-                        <td className="py-2.5 px-3 font-semibold text-[#18232B]">Site Gemba</td>
+                        <td className="py-2.5 px-3 font-semibold text-[#18232B]">Site Genba</td>
                         <td className="py-2.5 px-3 text-slate-600">Assessment RJS & Subcont</td>
                         <td className="py-2.5 px-3 text-right font-mono font-bold text-[#18232B]">
                           {gembaAssessCount}
@@ -1174,7 +1178,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
 
           <div className="my-auto flex items-center justify-center">
             {activeTab === 'SIMPER' ? (
-              siteFilter === 'Site Gemba' ? (
+              siteFilter === 'Genba' ? (
                 <DonutChart
                   size={190}
                   centerLabel="SITE GEMBA"
@@ -1212,7 +1216,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
                       color: '#397C69',
                     },
                     {
-                      label: `Site Gemba Assessment (${gembaAssessCount})`,
+                      label: `Site Genba Assessment (${gembaAssessCount})`,
                       value: gembaAssessCount,
                       color: '#E88932',
                     },
@@ -1257,9 +1261,9 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-center text-[11px] text-slate-500">
             {activeTab === 'SIMPER'
-              ? siteFilter === 'Site Gemba'
+              ? siteFilter === 'Genba'
                 ? 'Mencakup Operator & Driver PT. RJS serta Subcont (PT. CAS, IGS, Armada, GKC, GPM)'
-                : `Tangofa W1 Nov: ${simperWeeklySum}x Tes Praktek • Site Gemba: ${gembaAssessCount}x Peserta`
+                : `Tangofa W1 Nov: ${simperWeeklySum}x Tes Praktek • Site Genba: ${gembaAssessCount}x Peserta`
               : `Klik salah satu status di tabel kiri untuk memfilter rincian`}
           </div>
         </div>
@@ -1343,7 +1347,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
             <span>
               Lokasi:{' '}
               {siteFilter === 'ALL'
-                ? 'Site Tangofa & Site Gemba'
+                ? 'Site Tangofa & Site Genba'
                 : siteFilter}
             </span>
             <span className="font-mono text-[#397C69] font-semibold">Verified TC</span>
@@ -1536,7 +1540,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
                     {combinedAssessmentTotal}
                   </td>
                   <td className="py-3 px-4 text-slate-300" colSpan={canEdit ? 6 : 5}>
-                    Site Tangofa YTD: {state.simperCumulativeYtd} Peserta • Site Gemba: {gembaAssessCount} Peserta
+                    Site Tangofa YTD: {state.simperCumulativeYtd} Peserta • Site Genba: {gembaAssessCount} Peserta
                   </td>
                 </tr>
               </tbody>
@@ -1571,7 +1575,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
                     <td className="py-2.5 px-3 font-semibold text-[#18232B]">{row.nama}</td>
                     <td className="py-2.5 px-3">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-100 text-slate-700 whitespace-nowrap">
-                        {row.site || 'Site Tangofa'}
+                        {row.site || 'Tangofa'}
                       </span>
                     </td>
                     <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">{row.dept}</td>
@@ -1864,7 +1868,7 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
             <div>
               <label className={labelCls}>Lokasi Site</label>
               <select
-                value={csForm.site || 'Site Tangofa'}
+                value={csForm.site || 'Tangofa'}
                 onChange={(e) => setCsForm({ ...csForm, site: e.target.value })}
                 className={inputCls}
               >

@@ -5,8 +5,33 @@
 // Sub-Menu 6: Training Site Genba & Daily Operation Trainer (Slides 13, 13A, 13B, 14)
 // ============================================================================
 
-export const TRAINING_SITE_OPTIONS = ['Site Tangofa', 'Site Gemba', 'Site TPM'] as const;
+export const TRAINING_SITE_OPTIONS = [
+  'Head Office',
+  'Tangofa',
+  'Genba',
+  'Sampala',
+  'Gorontalo',
+  'Belopa (Masmindo)',
+  'TPM',
+] as const;
+
 export type TrainingSiteName = (typeof TRAINING_SITE_OPTIONS)[number] | string;
+
+export const normalizeSiteName = (
+  raw?: string | null,
+  fallback: (typeof TRAINING_SITE_OPTIONS)[number] = 'Tangofa'
+): (typeof TRAINING_SITE_OPTIONS)[number] => {
+  if (!raw) return fallback;
+  const s = raw.trim().toLowerCase();
+  if (s.includes('head office') || s.includes('makassar') || s === 'ho') return 'Head Office';
+  if (s.includes('genba') || s.includes('gemba')) return 'Genba';
+  if (s.includes('sampala')) return 'Sampala';
+  if (s.includes('gorontalo')) return 'Gorontalo';
+  if (s.includes('belopa') || s.includes('masmindo')) return 'Belopa (Masmindo)';
+  if (s.includes('tpm')) return 'TPM';
+  if (s.includes('tangofa')) return 'Tangofa';
+  return fallback;
+};
 
 export type OperationProgramStatus =
   | 'CLOSE'
@@ -1867,7 +1892,7 @@ const STORAGE_KEY = 'raja_operation_trainer_w1_nov_v1';
 
 export const createInitialOperationTrainerState = (): OperationTrainerModuleState => ({
   simperCumulativeYtd: 66,
-  simperAssessments: INITIAL_SIMPER_ASSESSMENTS.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
+  simperAssessments: INITIAL_SIMPER_ASSESSMENTS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
   simperPhotos: [...INITIAL_SIMPER_PHOTOS],
 
   crossMatrixSummary: {
@@ -1882,7 +1907,7 @@ export const createInitialOperationTrainerState = (): OperationTrainerModuleStat
     '2x Operator training ke Dozer — On Going',
     '12x Operator Excavator familiarisasi ke Rock Breaker (9x Done, 3x Menunggu Simper)',
   ],
-  crossTrainingRecords: INITIAL_CROSS_TRAINING_RECORDS.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
+  crossTrainingRecords: INITIAL_CROSS_TRAINING_RECORDS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
   crossPhotos: [...INITIAL_CROSS_PHOTOS],
 
   skillUpMatrixSummary: {
@@ -1893,13 +1918,13 @@ export const createInitialOperationTrainerState = (): OperationTrainerModuleStat
     CLOSE: 27,
     CANCEL: 7,
   },
-  skillUpRecords: INITIAL_SKILL_UP_RECORDS.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
+  skillUpRecords: INITIAL_SKILL_UP_RECORDS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
   skillUpPhotos: [...INITIAL_SKILL_UP_PHOTOS],
 
   orientasiCompletedOctCount: 18,
   orientasiCumulativeTotal: 62,
-  orientasiNewHireRecords: INITIAL_ORIENTASI_NEW_HIRE.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
-  selesaiOrientasiLogs: INITIAL_SELESAI_ORIENTASI_LOGS.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
+  orientasiNewHireRecords: INITIAL_ORIENTASI_NEW_HIRE.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
+  selesaiOrientasiLogs: INITIAL_SELESAI_ORIENTASI_LOGS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
   orientasiPhotos: [...INITIAL_ORIENTASI_PHOTOS],
 
   retrainingCumulativeGrounded: 64,
@@ -1908,22 +1933,22 @@ export const createInitialOperationTrainerState = (): OperationTrainerModuleStat
     'Program: Refresh Class Training & Practical pada bulan November 2026',
     'Joint 12x Investigasi Incident (November: 4x, Oktober: 4x — 2x Unit DT, 1x Unit Excavator, 1x FT)',
   ],
-  retrainingRecords: INITIAL_RETRAINING_RECORDS.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
+  retrainingRecords: INITIAL_RETRAINING_RECORDS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
   retrainingPhotos: [...INITIAL_RETRAINING_PHOTOS],
 
-  fgdpRecords: INITIAL_FGDP_RECORDS.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
+  fgdpRecords: INITIAL_FGDP_RECORDS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
   fgdpPhotos: [...INITIAL_FGDP_PHOTOS],
 
   greenOperatorSteps: [...INITIAL_GREEN_OPERATOR_STEPS],
-  greenOperatorRecords: INITIAL_GREEN_OPERATOR_RECORDS.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
+  greenOperatorRecords: INITIAL_GREEN_OPERATOR_RECORDS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
   greenOperatorPhotos: [...INITIAL_GREEN_OPERATOR_PHOTOS],
 
-  genbaClassRecords: INITIAL_GENBA_CLASS_RECORDS.map((r) => ({ ...r, site: r.site || 'Site Gemba' })),
+  genbaClassRecords: INITIAL_GENBA_CLASS_RECORDS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Genba') })),
   genbaClassPhotos: [...INITIAL_GENBA_CLASS_PHOTOS],
-  genbaAssessmentRecords: buildFullGenbaAssessmentRecords().map((r) => ({ ...r, site: r.site || 'Site Gemba' })),
+  genbaAssessmentRecords: buildFullGenbaAssessmentRecords().map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Genba') })),
   genbaAssessmentPhotos: [...INITIAL_GENBA_ASSESSMENT_PHOTOS],
 
-  dailyOperationTrainerLogs: INITIAL_DAILY_OPERATION_LOGS.map((r) => ({ ...r, site: r.site || 'Site Tangofa' })),
+  dailyOperationTrainerLogs: INITIAL_DAILY_OPERATION_LOGS.map((r) => ({ ...r, site: normalizeSiteName(r.site, 'Tangofa') })),
   dailyOperationPhotos: [...INITIAL_DAILY_OPERATION_PHOTOS],
 });
 
@@ -1946,57 +1971,57 @@ class OperationTrainerStore {
         ...parsed,
         simperAssessments: (parsed.simperAssessments || defaults.simperAssessments).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         simperPhotos: parsed.simperPhotos?.length ? parsed.simperPhotos : defaults.simperPhotos,
         crossTrainingRecords: (parsed.crossTrainingRecords || defaults.crossTrainingRecords).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         crossPhotos: parsed.crossPhotos?.length ? parsed.crossPhotos : defaults.crossPhotos,
         skillUpRecords: (parsed.skillUpRecords || defaults.skillUpRecords).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         skillUpPhotos: parsed.skillUpPhotos?.length ? parsed.skillUpPhotos : defaults.skillUpPhotos,
         orientasiNewHireRecords: (parsed.orientasiNewHireRecords || defaults.orientasiNewHireRecords).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         selesaiOrientasiLogs: (parsed.selesaiOrientasiLogs || defaults.selesaiOrientasiLogs).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         orientasiPhotos: parsed.orientasiPhotos?.length ? parsed.orientasiPhotos : defaults.orientasiPhotos,
         retrainingRecords: (parsed.retrainingRecords || defaults.retrainingRecords).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         retrainingPhotos: parsed.retrainingPhotos?.length ? parsed.retrainingPhotos : defaults.retrainingPhotos,
         fgdpRecords: (parsed.fgdpRecords || defaults.fgdpRecords).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         fgdpPhotos: parsed.fgdpPhotos?.length ? parsed.fgdpPhotos : defaults.fgdpPhotos,
         greenOperatorSteps: parsed.greenOperatorSteps || defaults.greenOperatorSteps,
         greenOperatorRecords: (parsed.greenOperatorRecords || defaults.greenOperatorRecords).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         greenOperatorPhotos: parsed.greenOperatorPhotos?.length ? parsed.greenOperatorPhotos : defaults.greenOperatorPhotos,
         genbaClassRecords: (parsed.genbaClassRecords || defaults.genbaClassRecords).map((r) => ({
           ...r,
-          site: r.site || 'Site Gemba',
+          site: normalizeSiteName(r.site, 'Genba'),
         })),
         genbaClassPhotos: parsed.genbaClassPhotos?.length ? parsed.genbaClassPhotos : defaults.genbaClassPhotos,
         genbaAssessmentRecords: (parsed.genbaAssessmentRecords || defaults.genbaAssessmentRecords).map((r) => ({
           ...r,
-          site: r.site || 'Site Gemba',
+          site: normalizeSiteName(r.site, 'Genba'),
         })),
         genbaAssessmentPhotos: parsed.genbaAssessmentPhotos?.length ? parsed.genbaAssessmentPhotos : defaults.genbaAssessmentPhotos,
         dailyOperationTrainerLogs: (parsed.dailyOperationTrainerLogs || defaults.dailyOperationTrainerLogs).map((r) => ({
           ...r,
-          site: r.site || 'Site Tangofa',
+          site: normalizeSiteName(r.site, 'Tangofa'),
         })),
         dailyOperationPhotos: parsed.dailyOperationPhotos?.length ? parsed.dailyOperationPhotos : defaults.dailyOperationPhotos,
       };

@@ -25,7 +25,9 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
   );
   const [trainingObjectives, setTrainingObjectives] = useState('');
   const [trainingProvider, setTrainingProvider] = useState('');
-  const [trainingLocation, setTrainingLocation] = useState('Training Center Site Pit 1');
+  const [trainingLocation, setTrainingLocation] = useState(
+    mockStore.sites[1]?.name || mockStore.sites[0]?.name || 'Tangofa'
+  );
   const [proposedStartDate, setProposedStartDate] = useState('2026-11-25');
   const [proposedEndDate, setProposedEndDate] = useState('2026-11-27');
   const [estimatedBudget, setEstimatedBudget] = useState<number>(5000000);
@@ -197,16 +199,20 @@ export const CreateApplicationModal: React.FC<CreateApplicationModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Training Location *
+                Lokasi Site (7 Site Resmi) *
               </label>
-              <input
-                type="text"
+              <select
                 required
                 value={trainingLocation}
                 onChange={(e) => setTrainingLocation(e.target.value)}
-                placeholder="e.g. TC Main Building Room B"
-                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
+                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
+              >
+                {mockStore.sites.map((s) => (
+                  <option key={s.id} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

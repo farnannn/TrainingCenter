@@ -42,6 +42,7 @@ import {
   createInitialOperationTrainerState,
   TRAINING_SITE_OPTIONS,
   TrainingSiteName,
+  normalizeSiteName,
 } from '../../../lib/operationTrainerSeedData';
 import {
   Modal,
@@ -266,8 +267,10 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
   const combinedRawOperators = useMemo(() => {
     const tangofaMapped = rawOperators.map((r) => ({
       ...r,
-      site: ((r as SkillAuditOperatorRecord & { site?: TrainingSiteName }).site ||
-        'Site Tangofa') as TrainingSiteName,
+      site: normalizeSiteName(
+        (r as SkillAuditOperatorRecord & { site?: TrainingSiteName }).site,
+        'Tangofa'
+      ) as TrainingSiteName,
       _fromGenbaClass: false,
     }));
     const gembaMapped = (opTrainerState.genbaClassRecords || []).map((g, idx) => ({
@@ -277,14 +280,14 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
       tanggal: g.tanggal,
       nama: g.nama,
       posisi: g.posisi,
-      jenis_unit: g.unit === 'MH' ? 'Manhaul (Gemba)' : 'DT (Gemba)',
+      jenis_unit: g.unit === 'MH' ? 'Manhaul (Genba)' : 'DT (Genba)',
       keterangan: g.activitas,
       provider: g.provider || 'TC',
       program: 'Refresh Class',
       instructor: g.instructor || 'Yusran yusuf',
       period_label: 'Juli - Oktober 2026',
       updated_at: '2026-11-04T00:00:00Z',
-      site: (g.site || 'Site Gemba') as TrainingSiteName,
+      site: normalizeSiteName(g.site, 'Genba') as TrainingSiteName,
       _fromGenbaClass: true,
     }));
     return [...tangofaMapped, ...gembaMapped];
@@ -296,10 +299,10 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
     [combinedRawOperators, siteFilter]
   );
 
-  // Auto-switch to DRIVER_DT when selecting Site Gemba if current category has 0 records
+  // Auto-switch to DRIVER_DT when selecting Site Genba if current category has 0 records
   useEffect(() => {
     if (
-      siteFilter === 'Site Gemba' &&
+      siteFilter === 'Genba' &&
       (activeTab === 'ADT' || activeTab === 'EXCAVATOR' || activeTab === 'DOSER')
     ) {
       setActiveTab('DRIVER_DT');
@@ -471,10 +474,10 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
         !r.jenis_unit.toLowerCase().includes('hongyan')
     );
     const rows: { label: string; filterKey: string; value: number; color: string }[] = [];
-    if (domfeng > 0 || siteFilter === 'ALL' || siteFilter === 'Site Tangofa') {
+    if (domfeng > 0 || siteFilter === 'ALL' || siteFilter === 'Tangofa') {
       rows.push({ label: 'Domfeng', filterKey: 'Domfeng', value: domfeng, color: '#E88932' });
     }
-    if (hongyan > 0 || siteFilter === 'ALL' || siteFilter === 'Site Tangofa') {
+    if (hongyan > 0 || siteFilter === 'ALL' || siteFilter === 'Tangofa') {
       rows.push({ label: 'Hongyan', filterKey: 'Hongyan', value: hongyan, color: '#F3C77E' });
     }
     const otherUnits = Array.from(new Set(others.map((o) => o.jenis_unit)));
@@ -489,7 +492,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
     return rows;
   };
 
-  // Upload photo for active category (supports Site Gemba on DRIVER_DT)
+  // Upload photo for active category (supports Site Genba on DRIVER_DT)
   const handleUploadCategoryPhoto = async (
     catKey: string,
     e: React.ChangeEvent<HTMLInputElement>
@@ -498,7 +501,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
     const files = Array.from(e.target.files);
     try {
       const dataUrls = await Promise.all(files.map((f) => compressImageFile(f)));
-      if (catKey === 'DRIVER_DT' && siteFilter === 'Site Gemba') {
+      if (catKey === 'DRIVER_DT' && siteFilter === 'Genba') {
         operationTrainerStore.updateState((prev) => ({
           ...prev,
           genbaClassPhotos: [...dataUrls, ...(prev.genbaClassPhotos || [])],
@@ -517,7 +520,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
   };
 
   const handleRemoveCategoryPhoto = (catKey: string, idx: number) => {
-    if (catKey === 'DRIVER_DT' && siteFilter === 'Site Gemba') {
+    if (catKey === 'DRIVER_DT' && siteFilter === 'Genba') {
       operationTrainerStore.updateState((prev) => ({
         ...prev,
         genbaClassPhotos: (prev.genbaClassPhotos || []).filter((_, i) => i !== idx),
@@ -549,7 +552,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
   };
 
   const handleResetCategoryPhotos = (catKey: string, label: string) => {
-    if (catKey === 'DRIVER_DT' && siteFilter === 'Site Gemba') {
+    if (catKey === 'DRIVER_DT' && siteFilter === 'Genba') {
       const defaults = createInitialOperationTrainerState();
       operationTrainerStore.updateState((prev) => ({
         ...prev,
@@ -1619,7 +1622,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
               const breakdown = getCategoryUnitBreakdown(activeTab, recordsMatchingSearchAndInst);
               const totalCat = breakdown.reduce((s, x) => s + x.value, 0);
               const photos =
-                activeTab === 'DRIVER_DT' && siteFilter === 'Site Gemba'
+                activeTab === 'DRIVER_DT' && siteFilter === 'Genba'
                   ? opTrainerState.genbaClassPhotos || []
                   : activeTab === 'DRIVER_DT' && siteFilter === 'ALL'
                   ? [...(photoMap[activeTab] || []), ...(opTrainerState.genbaClassPhotos || []).slice(0, 4)]
@@ -1640,7 +1643,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                         PT. RODA JAYA SAKTI — {siteFilter === 'ALL' ? 'SEMUA SITE' : siteFilter.toUpperCase()}
                       </div>
                       <h3 className="text-sm sm:text-base font-heading font-bold">
-                        {siteFilter === 'Site Gemba' && activeTab === 'DRIVER_DT'
+                        {siteFilter === 'Genba' && activeTab === 'DRIVER_DT'
                           ? 'Refresh Training Class Driver DT & Manhaul • PERIOD : Juli - Oktober 2026'
                           : `${meta.chartBoxTitle} • PERIOD : ${meta.periodLabel}`}
                       </h3>
@@ -1914,8 +1917,8 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                           Lokasi:{' '}
                           {siteFilter === 'ALL'
                             ? activeTab === 'DRIVER_DT'
-                              ? 'Site Tangofa & Site Gemba'
-                              : 'Site Tangofa'
+                              ? 'Site Tangofa & Site Genba'
+                              : 'Tangofa'
                             : siteFilter}
                         </span>
                         <span className="font-mono text-[#397C69] font-semibold">
@@ -2153,7 +2156,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                   {filteredRecords.map((row, idx) => {
                     const catMeta = CATEGORY_META[row.category];
                     const rowSite =
-                      (row as typeof combinedRawOperators[number]).site || 'Site Tangofa';
+                      (row as typeof combinedRawOperators[number]).site || 'Tangofa';
                     const isGenbaRow = Boolean(
                       (row as typeof combinedRawOperators[number])._fromGenbaClass
                     );
@@ -2299,7 +2302,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                       g.id === editOp.id
                         ? {
                             ...g,
-                            site: editOp.site || 'Site Gemba',
+                            site: editOp.site || 'Genba',
                             tanggal: editOp.tanggal,
                             nama: editOp.nama,
                             posisi: editOp.posisi,
@@ -2333,7 +2336,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
               <label className={labelCls}>Lokasi Site *</label>
               <select
                 className={inputCls}
-                value={editOp.site || (siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa')}
+                value={editOp.site || (siteFilter !== 'ALL' ? siteFilter : 'Tangofa')}
                 onChange={(e) =>
                   setEditOp({ ...editOp, site: e.target.value as TrainingSiteName })
                 }
@@ -2617,14 +2620,14 @@ export const SkillAuditRefreshOperatorView: React.FC = () => {
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-300 bg-[#263640] border border-slate-700">
                 <MapPin className="w-3 h-3 text-[#E88932]" />
-                Semua Site (Tangofa • Gemba • TPM) • Tahun 2026
+                Semua Site (HO • Tangofa • Genba • Sampala • Gorontalo • Belopa • TPM) • Tahun 2026
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
               Program Skill Audit & Refresh Operator / Driver
             </h1>
             <p className="text-xs text-slate-300 mt-1 max-w-3xl">
-              Monitoring & rekapitulasi aktual Refresh Operator ADT, Operator Excavator (Exa), Operator Doser, Driver DT Hauling & Refresh Class Site Gemba, serta Summary Refresh Heavy Equipment.
+              Monitoring & rekapitulasi aktual Refresh Operator ADT, Operator Excavator (Exa), Operator Doser, Driver DT Hauling & Refresh Class Site Genba, serta Summary Refresh Heavy Equipment.
             </p>
           </div>
 

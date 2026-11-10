@@ -5,7 +5,10 @@ import {
   TrainingPerformanceItem,
   CompanyScopeFilter,
 } from '../../lib/mockStore';
-import { operationTrainerStore } from '../../lib/operationTrainerSeedData';
+import {
+  operationTrainerStore,
+  TRAINING_SITE_OPTIONS,
+} from '../../lib/operationTrainerSeedData';
 import {
   getRolePermissions,
   ApplicationStatus,
@@ -488,7 +491,7 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
             })}
           </div>
 
-          {/* Filter Lokasi Site */}
+          {/* Filter Lokasi Site (7 Site Resmi PT. RAJA) */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-mono font-semibold text-[#5A6B75] mr-1 flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-[#E88932]" />
@@ -496,9 +499,7 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
             </span>
             {[
               { code: 'ALL', label: 'Semua Site' },
-              { code: 'Site Tangofa', label: 'Site Tangofa' },
-              { code: 'Site Gemba', label: 'Site Gemba' },
-              { code: 'Site TPM', label: 'Site TPM' },
+              ...TRAINING_SITE_OPTIONS.map((s) => ({ code: s, label: s })),
             ].map((st) => {
               const active = siteFilter === st.code;
               return (
@@ -843,7 +844,7 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
                 },
                 {
                   title: 'Sub-Menu 4: Assessment, Cross & Skill Up',
-                  dept: 'MOD & PLM • SIMPER, Cross, Skill Up & Gemba',
+                  dept: 'MOD & PLM • SIMPER, Cross, Skill Up & Genba',
                   tab: 'assessment_cross_skillup',
                   metric1Label: 'Program',
                   metric1Val: `${assessCrossItems.filter((i) => i.statusCategory === 'COMPLETED').length}/${assessCrossItems.length}`,

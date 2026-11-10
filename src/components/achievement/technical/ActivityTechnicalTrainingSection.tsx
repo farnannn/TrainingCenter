@@ -6,6 +6,7 @@ import {
   DailyOperationTrainerLog,
   TRAINING_SITE_OPTIONS,
   TrainingSiteName,
+  normalizeSiteName,
 } from '../../../lib/operationTrainerSeedData';
 import {
   TechnicalTrainerDailyActivityItem,
@@ -86,7 +87,7 @@ interface UnifiedDailyRow {
 
 const emptyForm = {
   stream: 'TECHNICAL' as TrainerStream,
-  site: 'Site Tangofa' as TrainingSiteName,
+  site: 'Tangofa' as TrainingSiteName,
   date_label: '',
   attendents: '',
   participantCount: 1,
@@ -167,8 +168,10 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
     const fromTech: UnifiedDailyRow[] = techList.map((item) => ({
       id: item.id,
       stream: 'TECHNICAL',
-      site: ((item as TechnicalTrainerDailyActivityItem & { site?: TrainingSiteName }).site ||
-        'Site Tangofa') as TrainingSiteName,
+      site: normalizeSiteName(
+        (item as TechnicalTrainerDailyActivityItem & { site?: TrainingSiteName }).site,
+        'Tangofa'
+      ),
       date_label: item.date_label,
       attendents: item.attendents,
       participantCount: 1,
@@ -185,7 +188,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
     const fromOp: UnifiedDailyRow[] = opList.map((row) => ({
       id: row.id,
       stream: 'OPERATION',
-      site: (row.site || 'Site Tangofa') as TrainingSiteName,
+      site: normalizeSiteName(row.site, 'Tangofa'),
       date_label: row.date,
       attendents: row.attendents,
       participantCount: row.participantCount || 1,
@@ -567,7 +570,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                       ...emptyForm,
                       stream: streamFilter === 'OPERATION' ? 'OPERATION' : 'TECHNICAL',
                       dept: streamFilter === 'OPERATION' ? 'MOD' : 'PLM',
-                      site: siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa',
+                      site: siteFilter !== 'ALL' ? siteFilter : 'Tangofa',
                       week_label: weekFilter === 'ALL' ? 'WEEK 1 NOVEMBER 2026' : weekFilter,
                     })
                   }
@@ -806,7 +809,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                   ...emptyForm,
                   stream: streamFilter === 'OPERATION' ? 'OPERATION' : 'TECHNICAL',
                   dept: streamFilter === 'OPERATION' ? 'MOD' : 'PLM',
-                  site: siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa',
+                  site: siteFilter !== 'ALL' ? siteFilter : 'Tangofa',
                   week_label: weekFilter === 'ALL' ? 'WEEK 1 NOVEMBER 2026' : weekFilter,
                 })
               }

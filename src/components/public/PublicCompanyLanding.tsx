@@ -56,7 +56,7 @@ export const PublicCompanyLanding: React.FC = () => {
       category: 'Mine Operation (MOD)',
       hours: '40 Jam',
       target: 'Operator ADT, Excavator, Bulldozer & Driver DT',
-      desc: 'Evaluasi berkala pasca skill audit dan penyegaran prosedur darurat operasional unit tambang di Site Tangofa & Site Gemba.',
+      desc: 'Evaluasi berkala pasca skill audit dan penyegaran prosedur darurat operasional unit tambang di Site Tangofa & Site Genba.',
     },
     {
       code: 'TR-SIM-04',
@@ -90,7 +90,7 @@ export const PublicCompanyLanding: React.FC = () => {
     { step: '03', title: 'HOD REVIEW', role: 'HOD TC', desc: 'Verifikasi kurikulum, anggaran, dan kelaikan instruktur oleh HOD Training Center.' },
     { step: '04', title: 'PENDING PJO', role: 'PJO', desc: 'Otorisasi akhir keselamatan operasional oleh Penanggung Jawab Operasional.' },
     { step: '05', title: 'APPROVED', role: 'Authorized', desc: 'Persetujuan resmi penuh tercapai dan siap dijadwalkan di lokasi site.' },
-    { step: '06', title: 'SCHEDULED', role: 'Training Center', desc: 'Penetapan jadwal kelas, sirkuit praktik (Tangofa / Gemba / TPM), dan instruktur.' },
+    { step: '06', title: 'SCHEDULED', role: 'Training Center', desc: 'Penetapan jadwal kelas, lokasi site (HO, Tangofa, Genba, Sampala, Gorontalo, Belopa, TPM), dan instruktur.' },
     { step: '07', title: 'IN PROGRESS', role: 'Trainer / Assessor', desc: 'Pelaksanaan kelas teori, praktik lapangan, skill audit, dan monitoring HM.' },
     { step: '08', title: 'COMPLETED', role: 'Evaluator', desc: 'Penerbitan sertifikasi/SIMPER, evaluasi hasil, dan rekalkulasi otomatis Capaian KPI.' },
   ];
@@ -113,7 +113,7 @@ export const PublicCompanyLanding: React.FC = () => {
           <div className="flex items-center gap-4 text-slate-300">
             <span className="flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-[#E88932]" />
-              <span>Site Tangofa • Gemba • TPM (Morowali) & HO Makassar</span>
+              <span>Head Office • Tangofa • Genba • Sampala • Gorontalo • Belopa (Masmindo) • TPM</span>
             </span>
             <span className="text-slate-600 hidden sm:inline">|</span>
             <a
@@ -209,7 +209,7 @@ export const PublicCompanyLanding: React.FC = () => {
               </h1>
 
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Portal resmi <strong className="text-white">PT. Roda Jaya Sakti</strong> untuk perencanaan kompetensi 7 divisi, monitoring aktual <strong className="text-white">Technical & Operation Trainer</strong> lintas site (Tangofa, Gemba, TPM), evaluasi HOD Training Center, serta otorisasi akhir PJO sesuai standar keselamatan ESDM & BNSP.
+                Portal resmi <strong className="text-white">PT. Roda Jaya Sakti</strong> untuk perencanaan kompetensi 7 divisi, monitoring aktual <strong className="text-white">Technical & Operation Trainer</strong> di 7 lokasi (<strong className="text-white">Head Office, Tangofa, Genba, Sampala, Gorontalo, Belopa [Masmindo], TPM</strong>), evaluasi HOD Training Center, serta otorisasi akhir PJO sesuai standar ESDM & BNSP.
               </p>
 
               {/* Compliance & Site Pills */}
@@ -283,7 +283,7 @@ export const PublicCompanyLanding: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#E88932] shrink-0">
                     <MapPin className="w-3.5 h-3.5" />
-                    <span>Site Tangofa • Gemba • TPM</span>
+                    <span>7 Lokasi: HO • Tangofa • Genba • Sampala • Gorontalo • Belopa • TPM</span>
                   </div>
                 </div>
               </div>
@@ -332,8 +332,8 @@ export const PublicCompanyLanding: React.FC = () => {
           />
           <KpiCard
             title="Cakupan Site & Divisi"
-            value="3 Site • 7 Divisi"
-            comparison="Tangofa, Gemba & TPM"
+            value="7 Site • 7 Divisi"
+            comparison="HO, Tangofa, Genba, Sampala, Gorontalo, Belopa, TPM"
             trend="neutral"
             subtitle="HRGA-IT, MED, MOD, PLM, CIVIL, TC, HSE"
             icon={<Building2 className="w-4 h-4" />}
@@ -507,9 +507,9 @@ export const PublicCompanyLanding: React.FC = () => {
                 <div className="flex items-start gap-2">
                   <MapPin className="w-4 h-4 text-[#E88932] shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-medium text-slate-200">Operational & Training Sites:</span>
+                    <span className="font-medium text-slate-200">Operational & Project Sites:</span>
                     <p className="text-slate-400 text-[11px]">
-                      Site Tangofa, Site Gemba & Site TPM — Kabupaten Morowali, Sulawesi Tengah
+                      Tangofa • Genba • Sampala • Gorontalo • Belopa (Masmindo) • TPM
                     </p>
                   </div>
                 </div>

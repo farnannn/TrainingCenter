@@ -61,7 +61,7 @@ import {
   INITIAL_SKILL_AUDIT_SUMMARY_ROWS,
   INITIAL_SKILL_AUDIT_PHOTOS,
 } from './skillAuditSeedData';
-import { operationTrainerStore } from './operationTrainerSeedData';
+import { operationTrainerStore, normalizeSiteName } from './operationTrainerSeedData';
 import {
   fetchCloudDatabaseState,
   saveCloudDatabaseState,
@@ -706,45 +706,45 @@ export const INITIAL_TRAINING_TYPES: TrainingTypeOption[] = [
 export const INITIAL_SITES: SiteOption[] = [
   {
     id: 'site-1',
-    code: 'TANGOFA',
-    name: 'Site Tangofa',
-    description: 'Area operasional pertambangan Site Tangofa',
+    code: 'HEAD_OFFICE',
+    name: 'Head Office',
+    description: 'Kantor Pusat PT. Roda Jaya Sakti (Head Office Makassar)',
   },
   {
     id: 'site-2',
-    code: 'TPM',
-    name: 'Site TPM',
-    description: 'Area operasional pertambangan Site TPM',
+    code: 'TANGOFA',
+    name: 'Tangofa',
+    description: 'Area operasional pertambangan Site Tangofa',
   },
   {
     id: 'site-3',
-    code: 'GORONTALO',
-    name: 'Site Gorontalo',
-    description: 'Area operasional pertambangan Site Gorontalo',
+    code: 'GENBA',
+    name: 'Genba',
+    description: 'Area operasional pertambangan Site Genba',
   },
   {
     id: 'site-4',
     code: 'SAMPALA',
-    name: 'Site Sampala',
+    name: 'Sampala',
     description: 'Area operasional pertambangan Site Sampala',
   },
   {
     id: 'site-5',
-    code: 'HO_MAKASSAR',
-    name: 'Site Head Office (Makassar)',
-    description: 'Kantor Pusat PT. Roda Jaya Sakti — Makassar',
+    code: 'GORONTALO',
+    name: 'Gorontalo',
+    description: 'Area operasional pertambangan Site Gorontalo',
   },
   {
     id: 'site-6',
-    code: 'BELOPA',
-    name: 'Site Belopa',
-    description: 'Area operasional pertambangan Site Belopa',
+    code: 'BELOPA_MASMINDO',
+    name: 'Belopa (Masmindo)',
+    description: 'Area operasional pertambangan Site Belopa (Masmindo)',
   },
   {
     id: 'site-7',
-    code: 'GENBA',
-    name: 'Site Genba',
-    description: 'Area operasional lapangan Site Genba',
+    code: 'TPM',
+    name: 'TPM',
+    description: 'Area operasional pertambangan Site TPM',
   },
 ];
 
@@ -1841,7 +1841,28 @@ class DataStore {
       this.trainingTypes = snapshot.trainingTypes;
     }
     if (Array.isArray(snapshot.sites) && snapshot.sites.length > 0) {
-      this.sites = snapshot.sites;
+      // Sinkronkan penamaan 7 site resmi (Head Office, Tangofa, Genba, Sampala, Gorontalo, Belopa (Masmindo), TPM)
+      const mappedSites: SiteOption[] = snapshot.sites.map((s: SiteOption) => {
+        const lower = (s.name || '').toLowerCase();
+        const isKnownOfficial =
+          lower.includes('head office') ||
+          lower.includes('makassar') ||
+          lower.includes('tangofa') ||
+          lower.includes('genba') ||
+          lower.includes('gemba') ||
+          lower.includes('sampala') ||
+          lower.includes('gorontalo') ||
+          lower.includes('belopa') ||
+          lower.includes('masmindo') ||
+          lower.includes('tpm');
+        return isKnownOfficial
+          ? { ...s, name: normalizeSiteName(s.name, 'Tangofa') }
+          : s;
+      });
+      // Pastikan urutan 7 site resmi di awal diikuti custom site (bila ada)
+      const officialByName = new Map(INITIAL_SITES.map((o) => [o.name, o]));
+      const customSites = mappedSites.filter((s) => !officialByName.has(s.name));
+      this.sites = [...INITIAL_SITES, ...customSites];
     }
     if (Array.isArray(snapshot.trainerActivities) && snapshot.trainerActivities.length > 0) {
       this.trainerActivities = snapshot.trainerActivities.map(
@@ -2990,7 +3011,7 @@ class DataStore {
         sourceLabel: 'Program Technical Training',
         sourceTab: 'trainer_activities',
         companyScope: 'INTERNAL_RJS',
-        site: 'Site Tangofa',
+        site: 'Tangofa',
         cohortKey: 'PLM_MECHANIC_TANGOFA',
       });
     });
@@ -3024,7 +3045,7 @@ class DataStore {
         sourceLabel: 'Program Technical Training',
         sourceTab: 'trainer_activities',
         companyScope: 'INTERNAL_RJS',
-        site: isTpm ? 'Site TPM' : 'Site Tangofa',
+        site: isTpm ? 'TPM' : 'Tangofa',
         cohortKey: isTpm ? 'PLM_MECHANIC_TPM' : 'PLM_MECHANIC_TANGOFA',
       });
     });
@@ -3140,7 +3161,7 @@ class DataStore {
           sourceLabel: 'Skill Audit & Refresh Operator',
           sourceTab: 'skill_audit_refresh_operator',
           companyScope: 'INTERNAL_RJS',
-          site: 'Site Tangofa',
+          site: 'Tangofa',
         });
       }
     });
@@ -3186,7 +3207,7 @@ class DataStore {
         sourceLabel: 'Skill Audit & Refresh Operator',
         sourceTab: 'skill_audit_refresh_operator',
         companyScope: 'INTERNAL_RJS',
-        site: 'Site Tangofa',
+        site: 'Tangofa',
       });
     });
 
@@ -3218,7 +3239,7 @@ class DataStore {
       sourceLabel: 'Assessment, Cross & Skill Up Operator',
       sourceTab: 'assessment_cross_skillup',
       companyScope: 'INTERNAL_RJS',
-      site: 'Site Tangofa',
+      site: 'Tangofa',
       cohortKey: 'MOD_NEWHIRE_SIMPER_COHORT',
     });
 
@@ -3255,7 +3276,7 @@ class DataStore {
       sourceLabel: 'Assessment, Cross & Skill Up Operator',
       sourceTab: 'assessment_cross_skillup',
       companyScope: 'INTERNAL_RJS',
-      site: 'Site Tangofa',
+      site: 'Tangofa',
     });
 
     const skillUpRecs = opState.skillUpRecords || [];
@@ -3294,7 +3315,7 @@ class DataStore {
       sourceLabel: 'Assessment, Cross & Skill Up Operator',
       sourceTab: 'assessment_cross_skillup',
       companyScope: 'INTERNAL_RJS',
-      site: 'Site Tangofa',
+      site: 'Tangofa',
     });
 
     // 7. Sub-Menu 5: Orientasi, Re-Training, FGDP & Green Operator
@@ -3323,7 +3344,7 @@ class DataStore {
       sourceLabel: 'Orientasi, Re-Training, FGDP & Green Operator',
       sourceTab: 'orientasi_retraining_green',
       companyScope: 'INTERNAL_RJS',
-      site: 'Site Tangofa',
+      site: 'Tangofa',
       cohortKey: 'MOD_NEWHIRE_SIMPER_COHORT',
     });
 
@@ -3359,7 +3380,7 @@ class DataStore {
       sourceLabel: 'Orientasi, Re-Training, FGDP & Green Operator',
       sourceTab: 'orientasi_retraining_green',
       companyScope: 'INTERNAL_RJS',
-      site: 'Site Tangofa',
+      site: 'Tangofa',
     });
 
     const fgdpCount = (opState.fgdpRecords || []).length;
@@ -3385,7 +3406,7 @@ class DataStore {
         sourceLabel: 'Orientasi, Re-Training, FGDP & Green Operator',
         sourceTab: 'orientasi_retraining_green',
         companyScope: 'INTERNAL_RJS',
-        site: 'Site Tangofa',
+        site: 'Tangofa',
       });
     }
 
@@ -3412,7 +3433,7 @@ class DataStore {
         sourceLabel: 'Orientasi, Re-Training, FGDP & Green Operator',
         sourceTab: 'orientasi_retraining_green',
         companyScope: 'INTERNAL_RJS',
-        site: 'Site Tangofa',
+        site: 'Tangofa',
       });
     }
 
@@ -3437,7 +3458,7 @@ class DataStore {
       rawSubItems.push({
         id: 'sub-op-genba-class-rjs-2026',
         applicationNumber: 'GENBA-CLS-RJS-01',
-        trainingTitle: `Refresh Training Class Driver & Operator Internal PT. RJS di Site Gemba (${genbaClassRjs.length}x Peserta)`,
+        trainingTitle: `Refresh Training Class Driver & Operator Internal PT. RJS di Site Genba (${genbaClassRjs.length}x Peserta)`,
         trainingCategory: 'Technical',
         trainingType: 'INTERNAL',
         departmentId: modDept.id,
@@ -3455,7 +3476,7 @@ class DataStore {
         sourceLabel: 'Skill Audit & Refresh Operator',
         sourceTab: 'skill_audit_refresh_operator',
         companyScope: 'INTERNAL_RJS',
-        site: 'Site Gemba',
+        site: 'Genba',
       });
     }
 
@@ -3463,7 +3484,7 @@ class DataStore {
       rawSubItems.push({
         id: 'sub-op-genba-class-subcon-2026',
         applicationNumber: 'GENBA-CLS-SUB-01',
-        trainingTitle: `Refresh Training Class Driver & Operator Mitra Subcont di Site Gemba (${genbaClassSubcon.length}x Sesi)`,
+        trainingTitle: `Refresh Training Class Driver & Operator Mitra Subcont di Site Genba (${genbaClassSubcon.length}x Sesi)`,
         trainingCategory: 'Technical',
         trainingType: 'INTERNAL',
         departmentId: modDept.id,
@@ -3481,7 +3502,7 @@ class DataStore {
         sourceLabel: 'Skill Audit & Refresh Operator',
         sourceTab: 'skill_audit_refresh_operator',
         companyScope: 'SUBCONT',
-        site: 'Site Gemba',
+        site: 'Genba',
       });
     }
 
@@ -3489,7 +3510,7 @@ class DataStore {
       rawSubItems.push({
         id: 'sub-op-genba-assess-rjs-2026',
         applicationNumber: 'GENBA-ASS-RJS-02',
-        trainingTitle: `Assessment, Orientasi & Refresh Operator/Driver Internal PT. RJS di Site Gemba (${genbaAssessRjs.length}x Sesi)`,
+        trainingTitle: `Assessment, Orientasi & Refresh Operator/Driver Internal PT. RJS di Site Genba (${genbaAssessRjs.length}x Sesi)`,
         trainingCategory: 'Technical',
         trainingType: 'INTERNAL',
         departmentId: modDept.id,
@@ -3507,7 +3528,7 @@ class DataStore {
         sourceLabel: 'Assessment, Cross & Skill Up',
         sourceTab: 'assessment_cross_skillup',
         companyScope: 'INTERNAL_RJS',
-        site: 'Site Gemba',
+        site: 'Genba',
       });
     }
 
@@ -3515,7 +3536,7 @@ class DataStore {
       rawSubItems.push({
         id: 'sub-op-genba-assess-subcon-2026',
         applicationNumber: 'GENBA-ASS-SUB-02',
-        trainingTitle: `Assessment, Orientasi & Refresh Driver Mitra Subcont (CAS, IGS, Armada, GKC, GPM) di Site Gemba (${genbaAssessSubcon.length}x Sesi)`,
+        trainingTitle: `Assessment, Orientasi & Refresh Driver Mitra Subcont (CAS, IGS, Armada, GKC, GPM) di Site Genba (${genbaAssessSubcon.length}x Sesi)`,
         trainingCategory: 'Technical',
         trainingType: 'INTERNAL',
         departmentId: modDept.id,
@@ -3533,7 +3554,7 @@ class DataStore {
         sourceLabel: 'Assessment, Cross & Skill Up',
         sourceTab: 'assessment_cross_skillup',
         companyScope: 'SUBCONT',
-        site: 'Site Gemba',
+        site: 'Genba',
       });
     }
 
@@ -3644,12 +3665,7 @@ class DataStore {
           ? app.actual_hours || 0
           : 0;
 
-      const locLower = (app.training_location || '').toLowerCase();
-      const inferredSite = locLower.includes('gemba') || locLower.includes('genba')
-        ? 'Site Gemba'
-        : locLower.includes('tpm')
-        ? 'Site TPM'
-        : 'Site Tangofa';
+      const inferredSite = normalizeSiteName(app.training_location, 'Tangofa');
 
       candidateItems.push({
         id: app.id,
@@ -3684,7 +3700,7 @@ class DataStore {
     const items = candidateItems.filter((item) => {
       const [itemYear, itemMonth] = (item.startDate || '2026-11-01').split('-');
       const itemScope = item.companyScope || 'INTERNAL_RJS';
-      const itemSite = item.site || 'Site Tangofa';
+      const itemSite = normalizeSiteName(item.site, 'Tangofa');
 
       if (filters.year && filters.year !== 'ALL' && itemYear !== filters.year) {
         return false;

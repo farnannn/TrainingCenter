@@ -14,6 +14,7 @@ import {
   INITIAL_GREEN_OPERATOR_PHOTOS,
   TRAINING_SITE_OPTIONS,
   TrainingSiteName,
+  normalizeSiteName,
 } from '../../../lib/operationTrainerSeedData';
 import { Button } from '../../ui/Button';
 import {
@@ -97,7 +98,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const [showOriModal, setShowOriModal] = useState(false);
   const [editingOri, setEditingOri] = useState<OrientasiNewHireRecord | null>(null);
   const [oriForm, setOriForm] = useState<Omit<OrientasiNewHireRecord, 'id' | 'no'>>({
-    site: 'Site Tangofa',
+    site: 'Tangofa',
     nik: '',
     nama: '',
     jabatan: 'Driver DT 12 R',
@@ -112,7 +113,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const [showRetModal, setShowRetModal] = useState(false);
   const [editingRet, setEditingRet] = useState<RetrainingRecord | null>(null);
   const [retForm, setRetForm] = useState<Omit<RetrainingRecord, 'id' | 'no'>>({
-    site: 'Site Tangofa',
+    site: 'Tangofa',
     bulan: 'NOVEMBER',
     tanggal: '04-Nov-2026',
     namaPeserta: '',
@@ -127,7 +128,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const [showFgdpModal, setShowFgdpModal] = useState(false);
   const [editingFgdp, setEditingFgdp] = useState<FgdpTrainingRecord | null>(null);
   const [fgdpForm, setFgdpForm] = useState<Omit<FgdpTrainingRecord, 'id' | 'no'>>({
-    site: 'Site Tangofa',
+    site: 'Tangofa',
     tanggal: '31 Oct- 05 Nov 2026',
     nama: '',
     departemen: 'MOD',
@@ -140,7 +141,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const [showGreenModal, setShowGreenModal] = useState(false);
   const [editingGreen, setEditingGreen] = useState<GreenOperatorRecord | null>(null);
   const [greenForm, setGreenForm] = useState<Omit<GreenOperatorRecord, 'id' | 'no'>>({
-    site: 'Site Tangofa',
+    site: 'Tangofa',
     nik: '',
     nama: '',
     jabatanAwal: 'Checker',
@@ -213,7 +214,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const filteredOri = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return state.orientasiNewHireRecords.filter((r) => {
-      if (siteFilter !== 'ALL' && (r.site || 'Site Tangofa') !== siteFilter) return false;
+      if (siteFilter !== 'ALL' && normalizeSiteName(r.site, 'Tangofa') !== siteFilter) return false;
       if (subFilter !== 'ALL' && r.status !== subFilter) return false;
       if (!q) return true;
       return (
@@ -228,7 +229,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const filteredRet = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return state.retrainingRecords.filter((r) => {
-      if (siteFilter !== 'ALL' && (r.site || 'Site Tangofa') !== siteFilter) return false;
+      if (siteFilter !== 'ALL' && normalizeSiteName(r.site, 'Tangofa') !== siteFilter) return false;
       if (subFilter !== 'ALL' && r.bulan !== subFilter) return false;
       if (!q) return true;
       return (
@@ -243,7 +244,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const filteredFgdp = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return state.fgdpRecords.filter((r) => {
-      if (siteFilter !== 'ALL' && (r.site || 'Site Tangofa') !== siteFilter) return false;
+      if (siteFilter !== 'ALL' && normalizeSiteName(r.site, 'Tangofa') !== siteFilter) return false;
       if (subFilter !== 'ALL' && r.departemen !== subFilter) return false;
       if (!q) return true;
       return (
@@ -258,7 +259,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const filteredGreen = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return state.greenOperatorRecords.filter((r) => {
-      if (siteFilter !== 'ALL' && (r.site || 'Site Tangofa') !== siteFilter) return false;
+      if (siteFilter !== 'ALL' && normalizeSiteName(r.site, 'Tangofa') !== siteFilter) return false;
       if (subFilter !== 'ALL' && r.previousDept !== subFilter) return false;
       if (!q) return true;
       return (
@@ -287,7 +288,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
 
   // Open Add Modals
   const handleOpenAdd = () => {
-    const defaultSite: TrainingSiteName = siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa';
+    const defaultSite: TrainingSiteName = siteFilter !== 'ALL' ? siteFilter : 'Tangofa';
     if (activeTab === 'ORIENTASI') {
       setEditingOri(null);
       setOriForm({
@@ -355,7 +356,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
         ['No', 'Site', 'NIK', 'Nama', 'Jabatan', 'Start Orientasi', 'Assessment', 'Ket', 'Status', 'PT', 'Total HM'],
         filteredOri.map((r) => [
           r.no,
-          r.site || 'Site Tangofa',
+          r.site || 'Tangofa',
           r.nik,
           r.nama,
           r.jabatan,
@@ -373,7 +374,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
         ['No', 'Site', 'Bulan', 'Tanggal', 'Peserta', 'Unit', 'Grounded', 'Complete', '%', 'Ket', 'Catatan'],
         filteredRet.map((r) => [
           r.no,
-          r.site || 'Site Tangofa',
+          r.site || 'Tangofa',
           r.bulan,
           r.tanggal,
           r.namaPeserta,
@@ -391,7 +392,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
         ['No', 'Site', 'Tanggal', 'Nama', 'Departemen', 'Provider', 'Program', 'Instructor', 'Status'],
         filteredFgdp.map((r) => [
           r.no,
-          r.site || 'Site Tangofa',
+          r.site || 'Tangofa',
           r.tanggal,
           r.nama,
           r.departemen,
@@ -407,7 +408,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
         ['No', 'Site', 'NIK', 'Nama', 'Jabatan Awal', 'Previous Dept', 'Position', 'Training Class', 'Circuit Area'],
         filteredGreen.map((r) => [
           r.no,
-          r.site || 'Site Tangofa',
+          r.site || 'Tangofa',
           r.nik,
           r.nama,
           r.jabatanAwal,
@@ -427,7 +428,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
         ['No', 'Site', 'NIK', 'Nama', 'Jabatan', 'Start Orientasi', 'Assessment', 'Status', 'PT', 'Total HM'],
         filteredOri.map((r) => [
           r.no,
-          r.site || 'Site Tangofa',
+          r.site || 'Tangofa',
           r.nik,
           r.nama,
           r.jabatan,
@@ -444,7 +445,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
         ['No', 'Site', 'Bulan', 'Tanggal', 'Peserta / Deskripsi', 'Unit', 'Grounded', 'Complete', '%', 'Ket'],
         filteredRet.map((r) => [
           r.no,
-          r.site || 'Site Tangofa',
+          r.site || 'Tangofa',
           r.bulan,
           r.tanggal,
           r.namaPeserta,
@@ -461,7 +462,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
         ['No', 'Site', 'Tanggal', 'Nama', 'Departemen', 'Provider', 'Program', 'Instructor', 'Status'],
         filteredFgdp.map((r) => [
           r.no,
-          r.site || 'Site Tangofa',
+          r.site || 'Tangofa',
           r.tanggal,
           r.nama,
           r.departemen,
@@ -477,7 +478,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
         ['No', 'Site', 'NIK', 'Nama', 'Jabatan Awal', 'Previous Dept', 'Position', 'Training Class', 'Circuit Area'],
         filteredGreen.map((r) => [
           r.no,
-          r.site || 'Site Tangofa',
+          r.site || 'Tangofa',
           r.nik,
           r.nama,
           r.jabatanAwal,
@@ -510,7 +511,10 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-300 bg-[#263640] border border-slate-700">
                 <MapPin className="w-3 h-3 text-[#E88932]" />
-                {siteFilter === 'ALL' ? 'Semua Site (Tangofa • Gemba • TPM)' : siteFilter} • Tahun 2026
+                {siteFilter === 'ALL'
+                  ? 'Semua Site (HO • Tangofa • Genba • Sampala • Gorontalo • Belopa • TPM)'
+                  : siteFilter}{' '}
+                • Tahun 2026
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
@@ -1294,7 +1298,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
                     <td className="py-2.5 px-4 font-mono text-slate-500">{row.no}</td>
                     <td className="py-2.5 px-4">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#18232B]/8 text-[#18232B] border border-[#18232B]/15">
-                        {row.site || 'Site Tangofa'}
+                        {row.site || 'Tangofa'}
                       </span>
                     </td>
                     <td className="py-2.5 px-4 font-mono font-semibold text-slate-700">{row.nik}</td>
@@ -1328,7 +1332,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
                             onClick={() => {
                               setEditingOri(row);
                               setOriForm({
-                                site: row.site || 'Site Tangofa',
+                                site: row.site || 'Tangofa',
                                 nik: row.nik,
                                 nama: row.nama,
                                 jabatan: row.jabatan,
@@ -1393,7 +1397,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
                     <td className="py-2.5 px-4 font-mono text-slate-500">{row.no}</td>
                     <td className="py-2.5 px-4">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#18232B]/8 text-[#18232B] border border-[#18232B]/15">
-                        {row.site || 'Site Tangofa'}
+                        {row.site || 'Tangofa'}
                       </span>
                     </td>
                     <td className="py-2.5 px-4 font-mono font-bold text-[#18232B]">{row.bulan}</td>
@@ -1425,7 +1429,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
                             onClick={() => {
                               setEditingRet(row);
                               setRetForm({
-                                site: row.site || 'Site Tangofa',
+                                site: row.site || 'Tangofa',
                                 bulan: row.bulan,
                                 tanggal: row.tanggal,
                                 namaPeserta: row.namaPeserta,
@@ -1503,7 +1507,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
                     <td className="py-2.5 px-4 font-mono text-slate-500">{row.no}</td>
                     <td className="py-2.5 px-4">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#18232B]/8 text-[#18232B] border border-[#18232B]/15">
-                        {row.site || 'Site Tangofa'}
+                        {row.site || 'Tangofa'}
                       </span>
                     </td>
                     <td className="py-2.5 px-4 font-medium text-slate-700">{row.tanggal}</td>
@@ -1529,7 +1533,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
                             onClick={() => {
                               setEditingFgdp(row);
                               setFgdpForm({
-                                site: row.site || 'Site Tangofa',
+                                site: row.site || 'Tangofa',
                                 tanggal: row.tanggal,
                                 nama: row.nama,
                                 departemen: row.departemen,
@@ -1590,7 +1594,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
                     <td className="py-2.5 px-4 font-mono text-slate-500">{row.no}</td>
                     <td className="py-2.5 px-4">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#18232B]/8 text-[#18232B] border border-[#18232B]/15">
-                        {row.site || 'Site Tangofa'}
+                        {row.site || 'Tangofa'}
                       </span>
                     </td>
                     <td className="py-2.5 px-4 font-mono font-semibold text-slate-700">{row.nik}</td>
@@ -1626,7 +1630,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
                             onClick={() => {
                               setEditingGreen(row);
                               setGreenForm({
-                                site: row.site || 'Site Tangofa',
+                                site: row.site || 'Tangofa',
                                 nik: row.nik,
                                 nama: row.nama,
                                 jabatanAwal: row.jabatanAwal,
@@ -1705,7 +1709,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
           <div>
             <label className={labelCls}>Lokasi Site</label>
             <select
-              value={oriForm.site || 'Site Tangofa'}
+              value={oriForm.site || 'Tangofa'}
               onChange={(e) =>
                 setOriForm({ ...oriForm, site: e.target.value as TrainingSiteName })
               }
@@ -1856,7 +1860,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
           <div>
             <label className={labelCls}>Lokasi Site</label>
             <select
-              value={retForm.site || 'Site Tangofa'}
+              value={retForm.site || 'Tangofa'}
               onChange={(e) =>
                 setRetForm({ ...retForm, site: e.target.value as TrainingSiteName })
               }
@@ -1977,7 +1981,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
           <div>
             <label className={labelCls}>Lokasi Site</label>
             <select
-              value={fgdpForm.site || 'Site Tangofa'}
+              value={fgdpForm.site || 'Tangofa'}
               onChange={(e) =>
                 setFgdpForm({ ...fgdpForm, site: e.target.value as TrainingSiteName })
               }
@@ -2087,7 +2091,7 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
           <div>
             <label className={labelCls}>Lokasi Site</label>
             <select
-              value={greenForm.site || 'Site Tangofa'}
+              value={greenForm.site || 'Tangofa'}
               onChange={(e) =>
                 setGreenForm({ ...greenForm, site: e.target.value as TrainingSiteName })
               }

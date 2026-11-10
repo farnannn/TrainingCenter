@@ -115,7 +115,7 @@ export const CompanyProfileHero: React.FC = () => {
               <p className="text-xs text-slate-300 flex flex-wrap items-center gap-2 mt-0.5">
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-[#E88932]" />
-                  <span>Site Tangofa • Gemba • TPM (Morowali) & Head Office Makassar</span>
+                  <span>Head Office • Tangofa • Genba • Sampala • Gorontalo • Belopa (Masmindo) • TPM</span>
                 </span>
                 <span className="text-slate-500">•</span>
                 <span className="font-mono text-[11px] text-slate-300">
@@ -174,9 +174,11 @@ export const CompanyProfileHero: React.FC = () => {
                   <span className="text-[#5A6B75]">Akta Pendirian:</span>
                   <span className="font-mono font-medium text-[#18232B]">No. 20 (Agustus 2010)</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#5A6B75]">Konsesi Operasional:</span>
-                  <span className="font-medium text-[#18232B]">Site Morowali, Sulawesi Tengah</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[#5A6B75] shrink-0">Lokasi Operasional:</span>
+                  <span className="font-medium text-[#18232B] text-right">
+                    HO, Tangofa, Genba, Sampala, Gorontalo, Belopa (Masmindo), TPM
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#5A6B75]">SK Menkumham:</span>
