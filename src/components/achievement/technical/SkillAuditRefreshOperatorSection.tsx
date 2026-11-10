@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { mockStore } from '../../../lib/mockStore';
+import { uploadPhotoToCloud } from '../../../lib/supabase';
 import { INITIAL_SKILL_AUDIT_PHOTOS } from '../../../lib/skillAuditSeedData';
 import {
   SkillAuditCategoryCode,
@@ -257,9 +258,18 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
   const [genbaTick, setGenbaTick] = useState(0);
   const mod = mockStore.technicalTrainingModule;
   const rawOperators = mod.skillAuditOperatorRecords || [];
-  const opTrainerState = useMemo(() => operationTrainerStore.getState(), [genbaTick]);
+  const opTrainerState = operationTrainerStore.getState();
   const summaryRows = mod.skillAuditSummaryRows || [];
   const photoMap = mod.skillAuditPhotos || {};
+
+  useEffect(() => {
+    const unsubMock = mockStore.subscribe(() => setGenbaTick((t) => t + 1));
+    const unsubOp = operationTrainerStore.subscribe(() => setGenbaTick((t) => t + 1));
+    return () => {
+      unsubMock();
+      unsubOp();
+    };
+  }, []);
 
   const [activeTab, setActiveTab] = useState<ActiveSubTab>('ADT');
   const [siteFilter, setSiteFilter] = useState<'ALL' | TrainingSiteName>('ALL');
@@ -500,19 +510,29 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
     try {
-      const dataUrls = await Promise.all(files.map((f) => compressImageFile(f)));
+      const compressedUrls = await Promise.all(files.map((f) => compressImageFile(f)));
+      const cloudUrls = await Promise.all(
+        compressedUrls.map((u) =>
+          uploadPhotoToCloud(
+            u,
+            catKey === 'DRIVER_DT' && siteFilter === 'Genba'
+              ? 'skill-audit-genba'
+              : `skill-audit-${catKey.toLowerCase()}`
+          )
+        )
+      );
       if (catKey === 'DRIVER_DT' && siteFilter === 'Genba') {
         operationTrainerStore.updateState((prev) => ({
           ...prev,
-          genbaClassPhotos: [...dataUrls, ...(prev.genbaClassPhotos || [])],
+          genbaClassPhotos: [...cloudUrls, ...(prev.genbaClassPhotos || [])],
         }));
         setForcePhotoTick((t) => t + 1);
       } else {
         const current = photoMap[catKey] || [];
-        mockStore.saveSkillAuditPhotos(userId, catKey, [...current, ...dataUrls]);
+        mockStore.saveSkillAuditPhotos(userId, catKey, [...current, ...cloudUrls]);
         setForcePhotoTick((t) => t + 1);
       }
-      onDone('Foto dokumentasi berhasil ditambahkan.');
+      onDone('Foto dokumentasi berhasil diunggah dan disinkronkan secara real-time.');
     } catch {
       onError('Gagal mengunggah foto dokumentasi.');
     }
@@ -554,17 +574,23 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
   const handleResetCategoryPhotos = (catKey: string, label: string) => {
     if (catKey === 'DRIVER_DT' && siteFilter === 'Genba') {
       const defaults = createInitialOperationTrainerState();
-      operationTrainerStore.updateState((prev) => ({
-        ...prev,
-        genbaClassPhotos: defaults.genbaClassPhotos,
-      }));
+      operationTrainerStore.updateState(
+        (prev) => ({
+          ...prev,
+          genbaClassPhotos: defaults.genbaClassPhotos,
+        }),
+        { resetPhotoKey: 'OP_genbaClassPhotos' }
+      );
     } else if (catKey === 'DRIVER_DT' && siteFilter === 'ALL') {
       mockStore.restoreDefaultSkillAuditPhotos(userId, catKey);
       const defaults = createInitialOperationTrainerState();
-      operationTrainerStore.updateState((prev) => ({
-        ...prev,
-        genbaClassPhotos: defaults.genbaClassPhotos,
-      }));
+      operationTrainerStore.updateState(
+        (prev) => ({
+          ...prev,
+          genbaClassPhotos: defaults.genbaClassPhotos,
+        }),
+        { resetPhotoKey: 'OP_genbaClassPhotos' }
+      );
     } else {
       mockStore.restoreDefaultSkillAuditPhotos(userId, catKey);
     }

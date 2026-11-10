@@ -64,7 +64,9 @@ import {
 import { operationTrainerStore, normalizeSiteName } from './operationTrainerSeedData';
 import {
   fetchCloudDatabaseState,
+  fetchCloudStateTimestamp,
   saveCloudDatabaseState,
+  subscribeToRealtimeCloudSync,
   SUPABASE_PROJECT_REF,
 } from './supabase';
 
@@ -1732,12 +1734,36 @@ class DataStore {
   cloudStatus: 'ONLINE_SYNCED' | 'SYNCING' | 'LOCAL_CACHE' = 'SYNCING';
   lastCloudSyncAt: string | null = null;
   supabaseProjectRef: string = SUPABASE_PROJECT_REF;
+  deletedPhotoUrls: string[] = [];
+  private pendingResetPhotoKeys = new Set<string>();
+  private isSavingToCloud = false;
+  private isPullingFromCloud = false;
+  private realtimeInitialized = false;
   private onChangeListeners: Array<() => void> = [];
 
   constructor() {
     this.seedInitialDataset();
     this.loadFromLocalStorage();
     this.recalculateKpis(2026);
+
+    // Automatically persist & broadcast to cloud whenever operationTrainerStore is updated
+    operationTrainerStore.registerCloudPersistCallback((meta) => {
+      if (meta?.deletedPhotoUrl) {
+        this.recordDeletedPhotoUrl(meta.deletedPhotoUrl);
+      }
+      if (meta?.resetPhotoKey) {
+        this.pendingResetPhotoKeys.add(meta.resetPhotoKey);
+      }
+      this.recalculateKpis(2026);
+      this.persistState();
+    });
+  }
+
+  recordDeletedPhotoUrl(url: string) {
+    if (!url || typeof url !== 'string') return;
+    if (!this.deletedPhotoUrls.includes(url)) {
+      this.deletedPhotoUrls = [...this.deletedPhotoUrls.slice(-499), url];
+    }
   }
 
   subscribe(listener: () => void) {
@@ -1770,6 +1796,9 @@ class DataStore {
       sites: this.sites,
       trainerActivities: this.trainerActivities,
       technicalTrainingModule: this.technicalTrainingModule,
+      operationTrainerModule: operationTrainerStore.getState(),
+      deletedPhotoUrls: this.deletedPhotoUrls,
+      _resetPhotoKeys: Array.from(this.pendingResetPhotoKeys),
       rolePermissions: this.rolePermissions,
       applications: this.applications,
       participants: this.participants,
@@ -2014,6 +2043,17 @@ class DataStore {
     if (snapshot.systemSettings && typeof snapshot.systemSettings === 'object') {
       this.systemSettings = { ...this.systemSettings, ...snapshot.systemSettings };
     }
+    if (Array.isArray(snapshot.deletedPhotoUrls)) {
+      this.deletedPhotoUrls = Array.from(
+        new Set([...this.deletedPhotoUrls, ...snapshot.deletedPhotoUrls])
+      ).slice(-500);
+    }
+    if (
+      snapshot.operationTrainerModule &&
+      typeof snapshot.operationTrainerModule === 'object'
+    ) {
+      operationTrainerStore.hydrateFromCloud(snapshot.operationTrainerModule);
+    }
     if (Array.isArray(snapshot.notifications)) {
       this.notifications = snapshot.notifications;
     }
@@ -2039,6 +2079,8 @@ class DataStore {
 
   persistState() {
     const snapshot = this.serializeState();
+    this.pendingResetPhotoKeys.clear();
+
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
@@ -2048,25 +2090,114 @@ class DataStore {
     }
 
     this.cloudStatus = 'SYNCING';
+    this.isSavingToCloud = true;
     this.notifyListeners();
 
     saveCloudDatabaseState(snapshot)
       .then((res) => {
+        this.isSavingToCloud = false;
         if (res.ok) {
+          if (res.data && typeof res.data === 'object') {
+            this.hydrateState(res.data);
+            if (typeof window !== 'undefined' && window.localStorage) {
+              try {
+                window.localStorage.setItem(
+                  LOCAL_STORAGE_KEY,
+                  JSON.stringify(this.serializeState())
+                );
+              } catch {
+                // Ignore
+              }
+            }
+          }
           this.cloudStatus = 'ONLINE_SYNCED';
-          this.lastCloudSyncAt = res.syncedAt || new Date().toISOString();
+          this.lastCloudSyncAt = res.syncedAt || res.updatedAt || new Date().toISOString();
         } else {
           this.cloudStatus = 'LOCAL_CACHE';
         }
         this.notifyListeners();
       })
       .catch(() => {
+        this.isSavingToCloud = false;
         this.cloudStatus = 'LOCAL_CACHE';
         this.notifyListeners();
       });
   }
 
+  async pullLatestFromCloud(): Promise<boolean> {
+    if (this.isSavingToCloud || this.isPullingFromCloud) return false;
+    this.isPullingFromCloud = true;
+    try {
+      const res = await fetchCloudDatabaseState();
+      if (
+        res.ok &&
+        res.data &&
+        Array.isArray(res.data.departments) &&
+        res.data.departments.length === 7
+      ) {
+        this.hydrateState(res.data);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.setItem(
+              LOCAL_STORAGE_KEY,
+              JSON.stringify(this.serializeState())
+            );
+          } catch {
+            // Ignore
+          }
+        }
+        this.cloudStatus = 'ONLINE_SYNCED';
+        this.lastCloudSyncAt = res.updatedAt || new Date().toISOString();
+        this.notifyListeners();
+        return true;
+      }
+    } catch {
+      // Ignore pull error
+    } finally {
+      this.isPullingFromCloud = false;
+    }
+    return false;
+  }
+
+  private setupRealtimeMultiDeviceSync() {
+    if (this.realtimeInitialized || typeof window === 'undefined') return;
+    this.realtimeInitialized = true;
+
+    // 1. Instant WebSocket Broadcast from Supabase Realtime & Local BroadcastChannel
+    subscribeToRealtimeCloudSync(() => {
+      this.pullLatestFromCloud();
+    });
+
+    // 2. Auto-pull when user focuses window or switches back to tab
+    const onFocusOrVisible = () => {
+      if (document.visibilityState === 'visible') {
+        this.pullLatestFromCloud();
+      }
+    };
+    window.addEventListener('focus', onFocusOrVisible);
+    document.addEventListener('visibilitychange', onFocusOrVisible);
+
+    // 3. Lightweight background timestamp poll every 5 seconds as a guaranteed safety net
+    window.setInterval(async () => {
+      if (
+        typeof document !== 'undefined' &&
+        document.visibilityState !== 'visible'
+      ) {
+        return;
+      }
+      if (this.isSavingToCloud || this.isPullingFromCloud) return;
+      const remoteUpdatedAt = await fetchCloudStateTimestamp();
+      if (
+        remoteUpdatedAt &&
+        (!this.lastCloudSyncAt || remoteUpdatedAt > this.lastCloudSyncAt)
+      ) {
+        await this.pullLatestFromCloud();
+      }
+    }, 5000);
+  }
+
   async initCloudSync() {
+    this.setupRealtimeMultiDeviceSync();
     this.cloudStatus = 'SYNCING';
     this.notifyListeners();
 
@@ -2094,6 +2225,8 @@ class DataStore {
               u.full_name.includes('Farid Nafis'))
         );
 
+      const missingOpModuleInCloud = !res.data.operationTrainerModule;
+
       this.hydrateState(res.data);
       const serialized = this.serializeState();
       if (typeof window !== 'undefined' && window.localStorage) {
@@ -2103,8 +2236,11 @@ class DataStore {
           // Ignore
         }
       }
-      if (hadLegacyNames) {
-        await saveCloudDatabaseState(serialized);
+      if (hadLegacyNames || missingOpModuleInCloud) {
+        const pushRes = await saveCloudDatabaseState(serialized);
+        if (pushRes.ok && pushRes.data) {
+          this.hydrateState(pushRes.data);
+        }
       }
       this.cloudStatus = 'ONLINE_SYNCED';
       this.lastCloudSyncAt = res.updatedAt || new Date().toISOString();
@@ -6467,6 +6603,15 @@ class DataStore {
     if (!this.technicalTrainingModule.skillAuditPhotos) {
       this.technicalTrainingModule.skillAuditPhotos = { ...INITIAL_SKILL_AUDIT_PHOTOS };
     }
+    const prevArr = this.technicalTrainingModule.skillAuditPhotos[categoryKey] || [];
+    if (prevArr.length > photos.length) {
+      const nextSet = new Set(photos);
+      prevArr.forEach((u) => {
+        if (!nextSet.has(u)) {
+          this.recordDeletedPhotoUrl(u);
+        }
+      });
+    }
     this.technicalTrainingModule.skillAuditPhotos[categoryKey] = photos;
     this.persistState();
     return photos;
@@ -6484,14 +6629,24 @@ class DataStore {
     if (categoryKey && INITIAL_SKILL_AUDIT_PHOTOS[categoryKey]) {
       const defaults = INITIAL_SKILL_AUDIT_PHOTOS[categoryKey];
       const existing = this.technicalTrainingModule.skillAuditPhotos[categoryKey] || [];
-      const customExtras = existing.filter((u) => !defaults.includes(u));
-      this.technicalTrainingModule.skillAuditPhotos[categoryKey] = [...defaults, ...customExtras];
+      existing.forEach((u) => {
+        if (!defaults.includes(u)) {
+          this.recordDeletedPhotoUrl(u);
+        }
+      });
+      this.pendingResetPhotoKeys.add(`SKILL_AUDIT_${categoryKey}`);
+      this.technicalTrainingModule.skillAuditPhotos[categoryKey] = [...defaults];
     } else {
       Object.keys(INITIAL_SKILL_AUDIT_PHOTOS).forEach((k) => {
         const defaults = INITIAL_SKILL_AUDIT_PHOTOS[k];
         const existing = this.technicalTrainingModule.skillAuditPhotos[k] || [];
-        const customExtras = existing.filter((u) => !defaults.includes(u));
-        this.technicalTrainingModule.skillAuditPhotos[k] = [...defaults, ...customExtras];
+        existing.forEach((u) => {
+          if (!defaults.includes(u)) {
+            this.recordDeletedPhotoUrl(u);
+          }
+        });
+        this.pendingResetPhotoKeys.add(`SKILL_AUDIT_${k}`);
+        this.technicalTrainingModule.skillAuditPhotos[k] = [...defaults];
       });
     }
     this.persistState();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { mockStore } from '../../../lib/mockStore';
+import { uploadPhotoToCloud } from '../../../lib/supabase';
 import {
   operationTrainerStore,
   DailyOperationTrainerLog,
@@ -133,10 +134,19 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
   onDone,
   onError,
 }) => {
-  const [forceTick, setForceTick] = useState(0);
+  const [, setForceTick] = useState(0);
   const techList = mockStore.technicalTrainingModule.dailyTrainerActivities || [];
-  const opState = useMemo(() => operationTrainerStore.getState(), [forceTick]);
+  const opState = operationTrainerStore.getState();
   const opList: DailyOperationTrainerLog[] = opState.dailyOperationTrainerLogs || [];
+
+  useEffect(() => {
+    const unsubMock = mockStore.subscribe(() => setForceTick((t) => t + 1));
+    const unsubOp = operationTrainerStore.subscribe(() => setForceTick((t) => t + 1));
+    return () => {
+      unsubMock();
+      unsubOp();
+    };
+  }, []);
 
   const [streamFilter, setStreamFilter] = useState<'ALL' | TrainerStream>('ALL');
   const [siteFilter, setSiteFilter] = useState<'ALL' | TrainingSiteName>('ALL');
@@ -248,11 +258,18 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
     if (!editing || !e.target.files) return;
     const files = Array.from(e.target.files);
     try {
-      const dataUrls = await Promise.all(files.map((f) => compressImageFile(f)));
-      setEditing({
-        ...editing,
-        photos: [...editing.photos, ...dataUrls],
-      });
+      const compressedUrls = await Promise.all(files.map((f) => compressImageFile(f)));
+      const folder =
+        editing.stream === 'OPERATION' ? 'daily-operation-trainer' : 'daily-technical-trainer';
+      const cloudUrls = await Promise.all(compressedUrls.map((u) => uploadPhotoToCloud(u, folder)));
+      setEditing((prev) =>
+        prev
+          ? {
+              ...prev,
+              photos: [...prev.photos, ...cloudUrls],
+            }
+          : prev
+      );
     } catch {
       onError('Gagal memuat file gambar.');
     }

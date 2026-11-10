@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { mockStore } from '../../../lib/mockStore';
+import { uploadPhotoToCloud } from '../../../lib/supabase';
 import { getRolePermissions } from '../../../lib/types';
 import {
   operationTrainerStore,
@@ -89,13 +91,22 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   const perms = getRolePermissions(currentUser.role_code);
   const canEdit = perms.trainingAchievement === 'EDIT' && perms.canEditData;
 
-  const [version, setVersion] = useState(0);
+  const [, setVersion] = useState(0);
   const bump = () => {
     setVersion((v) => v + 1);
     refreshState();
   };
 
-  const state = useMemo(() => operationTrainerStore.getState(), [version]);
+  useEffect(() => {
+    const unsubMock = mockStore.subscribe(() => setVersion((v) => v + 1));
+    const unsubOp = operationTrainerStore.subscribe(() => setVersion((v) => v + 1));
+    return () => {
+      unsubMock();
+      unsubOp();
+    };
+  }, []);
+
+  const state = operationTrainerStore.getState();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('SIMPER');
   const [siteFilter, setSiteFilter] = useState<string>('ALL');
@@ -169,21 +180,33 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   ]);
 
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
     try {
-      const dataUrl = await compressImageFile(file);
+      const compressedUrls = await Promise.all(files.map((f) => compressImageFile(f)));
+      const folder =
+        activeTab === 'SIMPER'
+          ? siteFilter === 'Genba'
+            ? 'assessment-genba'
+            : 'assessment-simper'
+          : activeTab === 'CROSS_TRAINING'
+          ? 'cross-training'
+          : 'skill-up';
+      const cloudUrls = await Promise.all(compressedUrls.map((u) => uploadPhotoToCloud(u, folder)));
       operationTrainerStore.updateState((prev) => {
         if (activeTab === 'SIMPER') {
           if (siteFilter === 'Genba') {
-            return { ...prev, genbaAssessmentPhotos: [...prev.genbaAssessmentPhotos, dataUrl] };
+            return {
+              ...prev,
+              genbaAssessmentPhotos: [...prev.genbaAssessmentPhotos, ...cloudUrls],
+            };
           }
-          return { ...prev, simperPhotos: [...prev.simperPhotos, dataUrl] };
+          return { ...prev, simperPhotos: [...prev.simperPhotos, ...cloudUrls] };
         }
         if (activeTab === 'CROSS_TRAINING') {
-          return { ...prev, crossPhotos: [...prev.crossPhotos, dataUrl] };
+          return { ...prev, crossPhotos: [...prev.crossPhotos, ...cloudUrls] };
         }
-        return { ...prev, skillUpPhotos: [...prev.skillUpPhotos, dataUrl] };
+        return { ...prev, skillUpPhotos: [...prev.skillUpPhotos, ...cloudUrls] };
       });
       bump();
     } finally {
@@ -218,17 +241,28 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   };
 
   const handleResetPhotos = () => {
-    operationTrainerStore.updateState((prev) => {
-      if (activeTab === 'SIMPER') {
-        return {
-          ...prev,
-          simperPhotos: [...INITIAL_SIMPER_PHOTOS],
-          genbaAssessmentPhotos: [...INITIAL_GENBA_ASSESSMENT_PHOTOS],
-        };
-      }
-      if (activeTab === 'CROSS_TRAINING') return { ...prev, crossPhotos: [...INITIAL_CROSS_PHOTOS] };
-      return { ...prev, skillUpPhotos: [...INITIAL_SKILL_UP_PHOTOS] };
-    });
+    const resetPhotoKey =
+      activeTab === 'SIMPER'
+        ? 'OP_simperPhotos'
+        : activeTab === 'CROSS_TRAINING'
+        ? 'OP_crossPhotos'
+        : 'OP_skillUpPhotos';
+    operationTrainerStore.updateState(
+      (prev) => {
+        if (activeTab === 'SIMPER') {
+          return {
+            ...prev,
+            simperPhotos: [...INITIAL_SIMPER_PHOTOS],
+            genbaAssessmentPhotos: [...INITIAL_GENBA_ASSESSMENT_PHOTOS],
+          };
+        }
+        if (activeTab === 'CROSS_TRAINING') {
+          return { ...prev, crossPhotos: [...INITIAL_CROSS_PHOTOS] };
+        }
+        return { ...prev, skillUpPhotos: [...INITIAL_SKILL_UP_PHOTOS] };
+      },
+      { resetPhotoKey }
+    );
     bump();
   };
 

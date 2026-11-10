@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, Role, Department, Notification } from '../lib/types';
 import { mockStore, INITIAL_USERS } from '../lib/mockStore';
+import { operationTrainerStore } from '../lib/operationTrainerSeedData';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -13,6 +14,7 @@ interface AuthContextType {
   cloudStatus: 'ONLINE_SYNCED' | 'SYNCING' | 'LOCAL_CACHE';
   lastCloudSyncAt: string | null;
   supabaseProjectRef: string;
+  syncVersion?: number;
   login: (email: string, password?: string) => boolean;
   loginAsUser: (userId: string) => void;
   logout: () => void;
@@ -42,18 +44,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRefreshTrigger((prev) => prev + 1);
   };
 
-  // Subscribe to mockStore cloud sync changes and initialize Supabase Online sync on mount
+  // Subscribe to mockStore & operationTrainerStore cloud sync changes and initialize Supabase Online sync on mount
   useEffect(() => {
-    const unsubscribe = mockStore.subscribe(() => {
+    const unsubscribeMock = mockStore.subscribe(() => {
       setCloudStatus(mockStore.cloudStatus);
       setLastCloudSyncAt(mockStore.lastCloudSyncAt);
+      setRefreshTrigger((prev) => prev + 1);
+    });
+    const unsubscribeOp = operationTrainerStore.subscribe(() => {
       setRefreshTrigger((prev) => prev + 1);
     });
 
     mockStore.initCloudSync();
 
     return () => {
-      unsubscribe();
+      unsubscribeMock();
+      unsubscribeOp();
     };
   }, []);
 
@@ -142,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cloudStatus,
         lastCloudSyncAt,
         supabaseProjectRef: mockStore.supabaseProjectRef,
+        syncVersion: refreshTrigger,
         login,
         loginAsUser,
         logout,

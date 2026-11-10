@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { mockStore } from '../../../lib/mockStore';
+import { uploadPhotoToCloud } from '../../../lib/supabase';
 import { getRolePermissions } from '../../../lib/types';
 import {
   operationTrainerStore,
@@ -80,13 +82,22 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   const perms = getRolePermissions(currentUser.role_code);
   const canEdit = perms.trainingAchievement === 'EDIT' && perms.canEditData;
 
-  const [version, setVersion] = useState(0);
+  const [, setVersion] = useState(0);
   const bump = () => {
     setVersion((v) => v + 1);
     refreshState();
   };
 
-  const state = useMemo(() => operationTrainerStore.getState(), [version]);
+  useEffect(() => {
+    const unsubMock = mockStore.subscribe(() => setVersion((v) => v + 1));
+    const unsubOp = operationTrainerStore.subscribe(() => setVersion((v) => v + 1));
+    return () => {
+      unsubMock();
+      unsubOp();
+    };
+  }, []);
+
+  const state = operationTrainerStore.getState();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('ORIENTASI');
   const [siteFilter, setSiteFilter] = useState<'ALL' | TrainingSiteName>('ALL');
@@ -162,18 +173,27 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
       : state.greenOperatorPhotos;
 
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
     try {
-      const dataUrl = await compressImageFile(file);
+      const compressedUrls = await Promise.all(files.map((f) => compressImageFile(f)));
+      const folder =
+        activeTab === 'ORIENTASI'
+          ? 'orientasi'
+          : activeTab === 'RETRAINING'
+          ? 'retraining'
+          : activeTab === 'FGDP'
+          ? 'fgdp'
+          : 'green-operator';
+      const cloudUrls = await Promise.all(compressedUrls.map((u) => uploadPhotoToCloud(u, folder)));
       operationTrainerStore.updateState((prev) => {
         if (activeTab === 'ORIENTASI')
-          return { ...prev, orientasiPhotos: [...prev.orientasiPhotos, dataUrl] };
+          return { ...prev, orientasiPhotos: [...prev.orientasiPhotos, ...cloudUrls] };
         if (activeTab === 'RETRAINING')
-          return { ...prev, retrainingPhotos: [...prev.retrainingPhotos, dataUrl] };
+          return { ...prev, retrainingPhotos: [...prev.retrainingPhotos, ...cloudUrls] };
         if (activeTab === 'FGDP')
-          return { ...prev, fgdpPhotos: [...prev.fgdpPhotos, dataUrl] };
-        return { ...prev, greenOperatorPhotos: [...prev.greenOperatorPhotos, dataUrl] };
+          return { ...prev, fgdpPhotos: [...prev.fgdpPhotos, ...cloudUrls] };
+        return { ...prev, greenOperatorPhotos: [...prev.greenOperatorPhotos, ...cloudUrls] };
       });
       bump();
     } finally {
@@ -198,15 +218,26 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   };
 
   const handleResetPhotos = () => {
-    operationTrainerStore.updateState((prev) => {
-      if (activeTab === 'ORIENTASI')
-        return { ...prev, orientasiPhotos: [...INITIAL_ORIENTASI_PHOTOS] };
-      if (activeTab === 'RETRAINING')
-        return { ...prev, retrainingPhotos: [...INITIAL_RETRAINING_PHOTOS] };
-      if (activeTab === 'FGDP')
-        return { ...prev, fgdpPhotos: [...INITIAL_FGDP_PHOTOS] };
-      return { ...prev, greenOperatorPhotos: [...INITIAL_GREEN_OPERATOR_PHOTOS] };
-    });
+    const resetPhotoKey =
+      activeTab === 'ORIENTASI'
+        ? 'OP_orientasiPhotos'
+        : activeTab === 'RETRAINING'
+        ? 'OP_retrainingPhotos'
+        : activeTab === 'FGDP'
+        ? 'OP_fgdpPhotos'
+        : 'OP_greenOperatorPhotos';
+    operationTrainerStore.updateState(
+      (prev) => {
+        if (activeTab === 'ORIENTASI')
+          return { ...prev, orientasiPhotos: [...INITIAL_ORIENTASI_PHOTOS] };
+        if (activeTab === 'RETRAINING')
+          return { ...prev, retrainingPhotos: [...INITIAL_RETRAINING_PHOTOS] };
+        if (activeTab === 'FGDP')
+          return { ...prev, fgdpPhotos: [...INITIAL_FGDP_PHOTOS] };
+        return { ...prev, greenOperatorPhotos: [...INITIAL_GREEN_OPERATOR_PHOTOS] };
+      },
+      { resetPhotoKey }
+    );
     bump();
   };
 

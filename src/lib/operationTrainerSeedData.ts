@@ -1954,9 +1954,125 @@ export const createInitialOperationTrainerState = (): OperationTrainerModuleStat
 
 class OperationTrainerStore {
   private state: OperationTrainerModuleState;
+  private listeners = new Set<() => void>();
+  private cloudPersistCallback:
+    | ((meta?: { resetPhotoKey?: string; deletedPhotoUrl?: string }) => void)
+    | null = null;
 
   constructor() {
     this.state = this.load();
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notifyListeners(): void {
+    this.listeners.forEach((cb) => {
+      try {
+        cb();
+      } catch {
+        // ignore listener errors
+      }
+    });
+  }
+
+  registerCloudPersistCallback(
+    cb: (meta?: { resetPhotoKey?: string; deletedPhotoUrl?: string }) => void
+  ): void {
+    this.cloudPersistCallback = cb;
+  }
+
+  private normalizeParsedState(
+    parsed: Partial<OperationTrainerModuleState>,
+    defaults: OperationTrainerModuleState
+  ): OperationTrainerModuleState {
+    return {
+      ...defaults,
+      ...parsed,
+      simperAssessments: (parsed.simperAssessments || defaults.simperAssessments).map((r) => ({
+        ...r,
+        site: normalizeSiteName(r.site, 'Tangofa'),
+      })),
+      simperPhotos: parsed.simperPhotos?.length ? parsed.simperPhotos : defaults.simperPhotos,
+      crossTrainingRecords: (parsed.crossTrainingRecords || defaults.crossTrainingRecords).map(
+        (r) => ({
+          ...r,
+          site: normalizeSiteName(r.site, 'Tangofa'),
+        })
+      ),
+      crossPhotos: parsed.crossPhotos?.length ? parsed.crossPhotos : defaults.crossPhotos,
+      skillUpRecords: (parsed.skillUpRecords || defaults.skillUpRecords).map((r) => ({
+        ...r,
+        site: normalizeSiteName(r.site, 'Tangofa'),
+      })),
+      skillUpPhotos: parsed.skillUpPhotos?.length ? parsed.skillUpPhotos : defaults.skillUpPhotos,
+      orientasiNewHireRecords: (
+        parsed.orientasiNewHireRecords || defaults.orientasiNewHireRecords
+      ).map((r) => ({
+        ...r,
+        site: normalizeSiteName(r.site, 'Tangofa'),
+      })),
+      selesaiOrientasiLogs: (parsed.selesaiOrientasiLogs || defaults.selesaiOrientasiLogs).map(
+        (r) => ({
+          ...r,
+          site: normalizeSiteName(r.site, 'Tangofa'),
+        })
+      ),
+      orientasiPhotos: parsed.orientasiPhotos?.length
+        ? parsed.orientasiPhotos
+        : defaults.orientasiPhotos,
+      retrainingRecords: (parsed.retrainingRecords || defaults.retrainingRecords).map((r) => ({
+        ...r,
+        site: normalizeSiteName(r.site, 'Tangofa'),
+      })),
+      retrainingPhotos: parsed.retrainingPhotos?.length
+        ? parsed.retrainingPhotos
+        : defaults.retrainingPhotos,
+      fgdpRecords: (parsed.fgdpRecords || defaults.fgdpRecords).map((r) => ({
+        ...r,
+        site: normalizeSiteName(r.site, 'Tangofa'),
+      })),
+      fgdpPhotos: parsed.fgdpPhotos?.length ? parsed.fgdpPhotos : defaults.fgdpPhotos,
+      greenOperatorSteps: parsed.greenOperatorSteps || defaults.greenOperatorSteps,
+      greenOperatorRecords: (parsed.greenOperatorRecords || defaults.greenOperatorRecords).map(
+        (r) => ({
+          ...r,
+          site: normalizeSiteName(r.site, 'Tangofa'),
+        })
+      ),
+      greenOperatorPhotos: parsed.greenOperatorPhotos?.length
+        ? parsed.greenOperatorPhotos
+        : defaults.greenOperatorPhotos,
+      genbaClassRecords: (parsed.genbaClassRecords || defaults.genbaClassRecords).map((r) => ({
+        ...r,
+        site: normalizeSiteName(r.site, 'Genba'),
+      })),
+      genbaClassPhotos: parsed.genbaClassPhotos?.length
+        ? parsed.genbaClassPhotos
+        : defaults.genbaClassPhotos,
+      genbaAssessmentRecords: (
+        parsed.genbaAssessmentRecords || defaults.genbaAssessmentRecords
+      ).map((r) => ({
+        ...r,
+        site: normalizeSiteName(r.site, 'Genba'),
+      })),
+      genbaAssessmentPhotos: parsed.genbaAssessmentPhotos?.length
+        ? parsed.genbaAssessmentPhotos
+        : defaults.genbaAssessmentPhotos,
+      dailyOperationTrainerLogs: (
+        parsed.dailyOperationTrainerLogs || defaults.dailyOperationTrainerLogs
+      ).map((r) => ({
+        ...r,
+        site: normalizeSiteName(r.site, 'Tangofa'),
+      })),
+      dailyOperationPhotos: parsed.dailyOperationPhotos?.length
+        ? parsed.dailyOperationPhotos
+        : defaults.dailyOperationPhotos,
+    };
   }
 
   private load(): OperationTrainerModuleState {
@@ -1966,65 +2082,7 @@ class OperationTrainerStore {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaults;
       const parsed = JSON.parse(raw) as Partial<OperationTrainerModuleState>;
-      return {
-        ...defaults,
-        ...parsed,
-        simperAssessments: (parsed.simperAssessments || defaults.simperAssessments).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        simperPhotos: parsed.simperPhotos?.length ? parsed.simperPhotos : defaults.simperPhotos,
-        crossTrainingRecords: (parsed.crossTrainingRecords || defaults.crossTrainingRecords).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        crossPhotos: parsed.crossPhotos?.length ? parsed.crossPhotos : defaults.crossPhotos,
-        skillUpRecords: (parsed.skillUpRecords || defaults.skillUpRecords).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        skillUpPhotos: parsed.skillUpPhotos?.length ? parsed.skillUpPhotos : defaults.skillUpPhotos,
-        orientasiNewHireRecords: (parsed.orientasiNewHireRecords || defaults.orientasiNewHireRecords).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        selesaiOrientasiLogs: (parsed.selesaiOrientasiLogs || defaults.selesaiOrientasiLogs).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        orientasiPhotos: parsed.orientasiPhotos?.length ? parsed.orientasiPhotos : defaults.orientasiPhotos,
-        retrainingRecords: (parsed.retrainingRecords || defaults.retrainingRecords).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        retrainingPhotos: parsed.retrainingPhotos?.length ? parsed.retrainingPhotos : defaults.retrainingPhotos,
-        fgdpRecords: (parsed.fgdpRecords || defaults.fgdpRecords).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        fgdpPhotos: parsed.fgdpPhotos?.length ? parsed.fgdpPhotos : defaults.fgdpPhotos,
-        greenOperatorSteps: parsed.greenOperatorSteps || defaults.greenOperatorSteps,
-        greenOperatorRecords: (parsed.greenOperatorRecords || defaults.greenOperatorRecords).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        greenOperatorPhotos: parsed.greenOperatorPhotos?.length ? parsed.greenOperatorPhotos : defaults.greenOperatorPhotos,
-        genbaClassRecords: (parsed.genbaClassRecords || defaults.genbaClassRecords).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Genba'),
-        })),
-        genbaClassPhotos: parsed.genbaClassPhotos?.length ? parsed.genbaClassPhotos : defaults.genbaClassPhotos,
-        genbaAssessmentRecords: (parsed.genbaAssessmentRecords || defaults.genbaAssessmentRecords).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Genba'),
-        })),
-        genbaAssessmentPhotos: parsed.genbaAssessmentPhotos?.length ? parsed.genbaAssessmentPhotos : defaults.genbaAssessmentPhotos,
-        dailyOperationTrainerLogs: (parsed.dailyOperationTrainerLogs || defaults.dailyOperationTrainerLogs).map((r) => ({
-          ...r,
-          site: normalizeSiteName(r.site, 'Tangofa'),
-        })),
-        dailyOperationPhotos: parsed.dailyOperationPhotos?.length ? parsed.dailyOperationPhotos : defaults.dailyOperationPhotos,
-      };
+      return this.normalizeParsedState(parsed, defaults);
     } catch {
       return defaults;
     }
@@ -2043,14 +2101,64 @@ class OperationTrainerStore {
     return this.state;
   }
 
-  updateState(updater: (prev: OperationTrainerModuleState) => OperationTrainerModuleState): void {
-    this.state = updater(this.state);
+  hydrateFromCloud(cloudState?: Partial<OperationTrainerModuleState> | null): void {
+    if (!cloudState || typeof cloudState !== 'object') return;
+    const defaults = createInitialOperationTrainerState();
+    this.state = this.normalizeParsedState(cloudState, defaults);
     this.save();
+    this.notifyListeners();
+  }
+
+  updateState(
+    updater: (prev: OperationTrainerModuleState) => OperationTrainerModuleState,
+    meta?: { resetPhotoKey?: string; deletedPhotoUrl?: string }
+  ): void {
+    const prevState = this.state;
+    const nextState = updater(prevState);
+
+    // Detect if any photo URL was removed compared to prevState so we can mark it deleted
+    let detectedDeletedUrl = meta?.deletedPhotoUrl;
+    if (!detectedDeletedUrl) {
+      const photoKeys: (keyof OperationTrainerModuleState)[] = [
+        'simperPhotos',
+        'crossPhotos',
+        'skillUpPhotos',
+        'orientasiPhotos',
+        'retrainingPhotos',
+        'fgdpPhotos',
+        'greenOperatorPhotos',
+        'genbaClassPhotos',
+        'genbaAssessmentPhotos',
+        'dailyOperationPhotos',
+      ];
+      for (const k of photoKeys) {
+        const oldArr = (prevState[k] as string[]) || [];
+        const newArr = (nextState[k] as string[]) || [];
+        if (oldArr.length > newArr.length) {
+          const newSet = new Set(newArr);
+          const removed = oldArr.find((u) => !newSet.has(u));
+          if (removed) {
+            detectedDeletedUrl = removed;
+            break;
+          }
+        }
+      }
+    }
+
+    this.state = nextState;
+    this.save();
+    this.notifyListeners();
+    this.cloudPersistCallback?.({
+      resetPhotoKey: meta?.resetPhotoKey,
+      deletedPhotoUrl: detectedDeletedUrl,
+    });
   }
 
   resetAllToDefaults(): void {
     this.state = createInitialOperationTrainerState();
     this.save();
+    this.notifyListeners();
+    this.cloudPersistCallback?.({ resetPhotoKey: 'ALL_OP' });
   }
 }
 
