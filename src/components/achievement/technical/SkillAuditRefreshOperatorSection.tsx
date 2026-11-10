@@ -511,16 +511,16 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
     const files = Array.from(e.target.files);
     try {
       const compressedUrls = await Promise.all(files.map((f) => compressImageFile(f)));
-      const cloudUrls = await Promise.all(
-        compressedUrls.map((u) =>
-          uploadPhotoToCloud(
-            u,
-            catKey === 'DRIVER_DT' && siteFilter === 'Genba'
-              ? 'skill-audit-genba'
-              : `skill-audit-${catKey.toLowerCase()}`
-          )
-        )
-      );
+      const isGenbaDt = catKey === 'DRIVER_DT' && siteFilter === 'Genba';
+      const folder = isGenbaDt ? 'skill-audit-genba' : `skill-audit-${catKey.toLowerCase()}`;
+      const photoTarget = isGenbaDt
+        ? ({ module: 'op', key: 'genbaClassPhotos' } as const)
+        : ({ module: 'skillAudit', key: catKey } as const);
+      const cloudUrls: string[] = [];
+      for (const u of compressedUrls) {
+        const up = await uploadPhotoToCloud(u, folder, photoTarget);
+        cloudUrls.push(up);
+      }
       if (catKey === 'DRIVER_DT' && siteFilter === 'Genba') {
         operationTrainerStore.updateState((prev) => ({
           ...prev,

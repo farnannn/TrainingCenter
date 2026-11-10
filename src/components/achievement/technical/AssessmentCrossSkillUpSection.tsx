@@ -186,7 +186,19 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
           : activeTab === 'CROSS_TRAINING'
           ? 'cross-training'
           : 'skill-up';
-      const cloudUrls = await Promise.all(compressedUrls.map((u) => uploadPhotoToCloud(u, folder)));
+      const targetKey =
+        activeTab === 'SIMPER'
+          ? siteFilter === 'Genba'
+            ? 'genbaAssessmentPhotos'
+            : 'simperPhotos'
+          : activeTab === 'CROSS_TRAINING'
+          ? 'crossPhotos'
+          : 'skillUpPhotos';
+      const cloudUrls: string[] = [];
+      for (const u of compressedUrls) {
+        const up = await uploadPhotoToCloud(u, folder, { module: 'op', key: targetKey });
+        cloudUrls.push(up);
+      }
       operationTrainerStore.updateState((prev) => {
         if (activeTab === 'SIMPER') {
           if (siteFilter === 'Genba') {

@@ -185,7 +185,19 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
           : activeTab === 'FGDP'
           ? 'fgdp'
           : 'green-operator';
-      const cloudUrls = await Promise.all(compressedUrls.map((u) => uploadPhotoToCloud(u, folder)));
+      const targetKey =
+        activeTab === 'ORIENTASI'
+          ? 'orientasiPhotos'
+          : activeTab === 'RETRAINING'
+          ? 'retrainingPhotos'
+          : activeTab === 'FGDP'
+          ? 'fgdpPhotos'
+          : 'greenOperatorPhotos';
+      const cloudUrls: string[] = [];
+      for (const u of compressedUrls) {
+        const up = await uploadPhotoToCloud(u, folder, { module: 'op', key: targetKey });
+        cloudUrls.push(up);
+      }
       operationTrainerStore.updateState((prev) => {
         if (activeTab === 'ORIENTASI')
           return { ...prev, orientasiPhotos: [...cloudUrls, ...prev.orientasiPhotos] };

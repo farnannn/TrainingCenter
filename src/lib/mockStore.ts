@@ -64,7 +64,7 @@ import {
 import { operationTrainerStore, normalizeSiteName } from './operationTrainerSeedData';
 import {
   fetchCloudDatabaseState,
-  fetchCloudStateTimestamp,
+  fetchCloudStateMeta,
   isPhotoUploadInProgress,
   saveCloudDatabaseState,
   subscribeToRealtimeCloudSync,
@@ -1734,9 +1734,11 @@ class DataStore {
 
   cloudStatus: 'ONLINE_SYNCED' | 'SYNCING' | 'LOCAL_CACHE' = 'SYNCING';
   lastCloudSyncAt: string | null = null;
+  lastCloudRev: number = 0;
   supabaseProjectRef: string = SUPABASE_PROJECT_REF;
   deletedPhotoUrls: string[] = [];
   private pendingResetPhotoKeys = new Set<string>();
+  private pendingDeletedPhotoUrls = new Set<string>();
   private isSavingToCloud = false;
   private isPullingFromCloud = false;
   private lastLocalMutationAt = 0;
@@ -1764,6 +1766,7 @@ class DataStore {
 
   recordDeletedPhotoUrl(url: string) {
     if (!url || typeof url !== 'string') return;
+    this.pendingDeletedPhotoUrls.add(url);
     if (!this.deletedPhotoUrls.includes(url)) {
       this.deletedPhotoUrls = [...this.deletedPhotoUrls.slice(-499), url];
     }
@@ -1801,6 +1804,7 @@ class DataStore {
       technicalTrainingModule: this.technicalTrainingModule,
       operationTrainerModule: operationTrainerStore.getState(),
       deletedPhotoUrls: this.deletedPhotoUrls,
+      _explicitDeletedUrls: Array.from(this.pendingDeletedPhotoUrls),
       _resetPhotoKeys: Array.from(this.pendingResetPhotoKeys),
       rolePermissions: this.rolePermissions,
       applications: this.applications,
@@ -2043,9 +2047,7 @@ class DataStore {
       this.systemSettings = { ...this.systemSettings, ...snapshot.systemSettings };
     }
     if (Array.isArray(snapshot.deletedPhotoUrls)) {
-      this.deletedPhotoUrls = Array.from(
-        new Set([...this.deletedPhotoUrls, ...snapshot.deletedPhotoUrls])
-      ).slice(-500);
+      this.deletedPhotoUrls = snapshot.deletedPhotoUrls.slice(-500);
     }
     if (
       snapshot.operationTrainerModule &&
@@ -2081,6 +2083,7 @@ class DataStore {
     const mySaveSeq = ++this.saveSeq;
     const snapshot = this.serializeState();
     this.pendingResetPhotoKeys.clear();
+    this.pendingDeletedPhotoUrls.clear();
 
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
@@ -2097,11 +2100,13 @@ class DataStore {
     saveCloudDatabaseState(snapshot)
       .then((res) => {
         if (mySaveSeq !== this.saveSeq) {
-          // A newer local save is already in flight; do not overwrite newer local state
           return;
         }
         this.isSavingToCloud = false;
         if (res.ok) {
+          if (res.rev && res.rev > this.lastCloudRev) {
+            this.lastCloudRev = res.rev;
+          }
           if (res.data && typeof res.data === 'object' && !isPhotoUploadInProgress()) {
             this.hydrateState(res.data);
             if (typeof window !== 'undefined' && window.localStorage) {
@@ -2131,7 +2136,7 @@ class DataStore {
       });
   }
 
-  async pullLatestFromCloud(): Promise<boolean> {
+  async pullLatestFromCloud(forceEvenIfEqual = false): Promise<boolean> {
     if (
       this.isSavingToCloud ||
       this.isPullingFromCloud ||
@@ -2150,6 +2155,14 @@ class DataStore {
       ) {
         return false;
       }
+      // Strict monotonic revision guard: NEVER overwrite memory with an older snapshot
+      if (
+        res.rev &&
+        this.lastCloudRev > 0 &&
+        (forceEvenIfEqual ? res.rev < this.lastCloudRev : res.rev <= this.lastCloudRev)
+      ) {
+        return false;
+      }
       if (
         res.ok &&
         res.data &&
@@ -2157,6 +2170,9 @@ class DataStore {
         res.data.departments.length === 7
       ) {
         this.hydrateState(res.data);
+        if (res.rev && res.rev > this.lastCloudRev) {
+          this.lastCloudRev = res.rev;
+        }
         if (typeof window !== 'undefined' && window.localStorage) {
           try {
             window.localStorage.setItem(
@@ -2185,19 +2201,25 @@ class DataStore {
     this.realtimeInitialized = true;
 
     // 1. Instant WebSocket Broadcast from Supabase Realtime & Local BroadcastChannel
-    subscribeToRealtimeCloudSync(() => {
-      this.pullLatestFromCloud();
+    subscribeToRealtimeCloudSync((_syncedAt, remoteRev) => {
+      if (!remoteRev || remoteRev > this.lastCloudRev) {
+        this.pullLatestFromCloud();
+      }
     });
 
     // 2. Auto-pull when user switches back to tab
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
-        this.pullLatestFromCloud();
+        fetchCloudStateMeta().then((meta) => {
+          if (meta && meta.rev > this.lastCloudRev) {
+            this.pullLatestFromCloud();
+          }
+        });
       }
     };
     document.addEventListener('visibilitychange', onVisible);
 
-    // 3. Lightweight background timestamp poll every 2.5 seconds across all laptops/devices
+    // 3. Uncached PostgreSQL metadata poll every 2.5s across all laptops/devices
     window.setInterval(async () => {
       if (
         this.isSavingToCloud ||
@@ -2207,8 +2229,8 @@ class DataStore {
       ) {
         return;
       }
-      const remoteUpdatedAt = await fetchCloudStateTimestamp();
-      if (remoteUpdatedAt && remoteUpdatedAt !== this.lastCloudSyncAt) {
+      const meta = await fetchCloudStateMeta();
+      if (meta && meta.rev > this.lastCloudRev) {
         await this.pullLatestFromCloud();
       }
     }, 2500);
@@ -2220,8 +2242,14 @@ class DataStore {
     this.notifyListeners();
 
     const res = await fetchCloudDatabaseState();
+    if (!res.ok) {
+      // Never overwrite cloud state if initial fetch failed due to temporary network error
+      this.cloudStatus = 'LOCAL_CACHE';
+      this.notifyListeners();
+      return;
+    }
+
     const isCurrentSevenDivSchema =
-      res.ok &&
       res.data &&
       Array.isArray(res.data.departments) &&
       res.data.departments.length === 7 &&
@@ -2231,21 +2259,12 @@ class DataStore {
       Array.isArray(res.data.applications);
 
     if (isCurrentSevenDivSchema) {
-      const hadLegacyNames =
-        Array.isArray(res.data.users) &&
-        res.data.users.some(
-          (u: any) =>
-            typeof u.full_name === 'string' &&
-            (u.full_name.includes('Ahmad Fauzi') ||
-              u.full_name.includes('Bambang Sutrisno') ||
-              u.full_name.includes('Hendra Kusuma') ||
-              u.full_name.includes('Siti Rahma') ||
-              u.full_name.includes('Farid Nafis'))
-        );
-
       const missingOpModuleInCloud = !res.data.operationTrainerModule;
 
       this.hydrateState(res.data);
+      if (res.rev && res.rev > this.lastCloudRev) {
+        this.lastCloudRev = res.rev;
+      }
       const serialized = this.serializeState();
       if (typeof window !== 'undefined' && window.localStorage) {
         try {
@@ -2254,10 +2273,11 @@ class DataStore {
           // Ignore
         }
       }
-      if (hadLegacyNames || missingOpModuleInCloud) {
+      if (missingOpModuleInCloud) {
         const pushRes = await saveCloudDatabaseState(serialized);
-        if (pushRes.ok && pushRes.data) {
-          this.hydrateState(pushRes.data);
+        if (pushRes.ok) {
+          if (pushRes.rev) this.lastCloudRev = Math.max(this.lastCloudRev, pushRes.rev);
+          if (pushRes.data) this.hydrateState(pushRes.data);
         }
       }
       this.cloudStatus = 'ONLINE_SYNCED';
@@ -2266,15 +2286,18 @@ class DataStore {
       return;
     }
 
-    // If Supabase Cloud is empty or uses older department schema, sync 7-division dataset to Supabase Online
-    const seedRes = await saveCloudDatabaseState(this.serializeState());
-    if (seedRes.ok) {
-      this.cloudStatus = 'ONLINE_SYNCED';
-      this.lastCloudSyncAt = seedRes.syncedAt || new Date().toISOString();
-    } else {
-      this.cloudStatus = 'LOCAL_CACHE';
+    // Only seed if Supabase Cloud explicitly returned empty state
+    if (res.source === 'empty') {
+      const seedRes = await saveCloudDatabaseState(this.serializeState());
+      if (seedRes.ok) {
+        if (seedRes.rev) this.lastCloudRev = seedRes.rev;
+        this.cloudStatus = 'ONLINE_SYNCED';
+        this.lastCloudSyncAt = seedRes.syncedAt || new Date().toISOString();
+      } else {
+        this.cloudStatus = 'LOCAL_CACHE';
+      }
+      this.notifyListeners();
     }
-    this.notifyListeners();
   }
 
   private seedInitialDataset() {
