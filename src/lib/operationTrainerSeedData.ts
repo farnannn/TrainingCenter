@@ -2116,41 +2116,12 @@ class OperationTrainerStore {
     const prevState = this.state;
     const nextState = updater(prevState);
 
-    // Detect if any photo URL was removed compared to prevState so we can mark it deleted
-    let detectedDeletedUrl = meta?.deletedPhotoUrl;
-    if (!detectedDeletedUrl) {
-      const photoKeys: (keyof OperationTrainerModuleState)[] = [
-        'simperPhotos',
-        'crossPhotos',
-        'skillUpPhotos',
-        'orientasiPhotos',
-        'retrainingPhotos',
-        'fgdpPhotos',
-        'greenOperatorPhotos',
-        'genbaClassPhotos',
-        'genbaAssessmentPhotos',
-        'dailyOperationPhotos',
-      ];
-      for (const k of photoKeys) {
-        const oldArr = (prevState[k] as string[]) || [];
-        const newArr = (nextState[k] as string[]) || [];
-        if (oldArr.length > newArr.length) {
-          const newSet = new Set(newArr);
-          const removed = oldArr.find((u) => !newSet.has(u));
-          if (removed) {
-            detectedDeletedUrl = removed;
-            break;
-          }
-        }
-      }
-    }
-
     this.state = nextState;
     this.save();
     this.notifyListeners();
     this.cloudPersistCallback?.({
       resetPhotoKey: meta?.resetPhotoKey,
-      deletedPhotoUrl: detectedDeletedUrl,
+      deletedPhotoUrl: meta?.deletedPhotoUrl,
     });
   }
 

@@ -36,13 +36,10 @@ function mergePhotoArrays(cloudArr, incomingArr, deletedSet, resetCategoriesSet,
   }
   const cloud = Array.isArray(cloudArr) ? cloudArr : [];
   const cloudCustom = cloud.filter((u) => isCustomUploadedPhoto(u) && !deletedSet.has(u));
-  const result = [...incoming.filter((u) => !deletedSet.has(u))];
-  for (const cUrl of cloudCustom) {
-    if (!result.includes(cUrl)) {
-      result.push(cUrl);
-    }
-  }
-  return result;
+  const incomingClean = incoming.filter((u) => !deletedSet.has(u));
+  const extraCloudCustom = cloudCustom.filter((cUrl) => !incomingClean.includes(cUrl));
+  // Prepend custom uploaded photos from other devices to the front so they are immediately visible at Slot #1
+  return [...extraCloudCustom, ...incomingClean];
 }
 
 async function uploadDataUrlToMediaBucket(dataUrl, folder, supabaseUrl, headers) {
@@ -170,12 +167,16 @@ function mergeSnapshots(cloudData, incomingData) {
   if (!cloudData || typeof cloudData !== 'object') return incomingData;
   if (!incomingData || typeof incomingData !== 'object') return cloudData;
 
-  const deletedList = Array.from(
-    new Set([
-      ...(Array.isArray(cloudData.deletedPhotoUrls) ? cloudData.deletedPhotoUrls : []),
-      ...(Array.isArray(incomingData.deletedPhotoUrls) ? incomingData.deletedPhotoUrls : []),
-    ])
-  ).slice(-500);
+  const deletedList = incomingData._clearDeletedPhotoUrls
+    ? Array.isArray(incomingData.deletedPhotoUrls)
+      ? incomingData.deletedPhotoUrls
+      : []
+    : Array.from(
+        new Set([
+          ...(Array.isArray(cloudData.deletedPhotoUrls) ? cloudData.deletedPhotoUrls : []),
+          ...(Array.isArray(incomingData.deletedPhotoUrls) ? incomingData.deletedPhotoUrls : []),
+        ])
+      ).slice(-500);
   const deletedSet = new Set(deletedList);
   const resetCategoriesSet = new Set(
     Array.isArray(incomingData._resetPhotoKeys) ? incomingData._resetPhotoKeys : []
@@ -187,6 +188,7 @@ function mergeSnapshots(cloudData, incomingData) {
     deletedPhotoUrls: deletedList,
   };
   delete merged._resetPhotoKeys;
+  delete merged._clearDeletedPhotoUrls;
 
   // Merge Technical Training Module photos
   if (cloudData.technicalTrainingModule && incomingData.technicalTrainingModule) {
@@ -309,6 +311,10 @@ export default async function handler(req, res) {
   };
 
   try {
+    const urlObj = new URL(req.url || '/', 'http://localhost');
+    const isMetaOnly =
+      urlObj.searchParams.get('metaOnly') === '1' || req.query?.metaOnly === '1';
+
     if (req.method === 'GET') {
       // Read from Supabase Cloud Storage bucket raja-academy-db (primary source of truth)
       const stRes = await fetch(
@@ -324,7 +330,7 @@ export default async function handler(req, res) {
       if (stRes.ok) {
         const snapshot = await stRes.json();
         const updatedAt = snapshot?.updatedAt || new Date().toISOString();
-        if (req.query?.metaOnly === '1') {
+        if (isMetaOnly) {
           return res.status(200).json({
             ok: true,
             source: 'supabase_cloud',
@@ -431,21 +437,6 @@ export default async function handler(req, res) {
           }),
         }
       );
-
-      // Also attempt to upsert into Postgres table public.thr_cloud_state if SQL was executed
-      await fetch(`${supabaseUrl}/rest/v1/thr_cloud_state`, {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          Prefer: 'resolution=merge-duplicates',
-        },
-        body: JSON.stringify({
-          id: 'main',
-          payload: mergedPayload,
-          updated_at: nowIso,
-        }),
-      }).catch(() => {});
 
       if (!uploadRes.ok) {
         const errText = await uploadRes.text();

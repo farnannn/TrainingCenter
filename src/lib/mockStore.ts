@@ -65,6 +65,7 @@ import { operationTrainerStore, normalizeSiteName } from './operationTrainerSeed
 import {
   fetchCloudDatabaseState,
   fetchCloudStateTimestamp,
+  isPhotoUploadInProgress,
   saveCloudDatabaseState,
   subscribeToRealtimeCloudSync,
   SUPABASE_PROJECT_REF,
@@ -1738,6 +1739,8 @@ class DataStore {
   private pendingResetPhotoKeys = new Set<string>();
   private isSavingToCloud = false;
   private isPullingFromCloud = false;
+  private lastLocalMutationAt = 0;
+  private saveSeq = 0;
   private realtimeInitialized = false;
   private onChangeListeners: Array<() => void> = [];
 
@@ -1996,18 +1999,14 @@ class DataStore {
           JSON.stringify(INITIAL_SKILL_AUDIT_PHOTOS)
         );
       } else {
-        // Pastikan foto default tetap ada jika kategori belum punya foto atau foto default DRIVER_DT terhapus
+        // Pastikan foto default hanya diisi kembali jika array kategori benar-benar kosong
         Object.keys(INITIAL_SKILL_AUDIT_PHOTOS).forEach((k) => {
           const currentArr = Array.isArray(this.technicalTrainingModule.skillAuditPhotos[k])
             ? this.technicalTrainingModule.skillAuditPhotos[k]
             : [];
           const defaultArr = INITIAL_SKILL_AUDIT_PHOTOS[k] || [];
-          const missingDefaults = defaultArr.filter((defUrl) => !currentArr.includes(defUrl));
-          if (currentArr.length === 0 || (k === 'DRIVER_DT' && missingDefaults.length > 0)) {
-            this.technicalTrainingModule.skillAuditPhotos[k] = [
-              ...defaultArr,
-              ...currentArr.filter((u) => !defaultArr.includes(u)),
-            ];
+          if (currentArr.length === 0) {
+            this.technicalTrainingModule.skillAuditPhotos[k] = [...defaultArr];
           }
         });
       }
@@ -2078,6 +2077,8 @@ class DataStore {
   }
 
   persistState() {
+    this.lastLocalMutationAt = Date.now();
+    const mySaveSeq = ++this.saveSeq;
     const snapshot = this.serializeState();
     this.pendingResetPhotoKeys.clear();
 
@@ -2095,9 +2096,13 @@ class DataStore {
 
     saveCloudDatabaseState(snapshot)
       .then((res) => {
+        if (mySaveSeq !== this.saveSeq) {
+          // A newer local save is already in flight; do not overwrite newer local state
+          return;
+        }
         this.isSavingToCloud = false;
         if (res.ok) {
-          if (res.data && typeof res.data === 'object') {
+          if (res.data && typeof res.data === 'object' && !isPhotoUploadInProgress()) {
             this.hydrateState(res.data);
             if (typeof window !== 'undefined' && window.localStorage) {
               try {
@@ -2118,17 +2123,33 @@ class DataStore {
         this.notifyListeners();
       })
       .catch(() => {
-        this.isSavingToCloud = false;
-        this.cloudStatus = 'LOCAL_CACHE';
-        this.notifyListeners();
+        if (mySaveSeq === this.saveSeq) {
+          this.isSavingToCloud = false;
+          this.cloudStatus = 'LOCAL_CACHE';
+          this.notifyListeners();
+        }
       });
   }
 
   async pullLatestFromCloud(): Promise<boolean> {
-    if (this.isSavingToCloud || this.isPullingFromCloud) return false;
+    if (
+      this.isSavingToCloud ||
+      this.isPullingFromCloud ||
+      isPhotoUploadInProgress() ||
+      Date.now() - this.lastLocalMutationAt < 3500
+    ) {
+      return false;
+    }
     this.isPullingFromCloud = true;
     try {
       const res = await fetchCloudDatabaseState();
+      if (
+        this.isSavingToCloud ||
+        isPhotoUploadInProgress() ||
+        Date.now() - this.lastLocalMutationAt < 3500
+      ) {
+        return false;
+      }
       if (
         res.ok &&
         res.data &&
@@ -2168,32 +2189,29 @@ class DataStore {
       this.pullLatestFromCloud();
     });
 
-    // 2. Auto-pull when user focuses window or switches back to tab
-    const onFocusOrVisible = () => {
+    // 2. Auto-pull when user switches back to tab
+    const onVisible = () => {
       if (document.visibilityState === 'visible') {
         this.pullLatestFromCloud();
       }
     };
-    window.addEventListener('focus', onFocusOrVisible);
-    document.addEventListener('visibilitychange', onFocusOrVisible);
+    document.addEventListener('visibilitychange', onVisible);
 
-    // 3. Lightweight background timestamp poll every 5 seconds as a guaranteed safety net
+    // 3. Lightweight background timestamp poll every 2.5 seconds across all laptops/devices
     window.setInterval(async () => {
       if (
-        typeof document !== 'undefined' &&
-        document.visibilityState !== 'visible'
+        this.isSavingToCloud ||
+        this.isPullingFromCloud ||
+        isPhotoUploadInProgress() ||
+        Date.now() - this.lastLocalMutationAt < 3500
       ) {
         return;
       }
-      if (this.isSavingToCloud || this.isPullingFromCloud) return;
       const remoteUpdatedAt = await fetchCloudStateTimestamp();
-      if (
-        remoteUpdatedAt &&
-        (!this.lastCloudSyncAt || remoteUpdatedAt > this.lastCloudSyncAt)
-      ) {
+      if (remoteUpdatedAt && remoteUpdatedAt !== this.lastCloudSyncAt) {
         await this.pullLatestFromCloud();
       }
-    }, 5000);
+    }, 2500);
   }
 
   async initCloudSync() {
@@ -6598,20 +6616,21 @@ class DataStore {
     return true;
   }
 
-  saveSkillAuditPhotos(callerId: string, categoryKey: string, photos: string[]) {
+  saveSkillAuditPhotos(
+    callerId: string,
+    categoryKey: string,
+    photos: string[],
+    deletedPhotoUrl?: string
+  ) {
     this.assertCanEditTrainerActivities(callerId);
     if (!this.technicalTrainingModule.skillAuditPhotos) {
       this.technicalTrainingModule.skillAuditPhotos = { ...INITIAL_SKILL_AUDIT_PHOTOS };
     }
-    const prevArr = this.technicalTrainingModule.skillAuditPhotos[categoryKey] || [];
-    if (prevArr.length > photos.length) {
-      const nextSet = new Set(photos);
-      prevArr.forEach((u) => {
-        if (!nextSet.has(u)) {
-          this.recordDeletedPhotoUrl(u);
-        }
-      });
+    if (deletedPhotoUrl) {
+      this.recordDeletedPhotoUrl(deletedPhotoUrl);
     }
+    const activeSet = new Set(photos);
+    this.deletedPhotoUrls = this.deletedPhotoUrls.filter((u) => !activeSet.has(u));
     this.technicalTrainingModule.skillAuditPhotos[categoryKey] = photos;
     this.persistState();
     return photos;

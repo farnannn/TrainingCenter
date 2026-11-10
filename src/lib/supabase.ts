@@ -28,6 +28,20 @@ export const supabase = isLiveSupabaseConfigured
 // Unique ID for this browser tab instance to avoid self-echo on broadcasts
 export const CLIENT_INSTANCE_ID = `client-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+let activePhotoUploadsCount = 0;
+
+export function beginPhotoUpload() {
+  activePhotoUploadsCount += 1;
+}
+
+export function endPhotoUpload() {
+  activePhotoUploadsCount = Math.max(0, activePhotoUploadsCount - 1);
+}
+
+export function isPhotoUploadInProgress(): boolean {
+  return activePhotoUploadsCount > 0;
+}
+
 let realtimeChannel: RealtimeChannel | null = null;
 let localBroadcastChannel: BroadcastChannel | null = null;
 const remoteUpdateListeners = new Set<(syncedAt: string) => void>();
@@ -124,6 +138,7 @@ export async function uploadPhotoToCloud(
   if (!dataUrl || !dataUrl.startsWith('data:image/')) {
     return dataUrl;
   }
+  beginPhotoUpload();
   try {
     const res = await fetch('/api/cloud-state', {
       method: 'POST',
@@ -142,6 +157,8 @@ export async function uploadPhotoToCloud(
     }
   } catch {
     // Offline fallback: keep compressed dataUrl, server will externalize on next state sync
+  } finally {
+    endPhotoUpload();
   }
   return dataUrl;
 }

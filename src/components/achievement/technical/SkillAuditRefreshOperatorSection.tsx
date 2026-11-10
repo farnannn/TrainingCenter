@@ -529,7 +529,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
         setForcePhotoTick((t) => t + 1);
       } else {
         const current = photoMap[catKey] || [];
-        mockStore.saveSkillAuditPhotos(userId, catKey, [...current, ...cloudUrls]);
+        mockStore.saveSkillAuditPhotos(userId, catKey, [...cloudUrls, ...current]);
         setForcePhotoTick((t) => t + 1);
       }
       onDone('Foto dokumentasi berhasil diunggah dan disinkronkan secara real-time.');
@@ -541,10 +541,14 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
 
   const handleRemoveCategoryPhoto = (catKey: string, idx: number) => {
     if (catKey === 'DRIVER_DT' && siteFilter === 'Genba') {
-      operationTrainerStore.updateState((prev) => ({
-        ...prev,
-        genbaClassPhotos: (prev.genbaClassPhotos || []).filter((_, i) => i !== idx),
-      }));
+      const removedUrl = (opTrainerState.genbaClassPhotos || [])[idx];
+      operationTrainerStore.updateState(
+        (prev) => ({
+          ...prev,
+          genbaClassPhotos: (prev.genbaClassPhotos || []).filter((_, i) => i !== idx),
+        }),
+        { deletedPhotoUrl: removedUrl }
+      );
       setForcePhotoTick((t) => t + 1);
       onDone('Foto dokumentasi berhasil dihapus.');
       return;
@@ -553,19 +557,25 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
     const current = photoMap[catKey] || [];
     if (catKey === 'DRIVER_DT' && siteFilter === 'ALL' && idx >= current.length) {
       const gembaIdx = idx - current.length;
-      operationTrainerStore.updateState((prev) => ({
-        ...prev,
-        genbaClassPhotos: (prev.genbaClassPhotos || []).filter((_, i) => i !== gembaIdx),
-      }));
+      const removedUrl = (opTrainerState.genbaClassPhotos || [])[gembaIdx];
+      operationTrainerStore.updateState(
+        (prev) => ({
+          ...prev,
+          genbaClassPhotos: (prev.genbaClassPhotos || []).filter((_, i) => i !== gembaIdx),
+        }),
+        { deletedPhotoUrl: removedUrl }
+      );
       setForcePhotoTick((t) => t + 1);
       onDone('Foto dokumentasi berhasil dihapus.');
       return;
     }
 
+    const removedUrl = current[idx];
     mockStore.saveSkillAuditPhotos(
       userId,
       catKey,
-      current.filter((_, i) => i !== idx)
+      current.filter((_, i) => i !== idx),
+      removedUrl
     );
     setForcePhotoTick((t) => t + 1);
     onDone('Foto dokumentasi berhasil dihapus.');

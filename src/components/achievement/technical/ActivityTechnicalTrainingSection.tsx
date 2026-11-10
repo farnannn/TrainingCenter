@@ -266,7 +266,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
         prev
           ? {
               ...prev,
-              photos: [...prev.photos, ...cloudUrls],
+              photos: [...cloudUrls, ...prev.photos],
             }
           : prev
       );

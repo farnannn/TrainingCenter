@@ -188,12 +188,12 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
       const cloudUrls = await Promise.all(compressedUrls.map((u) => uploadPhotoToCloud(u, folder)));
       operationTrainerStore.updateState((prev) => {
         if (activeTab === 'ORIENTASI')
-          return { ...prev, orientasiPhotos: [...prev.orientasiPhotos, ...cloudUrls] };
+          return { ...prev, orientasiPhotos: [...cloudUrls, ...prev.orientasiPhotos] };
         if (activeTab === 'RETRAINING')
-          return { ...prev, retrainingPhotos: [...prev.retrainingPhotos, ...cloudUrls] };
+          return { ...prev, retrainingPhotos: [...cloudUrls, ...prev.retrainingPhotos] };
         if (activeTab === 'FGDP')
-          return { ...prev, fgdpPhotos: [...prev.fgdpPhotos, ...cloudUrls] };
-        return { ...prev, greenOperatorPhotos: [...prev.greenOperatorPhotos, ...cloudUrls] };
+          return { ...prev, fgdpPhotos: [...cloudUrls, ...prev.fgdpPhotos] };
+        return { ...prev, greenOperatorPhotos: [...cloudUrls, ...prev.greenOperatorPhotos] };
       });
       bump();
     } finally {
@@ -202,18 +202,22 @@ export const OrientasiRetrainingGreenView: React.FC = () => {
   };
 
   const handleDeletePhoto = (idx: number) => {
-    operationTrainerStore.updateState((prev) => {
-      if (activeTab === 'ORIENTASI')
-        return { ...prev, orientasiPhotos: prev.orientasiPhotos.filter((_, i) => i !== idx) };
-      if (activeTab === 'RETRAINING')
-        return { ...prev, retrainingPhotos: prev.retrainingPhotos.filter((_, i) => i !== idx) };
-      if (activeTab === 'FGDP')
-        return { ...prev, fgdpPhotos: prev.fgdpPhotos.filter((_, i) => i !== idx) };
-      return {
-        ...prev,
-        greenOperatorPhotos: prev.greenOperatorPhotos.filter((_, i) => i !== idx),
-      };
-    });
+    const removedUrl = currentPhotos[idx];
+    operationTrainerStore.updateState(
+      (prev) => {
+        if (activeTab === 'ORIENTASI')
+          return { ...prev, orientasiPhotos: prev.orientasiPhotos.filter((_, i) => i !== idx) };
+        if (activeTab === 'RETRAINING')
+          return { ...prev, retrainingPhotos: prev.retrainingPhotos.filter((_, i) => i !== idx) };
+        if (activeTab === 'FGDP')
+          return { ...prev, fgdpPhotos: prev.fgdpPhotos.filter((_, i) => i !== idx) };
+        return {
+          ...prev,
+          greenOperatorPhotos: prev.greenOperatorPhotos.filter((_, i) => i !== idx),
+        };
+      },
+      { deletedPhotoUrl: removedUrl }
+    );
     bump();
   };
 

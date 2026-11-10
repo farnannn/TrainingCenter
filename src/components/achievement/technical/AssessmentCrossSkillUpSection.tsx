@@ -162,22 +162,16 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   });
 
   // Current Tab Photos (Site-aware for Assessment tab!)
-  const currentPhotos = useMemo(() => {
-    if (activeTab === 'SIMPER') {
-      if (siteFilter === 'Genba') return state.genbaAssessmentPhotos;
-      if (siteFilter === 'Tangofa') return state.simperPhotos;
-      return [...state.simperPhotos, ...state.genbaAssessmentPhotos];
-    }
-    if (activeTab === 'CROSS_TRAINING') return state.crossPhotos;
-    return state.skillUpPhotos;
-  }, [
-    activeTab,
-    siteFilter,
-    state.simperPhotos,
-    state.genbaAssessmentPhotos,
-    state.crossPhotos,
-    state.skillUpPhotos,
-  ]);
+  const currentPhotos =
+    activeTab === 'SIMPER'
+      ? siteFilter === 'Genba'
+        ? state.genbaAssessmentPhotos
+        : siteFilter === 'Tangofa'
+        ? state.simperPhotos
+        : [...state.simperPhotos, ...state.genbaAssessmentPhotos]
+      : activeTab === 'CROSS_TRAINING'
+      ? state.crossPhotos
+      : state.skillUpPhotos;
 
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -198,15 +192,15 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
           if (siteFilter === 'Genba') {
             return {
               ...prev,
-              genbaAssessmentPhotos: [...prev.genbaAssessmentPhotos, ...cloudUrls],
+              genbaAssessmentPhotos: [...cloudUrls, ...prev.genbaAssessmentPhotos],
             };
           }
-          return { ...prev, simperPhotos: [...prev.simperPhotos, ...cloudUrls] };
+          return { ...prev, simperPhotos: [...cloudUrls, ...prev.simperPhotos] };
         }
         if (activeTab === 'CROSS_TRAINING') {
-          return { ...prev, crossPhotos: [...prev.crossPhotos, ...cloudUrls] };
+          return { ...prev, crossPhotos: [...cloudUrls, ...prev.crossPhotos] };
         }
-        return { ...prev, skillUpPhotos: [...prev.skillUpPhotos, ...cloudUrls] };
+        return { ...prev, skillUpPhotos: [...cloudUrls, ...prev.skillUpPhotos] };
       });
       bump();
     } finally {
@@ -215,28 +209,32 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
   };
 
   const handleDeletePhoto = (idx: number) => {
-    operationTrainerStore.updateState((prev) => {
-      if (activeTab === 'SIMPER') {
-        if (siteFilter === 'Genba') {
-          return {
-            ...prev,
-            genbaAssessmentPhotos: prev.genbaAssessmentPhotos.filter((_, i) => i !== idx),
-          };
+    const removedUrl = currentPhotos[idx];
+    operationTrainerStore.updateState(
+      (prev) => {
+        if (activeTab === 'SIMPER') {
+          if (siteFilter === 'Genba') {
+            return {
+              ...prev,
+              genbaAssessmentPhotos: prev.genbaAssessmentPhotos.filter((_, i) => i !== idx),
+            };
+          }
+          if (siteFilter === 'ALL' && idx >= prev.simperPhotos.length) {
+            const genbaIdx = idx - prev.simperPhotos.length;
+            return {
+              ...prev,
+              genbaAssessmentPhotos: prev.genbaAssessmentPhotos.filter((_, i) => i !== genbaIdx),
+            };
+          }
+          return { ...prev, simperPhotos: prev.simperPhotos.filter((_, i) => i !== idx) };
         }
-        if (siteFilter === 'ALL' && idx >= prev.simperPhotos.length) {
-          const genbaIdx = idx - prev.simperPhotos.length;
-          return {
-            ...prev,
-            genbaAssessmentPhotos: prev.genbaAssessmentPhotos.filter((_, i) => i !== genbaIdx),
-          };
+        if (activeTab === 'CROSS_TRAINING') {
+          return { ...prev, crossPhotos: prev.crossPhotos.filter((_, i) => i !== idx) };
         }
-        return { ...prev, simperPhotos: prev.simperPhotos.filter((_, i) => i !== idx) };
-      }
-      if (activeTab === 'CROSS_TRAINING') {
-        return { ...prev, crossPhotos: prev.crossPhotos.filter((_, i) => i !== idx) };
-      }
-      return { ...prev, skillUpPhotos: prev.skillUpPhotos.filter((_, i) => i !== idx) };
-    });
+        return { ...prev, skillUpPhotos: prev.skillUpPhotos.filter((_, i) => i !== idx) };
+      },
+      { deletedPhotoUrl: removedUrl }
+    );
     bump();
   };
 
