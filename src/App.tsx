@@ -13,6 +13,8 @@ import { TrainingAchievementView } from './components/achievement/TrainingAchiev
 import { TechnicalTrainerActivitiesView } from './components/achievement/TechnicalTrainerActivitiesView';
 import { ActivityTechnicalTrainingView } from './components/achievement/technical/ActivityTechnicalTrainingSection';
 import { SkillAuditRefreshOperatorView } from './components/achievement/technical/SkillAuditRefreshOperatorSection';
+import { AssessmentCrossSkillUpView } from './components/achievement/technical/AssessmentCrossSkillUpSection';
+import { OrientasiRetrainingGreenView } from './components/achievement/technical/OrientasiRetrainingGreenSection';
 import { ApplicationList } from './components/applications/ApplicationList';
 import { TrainingCategoryTypeManager } from './components/applications/TrainingCategoryTypeManager';
 import { TrainingScheduleManager } from './components/schedules/TrainingScheduleManager';
@@ -84,6 +86,24 @@ export const App: React.FC = () => {
           return <TrainingAchievementView onNavigate={setCurrentTab} />;
         }
         return <SkillAuditRefreshOperatorView />;
+      }
+      case 'assessment_cross_skillup': {
+        const perms = getRolePermissions(currentUser.role_code);
+        const canAccessTrainerActivities =
+          perms.trainingAchievement === 'EDIT' && perms.canEditData;
+        if (!canAccessTrainerActivities) {
+          return <TrainingAchievementView onNavigate={setCurrentTab} />;
+        }
+        return <AssessmentCrossSkillUpView />;
+      }
+      case 'orientasi_retraining_green': {
+        const perms = getRolePermissions(currentUser.role_code);
+        const canAccessTrainerActivities =
+          perms.trainingAchievement === 'EDIT' && perms.canEditData;
+        if (!canAccessTrainerActivities) {
+          return <TrainingAchievementView onNavigate={setCurrentTab} />;
+        }
+        return <OrientasiRetrainingGreenView />;
       }
       case 'applications':
         return <ApplicationList />;

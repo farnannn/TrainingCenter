@@ -61,6 +61,7 @@ import {
   INITIAL_SKILL_AUDIT_SUMMARY_ROWS,
   INITIAL_SKILL_AUDIT_PHOTOS,
 } from './skillAuditSeedData';
+import { operationTrainerStore } from './operationTrainerSeedData';
 import {
   fetchCloudDatabaseState,
   saveCloudDatabaseState,
@@ -546,12 +547,16 @@ export const INITIAL_KPI_WEIGHTS: KpiWeight[] = [
 // ==============================================================================
 // ACHIEVEMENT ANALYTICS INTERFACES
 // ==============================================================================
+export type CompanyScopeFilter = 'ALL' | 'INTERNAL_RJS' | 'SUBCONT';
+
 export interface AchievementFilter {
   year?: string;
   month?: string;
   departmentId?: string;
   trainingType?: string;
   statusCategory?: string; // 'ALL' | 'COMPLETED' | 'IN_PROGRESS' | 'PENDING' | 'CANCELLED'
+  companyScope?: CompanyScopeFilter;
+  site?: string;
 }
 
 export interface DepartmentAchievementMetric {
@@ -600,6 +605,11 @@ export interface TrainingPerformanceItem {
   plannedHours: number;
   actualHours: number;
   participantNames: string[];
+  sourceLabel?: string;
+  sourceTab?: string;
+  companyScope?: 'INTERNAL_RJS' | 'SUBCONT';
+  site?: string;
+  cohortKey?: string;
 }
 
 export interface TrainingAchievementSummary {
@@ -611,6 +621,8 @@ export interface TrainingAchievementSummary {
   achievementPercentage: number | null;
   totalManpowerPlanned: number;
   totalManpowerTrained: number;
+  totalAttendanceSessions: number;
+  totalPlannedSessions: number;
   totalPlannedHours: number;
   totalTrainingHours: number;
   departmentBreakdown: DepartmentAchievementMetric[];
@@ -2899,7 +2911,675 @@ class DataStore {
 
   // ============================================================================
   // AUTOMATIC TRAINING ACHIEVEMENT CALCULATION ENGINE (REAL DATA SOURCE)
+  // Aggregates both formal Training Applications AND live Sub-Menu Training Achievement
+  // (Program Technical Training, Activity Technical Training, Skill Audit & Refresh Operator)
   // ============================================================================
+  private parseParticipantsFromAttendentsLabel(label: string): number {
+    if (!label) return 1;
+    const matchX = label.match(/(\d+)\s*x/i);
+    if (matchX) {
+      return Math.max(1, Number(matchX[1]));
+    }
+    const matchNum = label.match(/(\d+)/);
+    if (matchNum) {
+      return Math.max(1, Number(matchNum[1]));
+    }
+    const parts = label.split(/[,&+/]/).map((s) => s.trim()).filter(Boolean);
+    return Math.max(1, parts.length);
+  }
+
+  private getSubMenuAchievementItems(): TrainingPerformanceItem[] {
+    const mod = this.technicalTrainingModule;
+    if (!mod) return [];
+
+    const deletedSet = new Set(mod.deletedAchievementItemIds || []);
+    const overrides = mod.achievementItemOverrides || {};
+
+    const plmDept =
+      this.departments.find((d) => d.code === 'PLM') ||
+      this.departments.find((d) => d.id === '20000000-0000-0000-0000-000000000006') ||
+      this.departments[0];
+    const modDept =
+      this.departments.find((d) => d.code === 'MOD') ||
+      this.departments.find((d) => d.id === '20000000-0000-0000-0000-000000000001') ||
+      this.departments[0];
+    const tcDept =
+      this.departments.find((d) => d.code === 'TC') ||
+      this.departments.find((d) => d.id === '20000000-0000-0000-0000-000000000004') ||
+      this.departments[0];
+
+    const categorizeStatus = (
+      st: ApplicationStatus
+    ): 'COMPLETED' | 'IN_PROGRESS' | 'PENDING' | 'CANCELLED' => {
+      if (st === 'COMPLETED') return 'COMPLETED';
+      if (st === 'IN_PROGRESS') return 'IN_PROGRESS';
+      if (st === 'CANCELLED' || st === 'REJECTED') return 'CANCELLED';
+      return 'PENDING';
+    };
+
+    const rawSubItems: TrainingPerformanceItem[] = [];
+
+    // 1. Sub-Menu 1: Resume Training Class Crew Mechanic PLM 2026 (Mei - Nov 2026)
+    (mod.plmMonthlyTrainingClasses || []).forEach((m) => {
+      const yr = m.year || '2026';
+      const monStr = String(m.month_index || 11).padStart(2, '0');
+      const lastDay = new Date(Number(yr), Number(monStr), 0).getDate();
+      const status: ApplicationStatus =
+        m.period_status === 'FINAL' ? 'COMPLETED' : 'IN_PROGRESS';
+      const plannedHours = Math.max(8, (Number(m.frequency_plan) || 1) * 8);
+      const actualHours = Math.max(0, (Number(m.frequency_actual) || 0) * 8);
+
+      rawSubItems.push({
+        id: `sub-plm-class-${m.id}`,
+        applicationNumber: `TTC-PLM-${yr}-${monStr}`,
+        trainingTitle: `Training Class Crew Mechanic PLM — Periode ${m.month_name} ${yr} (${m.frequency_actual}/${m.frequency_plan} Sesi In-Class)`,
+        trainingCategory: 'Technical',
+        trainingType: 'INTERNAL',
+        departmentId: plmDept.id,
+        departmentCode: plmDept.code,
+        departmentName: plmDept.name,
+        startDate: `${yr}-${monStr}-01`,
+        endDate: `${yr}-${monStr}-${String(lastDay).padStart(2, '0')}`,
+        status,
+        statusCategory: categorizeStatus(status),
+        plannedParticipants: Math.max(0, Number(m.plan) || 0),
+        actualParticipants: Math.max(0, Number(m.actual) || 0),
+        plannedHours,
+        actualHours,
+        participantNames: [],
+        sourceLabel: 'Program Technical Training',
+        sourceTab: 'trainer_activities',
+        companyScope: 'INTERNAL_RJS',
+        site: 'Site Tangofa',
+        cohortKey: 'PLM_MECHANIC_TANGOFA',
+      });
+    });
+
+    // 2. Sub-Menu 1: Monitoring OJT Siswa BMC (31 Siswa PLM Tangofa & 7 Siswa Site TPM)
+    (mod.ojtBmcRecords || []).forEach((r, idx) => {
+      const status: ApplicationStatus =
+        r.ojt_status === 'Completed' || r.ojt_status === 'Evaluated'
+          ? 'COMPLETED'
+          : 'IN_PROGRESS';
+      const count = Math.max(0, Number(r.student_count) || 0);
+      const isTpm = (r.location || '').toUpperCase().includes('TPM');
+      rawSubItems.push({
+        id: `sub-ojt-${r.id}`,
+        applicationNumber: `TTC-OJT-2026-${String(idx + 1).padStart(2, '0')}`,
+        trainingTitle: `${r.student_name} (${r.batch} • ${r.location})`,
+        trainingCategory: 'Technical',
+        trainingType: 'INTERNAL',
+        departmentId: plmDept.id,
+        departmentCode: plmDept.code,
+        departmentName: plmDept.name,
+        startDate: '2026-11-01',
+        endDate: '2026-11-30',
+        status,
+        statusCategory: categorizeStatus(status),
+        plannedParticipants: count,
+        actualParticipants: count,
+        plannedHours: 40,
+        actualHours: status === 'COMPLETED' ? 40 : 32,
+        participantNames: [],
+        sourceLabel: 'Program Technical Training',
+        sourceTab: 'trainer_activities',
+        companyScope: 'INTERNAL_RJS',
+        site: isTpm ? 'Site TPM' : 'Site Tangofa',
+        cohortKey: isTpm ? 'PLM_MECHANIC_TPM' : 'PLM_MECHANIC_TANGOFA',
+      });
+    });
+
+    // Catatan Akurasi Data:
+    // Jadwal Sharing Session BMC & Daily Activity Trainer adalah log aktivitas harian/sharing
+    // dari peserta yang sudah dihitung di program utama (OJT BMC, FGDP, Green Operator, Driver DT),
+    // sehingga TIDAK dijumlahkan ulang sebagai program/peserta baru agar bebas double-counting.
+
+    // 5. Sub-Menu 3: Program Skill Audit & Refresh Operator (ADT, Excavator, Doser, Driver DT, dan Heavy Equipment)
+    const skillOps = mod.skillAuditOperatorRecords || [];
+    const skillCategories: Array<{
+      code: SkillAuditCategoryCode;
+      appNo: string;
+      title: string;
+      startDate: string;
+      endDate: string;
+      hours: number;
+    }> = [
+      {
+        code: 'ADT',
+        appNo: 'SKA-MOD-2026-ADT',
+        title:
+          'Program Refresh Training Operator ADT Setelah Skill Audit (Komatsu HM400 & Volvo A40G)',
+        startDate: '2026-09-25',
+        endDate: '2026-11-04',
+        hours: 40,
+      },
+      {
+        code: 'EXCAVATOR',
+        appNo: 'SKA-MOD-2026-EXC',
+        title:
+          'Program Refresh Digger / Excavator Operator Setelah Skill Audit (Excavator 50T & 30T/320T)',
+        startDate: '2026-10-01',
+        endDate: '2026-11-04',
+        hours: 32,
+      },
+      {
+        code: 'DOSER',
+        appNo: 'SKA-MOD-2026-DOS',
+        title:
+          'Program Refresh Operator Doser Setelah Skill Audit (Doser D85SS & D65)',
+        startDate: '2026-10-27',
+        endDate: '2026-11-04',
+        hours: 16,
+      },
+      {
+        code: 'DRIVER_DT',
+        appNo: 'SKA-MOD-2026-DT',
+        title:
+          'Observasi Skill Drive & Refresh Procedure Emergency Driver DT Hauling (Domfeng & Hongyan)',
+        startDate: '2026-09-26',
+        endDate: '2026-11-04',
+        hours: 24,
+      },
+    ];
+
+    const normalizePersonKey = (raw: string): string => {
+      if (!raw) return '';
+      const cleaned = raw
+        .toLowerCase()
+        .replace(/\(batch.*?\)|\(lv\)/gi, '')
+        .replace(/^\d+\s*x\s*/i, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!cleaned || cleaned.length < 3) return '';
+      if (
+        /^(tes praktek|grounded|peserta|siswa|kandidat|operator|driver|mekanik|refresh|orientasi|observasi|assessment)\b/i.test(
+          cleaned
+        )
+      ) {
+        return '';
+      }
+      return cleaned;
+    };
+
+    const isSubconGenba = (r: { activitas?: string; perusahaan?: string }): boolean => {
+      const act = (r.activitas || '').toLowerCase();
+      const per = (r.perusahaan || '').toLowerCase();
+      if (/\b(subcon|subcont|igs|cas|armada|gkc|gpm)\b/i.test(act)) return true;
+      if (
+        per !== 'rjs / subcont' &&
+        per !== 'rjs & subcont' &&
+        /\b(subcon|subcont|igs|cas|armada|gkc|gpm)\b/i.test(per)
+      ) {
+        return true;
+      }
+      return false;
+    };
+
+    skillCategories.forEach((cat) => {
+      const catRecords = skillOps.filter((r) => r.category === cat.code);
+      if (catRecords.length > 0) {
+        rawSubItems.push({
+          id: `sub-ska-${cat.code.toLowerCase()}`,
+          applicationNumber: cat.appNo,
+          trainingTitle: cat.title,
+          trainingCategory: 'Technical',
+          trainingType: 'INTERNAL',
+          departmentId: modDept.id,
+          departmentCode: modDept.code,
+          departmentName: modDept.name,
+          startDate: cat.startDate,
+          endDate: cat.endDate,
+          status: 'COMPLETED',
+          statusCategory: 'COMPLETED',
+          plannedParticipants: catRecords.length,
+          actualParticipants: catRecords.length,
+          plannedHours: cat.hours,
+          actualHours: cat.hours,
+          participantNames: catRecords.map((r) => r.nama),
+          sourceLabel: 'Skill Audit & Refresh Operator',
+          sourceTab: 'skill_audit_refresh_operator',
+          companyScope: 'INTERNAL_RJS',
+          site: 'Site Tangofa',
+        });
+      }
+    });
+
+    // Tambahkan juga unit Heavy Equipment lain dari Summary Skill Audit (mis. Wheel Loader & Grader)
+    (mod.skillAuditSummaryRows || []).forEach((row) => {
+      const j = row.jabatan.toLowerCase();
+      const isCoveredByFourTabs =
+        j.includes('adt') ||
+        j.includes('excavator') ||
+        j.includes('exa') ||
+        j.includes('buldozer') ||
+        j.includes('dozer') ||
+        j.includes('doser') ||
+        j.includes('driver dt');
+      if (isCoveredByFourTabs || row.total_karyawan <= 0) return;
+
+      const isCompleted = row.open_count === 0 && row.close_count > 0;
+      const status: ApplicationStatus = isCompleted
+        ? 'COMPLETED'
+        : row.close_count > 0
+        ? 'IN_PROGRESS'
+        : 'SCHEDULED';
+
+      rawSubItems.push({
+        id: `sub-ska-sum-${row.id}`,
+        applicationNumber: `SKA-MOD-2026-${String(row.no).padStart(2, '0')}`,
+        trainingTitle: `Program Skill Audit & Refresh ${row.jabatan} — Heavy Equipment`,
+        trainingCategory: 'Technical',
+        trainingType: 'INTERNAL',
+        departmentId: modDept.id,
+        departmentCode: modDept.code,
+        departmentName: modDept.name,
+        startDate: isCompleted ? '2026-10-15' : '2026-11-01',
+        endDate: '2026-11-30',
+        status,
+        statusCategory: categorizeStatus(status),
+        plannedParticipants: row.total_karyawan,
+        actualParticipants: row.close_count,
+        plannedHours: 16,
+        actualHours: isCompleted ? 16 : row.close_count > 0 ? 8 : 0,
+        participantNames: [],
+        sourceLabel: 'Skill Audit & Refresh Operator',
+        sourceTab: 'skill_audit_refresh_operator',
+        companyScope: 'INTERNAL_RJS',
+        site: 'Site Tangofa',
+      });
+    });
+
+    // 6. Sub-Menu 4: Assessment, Cross & Skill Up Operator
+    const opState = operationTrainerStore.getState();
+    const simperWeeklyCount = (opState.simperAssessments || []).reduce(
+      (sum, r) => sum + (Number(r.actual) || 0),
+      0
+    );
+    const simperTotalActual = Math.max(opState.simperCumulativeYtd || 66, simperWeeklyCount);
+    rawSubItems.push({
+      id: 'sub-op-simper-2026',
+      applicationNumber: 'OP-SIMPER-2026-01',
+      trainingTitle: `Assessment Candidate Operator & Driver (Internal & External) — Mendapatkan SIMPER (${simperTotalActual}x Kandidat)`,
+      trainingCategory: 'Technical',
+      trainingType: 'INTERNAL',
+      departmentId: modDept.id,
+      departmentCode: modDept.code,
+      departmentName: modDept.name,
+      startDate: '2026-11-02',
+      endDate: '2026-11-04',
+      status: 'COMPLETED',
+      statusCategory: 'COMPLETED',
+      plannedParticipants: simperTotalActual,
+      actualParticipants: simperTotalActual,
+      plannedHours: 24,
+      actualHours: 24,
+      participantNames: (opState.simperAssessments || []).map((r) => r.kandidatNama),
+      sourceLabel: 'Assessment, Cross & Skill Up Operator',
+      sourceTab: 'assessment_cross_skillup',
+      companyScope: 'INTERNAL_RJS',
+      site: 'Site Tangofa',
+      cohortKey: 'MOD_NEWHIRE_SIMPER_COHORT',
+    });
+
+    const crossRecs = opState.crossTrainingRecords || [];
+    const crossClosedRecs = crossRecs.filter((r) => r.status === 'CLOSE');
+    const crossOtherRecs = crossRecs.filter((r) => r.status !== 'CLOSE');
+    const crossClosed = Math.max(
+      opState.crossMatrixSummary?.CLOSE || 24,
+      crossClosedRecs.length
+    );
+    const crossActive =
+      (opState.crossMatrixSummary?.ON_PROGRESS || 8) +
+      (opState.crossMatrixSummary?.ORIENTASI || 4) +
+      (opState.crossMatrixSummary?.ON_SCHEDULE || 4);
+    const crossTotalPlan = Math.max(crossClosed + crossActive, crossRecs.length);
+    rawSubItems.push({
+      id: 'sub-op-cross-2026',
+      applicationNumber: 'OP-CROSS-2026-02',
+      trainingTitle: `Program Cross Training & Similar Operator & Driver (Dozer, Rock Breaker & Water Truck — ${crossClosed} Close, ${crossActive} On Going)`,
+      trainingCategory: 'Technical',
+      trainingType: 'INTERNAL',
+      departmentId: modDept.id,
+      departmentCode: modDept.code,
+      departmentName: modDept.name,
+      startDate: '2026-06-26',
+      endDate: '2026-11-04',
+      status: 'IN_PROGRESS',
+      statusCategory: 'IN_PROGRESS',
+      plannedParticipants: crossTotalPlan,
+      actualParticipants: crossClosed,
+      plannedHours: 40,
+      actualHours: 32,
+      participantNames: [...crossClosedRecs, ...crossOtherRecs].map((r) => r.nama),
+      sourceLabel: 'Assessment, Cross & Skill Up Operator',
+      sourceTab: 'assessment_cross_skillup',
+      companyScope: 'INTERNAL_RJS',
+      site: 'Site Tangofa',
+    });
+
+    const skillUpRecs = opState.skillUpRecords || [];
+    const skillUpClosedRecs = skillUpRecs.filter((r) => r.status === 'CLOSE');
+    const skillUpActiveRecs = skillUpRecs.filter(
+      (r) => r.status !== 'CLOSE' && r.status !== 'CANCEL'
+    );
+    const skillUpClosed = Math.max(
+      opState.skillUpMatrixSummary?.CLOSE || 27,
+      skillUpClosedRecs.length
+    );
+    const skillUpTotalPlan = Math.max(
+      skillUpClosed +
+        (opState.skillUpMatrixSummary?.HOLD || 7) +
+        (opState.skillUpMatrixSummary?.ON_SCHEDULE || 4),
+      skillUpClosedRecs.length + skillUpActiveRecs.length
+    );
+    rawSubItems.push({
+      id: 'sub-op-skillup-2026',
+      applicationNumber: 'OP-SKILLUP-2026-03',
+      trainingTitle: `Skill Up Training Operator & Driver (DT 12R, Motor Grader, Compactor, Buldozer & CT — ${skillUpClosed} Close)`,
+      trainingCategory: 'Technical',
+      trainingType: 'INTERNAL',
+      departmentId: modDept.id,
+      departmentCode: modDept.code,
+      departmentName: modDept.name,
+      startDate: '2026-07-01',
+      endDate: '2026-11-04',
+      status: 'IN_PROGRESS',
+      statusCategory: 'IN_PROGRESS',
+      plannedParticipants: skillUpTotalPlan,
+      actualParticipants: skillUpClosed,
+      plannedHours: 40,
+      actualHours: 32,
+      participantNames: [...skillUpClosedRecs, ...skillUpActiveRecs].map((r) => r.nama),
+      sourceLabel: 'Assessment, Cross & Skill Up Operator',
+      sourceTab: 'assessment_cross_skillup',
+      companyScope: 'INTERNAL_RJS',
+      site: 'Site Tangofa',
+    });
+
+    // 7. Sub-Menu 5: Orientasi, Re-Training, FGDP & Green Operator
+    const oriTotal = Math.max(
+      opState.orientasiCumulativeTotal || 62,
+      (opState.orientasiNewHireRecords || []).length
+    );
+    rawSubItems.push({
+      id: 'sub-op-orientasi-2026',
+      applicationNumber: 'OP-ORI-2026-01',
+      trainingTitle: `Orientasi New Hire Operator & Driver di Field (Completed ${opState.orientasiCompletedOctCount || 18}x Oktober • Kumulatif ${oriTotal}x Selesai Orientasi)`,
+      trainingCategory: 'Technical',
+      trainingType: 'INTERNAL',
+      departmentId: modDept.id,
+      departmentCode: modDept.code,
+      departmentName: modDept.name,
+      startDate: '2026-08-16',
+      endDate: '2026-11-04',
+      status: 'COMPLETED',
+      statusCategory: 'COMPLETED',
+      plannedParticipants: oriTotal,
+      actualParticipants: oriTotal,
+      plannedHours: 48,
+      actualHours: 48,
+      participantNames: (opState.orientasiNewHireRecords || []).map((r) => r.nama),
+      sourceLabel: 'Orientasi, Re-Training, FGDP & Green Operator',
+      sourceTab: 'orientasi_retraining_green',
+      companyScope: 'INTERNAL_RJS',
+      site: 'Site Tangofa',
+      cohortKey: 'MOD_NEWHIRE_SIMPER_COHORT',
+    });
+
+    const rtRecs = opState.retrainingRecords || [];
+    const rtDoneRecs = rtRecs.filter((r) => r.ket === 'DONE');
+    const rtOtherRecs = rtRecs.filter((r) => r.ket !== 'DONE');
+    const rtGrounded = Math.max(
+      opState.retrainingCumulativeGrounded || 64,
+      rtRecs.length
+    );
+    const rtComplete = Math.max(
+      opState.retrainingCumulativeComplete || 64,
+      rtDoneRecs.length
+    );
+    rawSubItems.push({
+      id: 'sub-op-retraining-2026',
+      applicationNumber: 'OP-RET-2026-02',
+      trainingTitle: `Re-Training Program (Refresh Class & Practical Pasca Incident + 12x Joint Investigasi — ${rtComplete}/${rtGrounded} Complete)`,
+      trainingCategory: 'Safety / K3',
+      trainingType: 'INTERNAL',
+      departmentId: modDept.id,
+      departmentCode: modDept.code,
+      departmentName: modDept.name,
+      startDate: '2026-09-04',
+      endDate: '2026-11-03',
+      status: 'COMPLETED',
+      statusCategory: 'COMPLETED',
+      plannedParticipants: rtGrounded,
+      actualParticipants: rtComplete,
+      plannedHours: 24,
+      actualHours: 24,
+      participantNames: [...rtDoneRecs, ...rtOtherRecs].map((r) => r.namaPeserta),
+      sourceLabel: 'Orientasi, Re-Training, FGDP & Green Operator',
+      sourceTab: 'orientasi_retraining_green',
+      companyScope: 'INTERNAL_RJS',
+      site: 'Site Tangofa',
+    });
+
+    const fgdpCount = (opState.fgdpRecords || []).length;
+    if (fgdpCount > 0) {
+      rawSubItems.push({
+        id: 'sub-op-fgdp-2026',
+        applicationNumber: 'OP-FGDP-2026-03',
+        trainingTitle: `Pembekalan & Orientasi FGDP di Training Center (${fgdpCount} Peserta Class & Field)`,
+        trainingCategory: 'Leadership',
+        trainingType: 'INTERNAL',
+        departmentId: tcDept.id,
+        departmentCode: tcDept.code,
+        departmentName: tcDept.name,
+        startDate: '2026-10-19',
+        endDate: '2026-11-05',
+        status: 'COMPLETED',
+        statusCategory: 'COMPLETED',
+        plannedParticipants: fgdpCount,
+        actualParticipants: fgdpCount,
+        plannedHours: 40,
+        actualHours: 40,
+        participantNames: (opState.fgdpRecords || []).map((r) => r.nama),
+        sourceLabel: 'Orientasi, Re-Training, FGDP & Green Operator',
+        sourceTab: 'orientasi_retraining_green',
+        companyScope: 'INTERNAL_RJS',
+        site: 'Site Tangofa',
+      });
+    }
+
+    const greenCount = (opState.greenOperatorRecords || []).length;
+    if (greenCount > 0) {
+      rawSubItems.push({
+        id: 'sub-op-green-adt-2026',
+        applicationNumber: 'OP-GREEN-2026-04',
+        trainingTitle: `Program Training ${greenCount}x Green Operator ADT Batch VI 2026 (Class Done • OJT Circuit Area Gerdas & Zig Zag On Going)`,
+        trainingCategory: 'Technical',
+        trainingType: 'INTERNAL',
+        departmentId: modDept.id,
+        departmentCode: modDept.code,
+        departmentName: modDept.name,
+        startDate: '2026-10-29',
+        endDate: '2026-11-30',
+        status: 'IN_PROGRESS',
+        statusCategory: 'IN_PROGRESS',
+        plannedParticipants: greenCount,
+        actualParticipants: greenCount,
+        plannedHours: 80,
+        actualHours: 48,
+        participantNames: (opState.greenOperatorRecords || []).map((r) => r.nama),
+        sourceLabel: 'Orientasi, Re-Training, FGDP & Green Operator',
+        sourceTab: 'orientasi_retraining_green',
+        companyScope: 'INTERNAL_RJS',
+        site: 'Site Tangofa',
+      });
+    }
+
+    // 8. Site Gemba Refresh Class & Assessment — Dipisahkan Internal PT. RJS vs Mitra Subcont
+    const allGenbaAssess = opState.genbaAssessmentRecords || [];
+    const genbaAssessSubcon = allGenbaAssess.filter((r) => isSubconGenba(r));
+    const genbaAssessRjs = allGenbaAssess.filter((r) => !isSubconGenba(r));
+
+    const subconKnownNames = new Set(
+      genbaAssessSubcon.map((r) => normalizePersonKey(r.nama)).filter(Boolean)
+    );
+
+    const allGenbaClass = opState.genbaClassRecords || [];
+    const genbaClassSubcon = allGenbaClass.filter(
+      (r) => isSubconGenba(r) || subconKnownNames.has(normalizePersonKey(r.nama))
+    );
+    const genbaClassRjs = allGenbaClass.filter(
+      (r) => !isSubconGenba(r) && !subconKnownNames.has(normalizePersonKey(r.nama))
+    );
+
+    if (genbaClassRjs.length > 0) {
+      rawSubItems.push({
+        id: 'sub-op-genba-class-rjs-2026',
+        applicationNumber: 'GENBA-CLS-RJS-01',
+        trainingTitle: `Refresh Training Class Driver & Operator Internal PT. RJS di Site Gemba (${genbaClassRjs.length}x Peserta)`,
+        trainingCategory: 'Technical',
+        trainingType: 'INTERNAL',
+        departmentId: modDept.id,
+        departmentCode: modDept.code,
+        departmentName: modDept.name,
+        startDate: '2026-07-05',
+        endDate: '2026-10-29',
+        status: 'COMPLETED',
+        statusCategory: 'COMPLETED',
+        plannedParticipants: genbaClassRjs.length,
+        actualParticipants: genbaClassRjs.length,
+        plannedHours: 16,
+        actualHours: 16,
+        participantNames: genbaClassRjs.map((r) => r.nama),
+        sourceLabel: 'Skill Audit & Refresh Operator',
+        sourceTab: 'skill_audit_refresh_operator',
+        companyScope: 'INTERNAL_RJS',
+        site: 'Site Gemba',
+      });
+    }
+
+    if (genbaClassSubcon.length > 0) {
+      rawSubItems.push({
+        id: 'sub-op-genba-class-subcon-2026',
+        applicationNumber: 'GENBA-CLS-SUB-01',
+        trainingTitle: `Refresh Training Class Driver & Operator Mitra Subcont di Site Gemba (${genbaClassSubcon.length}x Sesi)`,
+        trainingCategory: 'Technical',
+        trainingType: 'INTERNAL',
+        departmentId: modDept.id,
+        departmentCode: modDept.code,
+        departmentName: modDept.name,
+        startDate: '2026-07-05',
+        endDate: '2026-10-29',
+        status: 'COMPLETED',
+        statusCategory: 'COMPLETED',
+        plannedParticipants: genbaClassSubcon.length,
+        actualParticipants: genbaClassSubcon.length,
+        plannedHours: 16,
+        actualHours: 16,
+        participantNames: genbaClassSubcon.map((r) => r.nama),
+        sourceLabel: 'Skill Audit & Refresh Operator',
+        sourceTab: 'skill_audit_refresh_operator',
+        companyScope: 'SUBCONT',
+        site: 'Site Gemba',
+      });
+    }
+
+    if (genbaAssessRjs.length > 0) {
+      rawSubItems.push({
+        id: 'sub-op-genba-assess-rjs-2026',
+        applicationNumber: 'GENBA-ASS-RJS-02',
+        trainingTitle: `Assessment, Orientasi & Refresh Operator/Driver Internal PT. RJS di Site Gemba (${genbaAssessRjs.length}x Sesi)`,
+        trainingCategory: 'Technical',
+        trainingType: 'INTERNAL',
+        departmentId: modDept.id,
+        departmentCode: modDept.code,
+        departmentName: modDept.name,
+        startDate: '2026-07-01',
+        endDate: '2026-10-27',
+        status: 'COMPLETED',
+        statusCategory: 'COMPLETED',
+        plannedParticipants: genbaAssessRjs.length,
+        actualParticipants: genbaAssessRjs.length,
+        plannedHours: 24,
+        actualHours: 24,
+        participantNames: genbaAssessRjs.map((r) => r.nama),
+        sourceLabel: 'Assessment, Cross & Skill Up',
+        sourceTab: 'assessment_cross_skillup',
+        companyScope: 'INTERNAL_RJS',
+        site: 'Site Gemba',
+      });
+    }
+
+    if (genbaAssessSubcon.length > 0) {
+      rawSubItems.push({
+        id: 'sub-op-genba-assess-subcon-2026',
+        applicationNumber: 'GENBA-ASS-SUB-02',
+        trainingTitle: `Assessment, Orientasi & Refresh Driver Mitra Subcont (CAS, IGS, Armada, GKC, GPM) di Site Gemba (${genbaAssessSubcon.length}x Sesi)`,
+        trainingCategory: 'Technical',
+        trainingType: 'INTERNAL',
+        departmentId: modDept.id,
+        departmentCode: modDept.code,
+        departmentName: modDept.name,
+        startDate: '2026-07-04',
+        endDate: '2026-11-03',
+        status: 'COMPLETED',
+        statusCategory: 'COMPLETED',
+        plannedParticipants: genbaAssessSubcon.length,
+        actualParticipants: genbaAssessSubcon.length,
+        plannedHours: 24,
+        actualHours: 24,
+        participantNames: genbaAssessSubcon.map((r) => r.nama),
+        sourceLabel: 'Assessment, Cross & Skill Up',
+        sourceTab: 'assessment_cross_skillup',
+        companyScope: 'SUBCONT',
+        site: 'Site Gemba',
+      });
+    }
+
+    // Catatan Akurasi Data:
+    // Daily Activity Operation Trainer (dailyOperationTrainerLogs) adalah log harian instruktur
+    // untuk peserta yang sudah tercatat di program utama (Green Operator, Orientasi, Re-Training),
+    // sehingga TIDAK ditambahkan ulang ke total program/manpower agar tidak double-counting.
+
+    // Terapkan filter penghapusan & override koreksi manual (jika Admin mengedit item sub-menu dari tabel Capaian Training)
+    return rawSubItems
+      .filter((item) => !deletedSet.has(item.id))
+      .map((item) => {
+        const ov = overrides[item.id];
+        if (!ov) return item;
+        const nextDept = ov.department_id
+          ? this.departments.find((d) => d.id === ov.department_id)
+          : undefined;
+        const nextStatus = ov.current_status ?? item.status;
+        const nextStatusCategory = categorizeStatus(nextStatus);
+        return {
+          ...item,
+          trainingTitle: ov.training_title ?? item.trainingTitle,
+          departmentId: nextDept ? nextDept.id : item.departmentId,
+          departmentCode: nextDept ? nextDept.code : item.departmentCode,
+          departmentName: nextDept ? nextDept.name : item.departmentName,
+          trainingType: ov.training_type ?? item.trainingType,
+          startDate: ov.proposed_start_date ?? item.startDate,
+          endDate: ov.proposed_end_date ?? item.endDate,
+          status: nextStatus,
+          statusCategory: nextStatusCategory,
+          plannedParticipants:
+            ov.planned_participants !== undefined
+              ? ov.planned_participants
+              : item.plannedParticipants,
+          actualParticipants:
+            ov.actual_participants !== undefined
+              ? ov.actual_participants
+              : item.actualParticipants,
+          plannedHours:
+            ov.planned_hours !== undefined ? ov.planned_hours : item.plannedHours,
+          actualHours:
+            ov.actual_hours !== undefined ? ov.actual_hours : item.actualHours,
+        };
+      });
+  }
+
   calculateTrainingAchievement(filters: AchievementFilter = {}): TrainingAchievementSummary {
     const allApps = this.getVisibleApplications(this.users[0].id);
 
@@ -2920,50 +3600,11 @@ class DataStore {
       return 'PENDING';
     };
 
-    const items: TrainingPerformanceItem[] = [];
+    const candidateItems: TrainingPerformanceItem[] = [];
 
     uniqueAppsMap.forEach((app) => {
       const startDate = app.proposed_start_date || app.created_at.slice(0, 10);
-      const [appYear, appMonth] = startDate.split('-');
-
-      // Filter by Year
-      if (filters.year && filters.year !== 'ALL' && appYear !== filters.year) {
-        return;
-      }
-
-      // Filter by Month ('01'..'12')
-      if (filters.month && filters.month !== 'ALL' && appMonth !== filters.month) {
-        return;
-      }
-
-      // Filter by Department
-      if (
-        filters.departmentId &&
-        filters.departmentId !== 'ALL' &&
-        app.department_id !== filters.departmentId
-      ) {
-        return;
-      }
-
-      // Filter by Training Type
-      if (
-        filters.trainingType &&
-        filters.trainingType !== 'ALL' &&
-        app.training_type !== filters.trainingType
-      ) {
-        return;
-      }
-
       const statusCategory = categorizeStatus(app.current_status);
-
-      // Filter by Status Category
-      if (
-        filters.statusCategory &&
-        filters.statusCategory !== 'ALL' &&
-        statusCategory !== filters.statusCategory
-      ) {
-        return;
-      }
 
       const dept = this.departments.find((d) => d.id === app.department_id);
       const sched = this.schedules.find((s) => s.application_id === app.id);
@@ -2981,10 +3622,12 @@ class DataStore {
           : Math.max((app.participants || []).length, 1);
 
       const actualParticipants =
-        statusCategory === 'COMPLETED'
+        statusCategory === 'COMPLETED' || statusCategory === 'IN_PROGRESS'
           ? app.actual_participants !== undefined && app.actual_participants > 0
             ? app.actual_participants
-            : Math.max(appRecords.length, (app.participants || []).length)
+            : statusCategory === 'COMPLETED'
+            ? Math.max(appRecords.length, (app.participants || []).length)
+            : 0
           : 0;
 
       const plannedHours =
@@ -3001,7 +3644,14 @@ class DataStore {
           ? app.actual_hours || 0
           : 0;
 
-      items.push({
+      const locLower = (app.training_location || '').toLowerCase();
+      const inferredSite = locLower.includes('gemba') || locLower.includes('genba')
+        ? 'Site Gemba'
+        : locLower.includes('tpm')
+        ? 'Site TPM'
+        : 'Site Tangofa';
+
+      candidateItems.push({
         id: app.id,
         applicationNumber: app.application_number,
         trainingTitle: app.training_title,
@@ -3010,8 +3660,8 @@ class DataStore {
         departmentId: app.department_id,
         departmentCode: dept?.code || 'RAJA',
         departmentName: dept?.name || app.department_name || '-',
-        startDate: app.proposed_start_date,
-        endDate: app.proposed_end_date,
+        startDate,
+        endDate: app.proposed_end_date || startDate,
         status: app.current_status,
         statusCategory,
         plannedParticipants,
@@ -3019,8 +3669,177 @@ class DataStore {
         plannedHours,
         actualHours,
         participantNames,
+        sourceLabel: 'Pengajuan Training',
+        sourceTab: 'applications',
+        companyScope: 'INTERNAL_RJS',
+        site: inferredSite,
       });
     });
+
+    // Gabungkan otomatis seluruh program yang berjalan di Sub-Menu Training Achievement
+    const subMenuItems = this.getSubMenuAchievementItems();
+    candidateItems.push(...subMenuItems);
+
+    // Filter seluruh item berdasarkan Tahun, Bulan, Departemen, Jenis Training, Status, Lingkup Perusahaan, dan Site
+    const items = candidateItems.filter((item) => {
+      const [itemYear, itemMonth] = (item.startDate || '2026-11-01').split('-');
+      const itemScope = item.companyScope || 'INTERNAL_RJS';
+      const itemSite = item.site || 'Site Tangofa';
+
+      if (filters.year && filters.year !== 'ALL' && itemYear !== filters.year) {
+        return false;
+      }
+      if (filters.month && filters.month !== 'ALL' && itemMonth !== filters.month) {
+        return false;
+      }
+      if (
+        filters.departmentId &&
+        filters.departmentId !== 'ALL' &&
+        item.departmentId !== filters.departmentId
+      ) {
+        return false;
+      }
+      if (
+        filters.trainingType &&
+        filters.trainingType !== 'ALL' &&
+        item.trainingType !== filters.trainingType
+      ) {
+        return false;
+      }
+      if (
+        filters.statusCategory &&
+        filters.statusCategory !== 'ALL' &&
+        item.statusCategory !== filters.statusCategory
+      ) {
+        return false;
+      }
+      if (
+        filters.companyScope &&
+        filters.companyScope !== 'ALL' &&
+        itemScope !== filters.companyScope
+      ) {
+        return false;
+      }
+      if (filters.site && filters.site !== 'ALL' && itemSite !== filters.site) {
+        return false;
+      }
+      return true;
+    });
+
+    // Deduplikasi Personel Unik lintas program & lintas tahap/bulan (tanpa double-counting)
+    const normalizePersonKey = (raw: string): string => {
+      if (!raw) return '';
+      const cleaned = raw
+        .toLowerCase()
+        .replace(/\(batch.*?\)|\(lv\)/gi, '')
+        .replace(/^\d+\s*x\s*/i, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!cleaned || cleaned.length < 3) return '';
+      if (
+        /^(tes praktek|grounded|peserta|siswa|kandidat|operator|driver|mekanik|refresh|orientasi|observasi|assessment)\b/i.test(
+          cleaned
+        )
+      ) {
+        return '';
+      }
+      return cleaned;
+    };
+
+    const computeDeduplicatedManpower = (list: TrainingPerformanceItem[]) => {
+      const uniquePlannedNames = new Set<string>();
+      const uniqueTrainedNames = new Set<string>();
+
+      let standaloneUnnamedPlanned = 0;
+      let standaloneUnnamedTrained = 0;
+
+      const cohortGroups = new Map<string, TrainingPerformanceItem[]>();
+
+      for (const it of list) {
+        if (it.cohortKey) {
+          const arr = cohortGroups.get(it.cohortKey) || [];
+          arr.push(it);
+          cohortGroups.set(it.cohortKey, arr);
+          continue;
+        }
+
+        const cleanedNames = (it.participantNames || [])
+          .map(normalizePersonKey)
+          .filter(Boolean);
+
+        const itemPlannedSet = new Set<string>();
+        for (const n of cleanedNames) {
+          if (itemPlannedSet.size >= it.plannedParticipants) break;
+          itemPlannedSet.add(n);
+          uniquePlannedNames.add(n);
+        }
+
+        const itemTrainedSet = new Set<string>();
+        for (const n of cleanedNames) {
+          if (itemTrainedSet.size >= it.actualParticipants) break;
+          itemTrainedSet.add(n);
+          uniqueTrainedNames.add(n);
+          uniquePlannedNames.add(n);
+        }
+
+        standaloneUnnamedPlanned += Math.max(0, it.plannedParticipants - itemPlannedSet.size);
+        standaloneUnnamedTrained += Math.max(0, it.actualParticipants - itemTrainedSet.size);
+      }
+
+      let cohortUnnamedPlanned = 0;
+      let cohortUnnamedTrained = 0;
+
+      cohortGroups.forEach((groupItems) => {
+        const groupPlannedSet = new Set<string>();
+        const groupTrainedSet = new Set<string>();
+        let peakPlanned = 0;
+        let peakTrained = 0;
+
+        for (const it of groupItems) {
+          peakPlanned = Math.max(peakPlanned, it.plannedParticipants);
+          peakTrained = Math.max(peakTrained, it.actualParticipants);
+
+          const cleanedNames = (it.participantNames || [])
+            .map(normalizePersonKey)
+            .filter(Boolean);
+
+          let pCount = 0;
+          for (const n of cleanedNames) {
+            if (pCount >= it.plannedParticipants) break;
+            pCount++;
+            groupPlannedSet.add(n);
+            uniquePlannedNames.add(n);
+          }
+
+          let tCount = 0;
+          for (const n of cleanedNames) {
+            if (tCount >= it.actualParticipants) break;
+            tCount++;
+            groupTrainedSet.add(n);
+            uniqueTrainedNames.add(n);
+            uniquePlannedNames.add(n);
+          }
+        }
+
+        cohortUnnamedPlanned += Math.max(0, peakPlanned - groupPlannedSet.size);
+        cohortUnnamedTrained += Math.max(0, peakTrained - groupTrainedSet.size);
+      });
+
+      const uniqueTrained =
+        uniqueTrainedNames.size + standaloneUnnamedTrained + cohortUnnamedTrained;
+      const uniquePlanned = Math.max(
+        uniqueTrained,
+        uniquePlannedNames.size + standaloneUnnamedPlanned + cohortUnnamedPlanned
+      );
+
+      return {
+        uniquePlanned,
+        uniqueTrained,
+        rawPlannedSessions: list.reduce((s, i) => s + i.plannedParticipants, 0),
+        rawTrainedSessions: list.reduce((s, i) => s + i.actualParticipants, 0),
+      };
+    };
 
     const totalPlan = items.length;
     const totalRealization = items.filter((i) => i.statusCategory === 'COMPLETED').length;
@@ -3034,8 +3853,11 @@ class DataStore {
     const achievementPercentage =
       totalPlan > 0 ? Math.round((totalRealization / totalPlan) * 1000) / 10 : null;
 
-    const totalManpowerPlanned = items.reduce((s, i) => s + i.plannedParticipants, 0);
-    const totalManpowerTrained = items.reduce((s, i) => s + i.actualParticipants, 0);
+    const overallMp = computeDeduplicatedManpower(items);
+    const totalManpowerPlanned = overallMp.uniquePlanned;
+    const totalManpowerTrained = overallMp.uniqueTrained;
+    const totalPlannedSessions = overallMp.rawPlannedSessions;
+    const totalAttendanceSessions = overallMp.rawTrainedSessions;
     const totalPlannedHours = items.reduce((s, i) => s + i.plannedHours, 0);
     const totalTrainingHours = items.reduce((s, i) => s + i.actualHours, 0);
 
@@ -3051,6 +3873,7 @@ class DataStore {
       const cancelled = deptItems.filter((i) => i.statusCategory === 'CANCELLED').length;
       const achievementPct =
         plan > 0 ? Math.round((realization / plan) * 1000) / 10 : null;
+      const deptMp = computeDeduplicatedManpower(deptItems);
 
       return {
         departmentId: dept.id,
@@ -3062,8 +3885,8 @@ class DataStore {
         pending,
         cancelled,
         achievementPct,
-        manpowerPlanned: deptItems.reduce((s, i) => s + i.plannedParticipants, 0),
-        manpowerTrained: deptItems.reduce((s, i) => s + i.actualParticipants, 0),
+        manpowerPlanned: deptMp.uniquePlanned,
+        manpowerTrained: deptMp.uniqueTrained,
         plannedHours: deptItems.reduce((s, i) => s + i.plannedHours, 0),
         actualHours: deptItems.reduce((s, i) => s + i.actualHours, 0),
       };
@@ -3095,6 +3918,7 @@ class DataStore {
       const cancelled = mItems.filter((i) => i.statusCategory === 'CANCELLED').length;
       const achievementPct =
         plan > 0 ? Math.round((realization / plan) * 1000) / 10 : null;
+      const mMp = computeDeduplicatedManpower(mItems);
 
       return {
         monthIndex: idx + 1,
@@ -3104,7 +3928,7 @@ class DataStore {
         pending,
         cancelled,
         achievementPct,
-        manpowerTrained: mItems.reduce((s, i) => s + i.actualParticipants, 0),
+        manpowerTrained: mMp.uniqueTrained,
         actualHours: mItems.reduce((s, i) => s + i.actualHours, 0),
       };
     });
@@ -3129,13 +3953,14 @@ class DataStore {
       const realization = tItems.filter((i) => i.statusCategory === 'COMPLETED').length;
       const achievementPct =
         plan > 0 ? Math.round((realization / plan) * 1000) / 10 : null;
+      const tMp = computeDeduplicatedManpower(tItems);
       return {
         type: tc.type,
         label: tc.label,
         plan,
         realization,
         achievementPct,
-        manpowerTrained: tItems.reduce((s, i) => s + i.actualParticipants, 0),
+        manpowerTrained: tMp.uniqueTrained,
         actualHours: tItems.reduce((s, i) => s + i.actualHours, 0),
       };
     });
@@ -3149,6 +3974,8 @@ class DataStore {
       achievementPercentage,
       totalManpowerPlanned,
       totalManpowerTrained,
+      totalAttendanceSessions,
+      totalPlannedSessions,
       totalPlannedHours,
       totalTrainingHours,
       departmentBreakdown,
@@ -3185,6 +4012,83 @@ class DataStore {
       throw new Error(
         'PERMISSION_DENIED: Role Anda hanya memiliki akses View pada fitur Training Achievement.'
       );
+    }
+
+    // Handle Sub-Menu Training Achievement items (id starting with "sub-")
+    if (appId.startsWith('sub-')) {
+      if (!this.technicalTrainingModule.achievementItemOverrides) {
+        this.technicalTrainingModule.achievementItemOverrides = {};
+      }
+      const prevOv = this.technicalTrainingModule.achievementItemOverrides[appId] || {};
+      this.technicalTrainingModule.achievementItemOverrides[appId] = {
+        ...prevOv,
+        ...updates,
+        training_title:
+          updates.training_title !== undefined
+            ? updates.training_title.trim()
+            : prevOv.training_title,
+        planned_participants:
+          updates.planned_participants !== undefined
+            ? Math.max(0, Number(updates.planned_participants))
+            : prevOv.planned_participants,
+        actual_participants:
+          updates.actual_participants !== undefined
+            ? Math.max(0, Number(updates.actual_participants))
+            : prevOv.actual_participants,
+        planned_hours:
+          updates.planned_hours !== undefined
+            ? Math.max(0, Number(updates.planned_hours))
+            : prevOv.planned_hours,
+        actual_hours:
+          updates.actual_hours !== undefined
+            ? Math.max(0, Number(updates.actual_hours))
+            : prevOv.actual_hours,
+      };
+
+      // Two-way sync back to underlying Sub-Menu records where applicable
+      if (appId.startsWith('sub-plm-class-')) {
+        const rawId = appId.replace('sub-plm-class-', '');
+        const plmRow = (this.technicalTrainingModule.plmMonthlyTrainingClasses || []).find(
+          (m) => m.id === rawId
+        );
+        if (plmRow) {
+          if (updates.planned_participants !== undefined)
+            plmRow.plan = Math.max(0, Number(updates.planned_participants));
+          if (updates.actual_participants !== undefined)
+            plmRow.actual = Math.max(0, Number(updates.actual_participants));
+          if (updates.current_status !== undefined) {
+            plmRow.period_status =
+              updates.current_status === 'COMPLETED' ? 'FINAL' : 'ON_GOING';
+          }
+        }
+      } else if (appId.startsWith('sub-ojt-')) {
+        const rawId = appId.replace('sub-ojt-', '');
+        const ojtRow = (this.technicalTrainingModule.ojtBmcRecords || []).find(
+          (r) => r.id === rawId
+        );
+        if (ojtRow) {
+          if (updates.actual_participants !== undefined)
+            ojtRow.student_count = Math.max(0, Number(updates.actual_participants));
+          else if (updates.planned_participants !== undefined)
+            ojtRow.student_count = Math.max(0, Number(updates.planned_participants));
+          if (updates.current_status !== undefined) {
+            ojtRow.ojt_status =
+              updates.current_status === 'COMPLETED' ? 'Completed' : 'On Going';
+          }
+        }
+      } else if (appId.startsWith('sub-dta-')) {
+        const rawId = appId.replace('sub-dta-', '');
+        const dtaRow = (this.technicalTrainingModule.dailyTrainerActivities || []).find(
+          (a) => a.id === rawId
+        );
+        if (dtaRow && updates.current_status !== undefined) {
+          dtaRow.remarks = updates.current_status === 'COMPLETED' ? 'Done' : 'Continue';
+        }
+      }
+
+      this.recalculateKpis(2026);
+      this.persistState();
+      return null;
     }
 
     const app = this.applications.find((a) => a.id === appId);
@@ -3258,6 +4162,18 @@ class DataStore {
     const perms = this.getUserPermissions(callerId);
     if (!perms.canDeleteData) {
       throw new Error('PERMISSION_DENIED: Role Anda tidak memiliki izin Delete Data pada matriks RBAC.');
+    }
+
+    if (appId.startsWith('sub-')) {
+      if (!Array.isArray(this.technicalTrainingModule.deletedAchievementItemIds)) {
+        this.technicalTrainingModule.deletedAchievementItemIds = [];
+      }
+      if (!this.technicalTrainingModule.deletedAchievementItemIds.includes(appId)) {
+        this.technicalTrainingModule.deletedAchievementItemIds.push(appId);
+      }
+      this.recalculateKpis(2026);
+      this.persistState();
+      return true;
     }
 
     const index = this.applications.findIndex((a) => a.id === appId);

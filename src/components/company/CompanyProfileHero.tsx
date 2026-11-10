@@ -90,15 +90,15 @@ export const CompanyProfileHero: React.FC = () => {
 
   return (
     <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
-      {/* Structured Hero Header with Mining Photography & Topographic Overlay */}
+      {/* Structured Hero Header with RAJA ACADEMY Photography & Topographic Overlay */}
       <div className="relative bg-[#18232B] text-white px-6 py-6 sm:px-8 border-b border-[#263640] overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-luminosity"
+          className="absolute inset-0 bg-cover bg-right opacity-20"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1400&q=80')`,
+            backgroundImage: `url('/images/raja-academy-hero.jpg')`,
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#18232B] via-[#18232B]/90 to-[#263640]/90 bg-topography" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#18232B] via-[#18232B]/90 to-[#263640]/85 bg-topography" />
 
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
@@ -115,7 +115,7 @@ export const CompanyProfileHero: React.FC = () => {
               <p className="text-xs text-slate-300 flex flex-wrap items-center gap-2 mt-0.5">
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-[#E88932]" />
-                  <span>Site Morowali (Sulawesi Tengah) & Head Office Makassar</span>
+                  <span>Site Tangofa • Gemba • TPM (Morowali) & Head Office Makassar</span>
                 </span>
                 <span className="text-slate-500">•</span>
                 <span className="font-mono text-[11px] text-slate-300">

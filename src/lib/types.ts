@@ -815,6 +815,22 @@ export interface TechnicalTrainingModuleState {
   skillAuditOperatorRecords: SkillAuditOperatorRecord[];
   skillAuditSummaryRows: SkillAuditHeavyEquipmentSummaryRow[];
   skillAuditPhotos: Record<string, string[]>;
+  achievementItemOverrides?: Record<
+    string,
+    {
+      training_title?: string;
+      department_id?: string;
+      training_type?: TrainingType;
+      proposed_start_date?: string;
+      proposed_end_date?: string;
+      current_status?: ApplicationStatus;
+      planned_participants?: number;
+      actual_participants?: number;
+      planned_hours?: number;
+      actual_hours?: number;
+    }
+  >;
+  deletedAchievementItemIds?: string[];
   updated_at: string;
   updated_by?: string;
 }

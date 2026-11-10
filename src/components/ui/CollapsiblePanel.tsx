@@ -1,30 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 // ==============================================================================
 // CollapsiblePanel — bagian halaman yang tertutup secara default, dibuka dengan klik
 // ==============================================================================
 interface CollapsiblePanelProps {
+  id?: string;
   title: string;
   subtitle?: string;
   icon?: React.ReactNode;
   badge?: React.ReactNode;
   defaultOpen?: boolean;
+  forceOpenTrigger?: number;
   children: React.ReactNode;
 }
 
 export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
+  id,
   title,
   subtitle,
   icon,
   badge,
   defaultOpen = false,
+  forceOpenTrigger = 0,
   children,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
 
+  useEffect(() => {
+    if (forceOpenTrigger > 0) {
+      setOpen(true);
+    }
+  }, [forceOpenTrigger]);
+
   return (
-    <div className="space-y-3">
+    <div id={id} className="space-y-3 scroll-mt-20">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

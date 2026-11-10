@@ -90,6 +90,8 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
           subtitle="Rencana Pelatihan Tahunan"
           icon={<FileCheck className="w-4 h-4" />}
           tone="default"
+          onClick={() => onNavigate('achievement')}
+          actionHint="Lihat Daftar Training Plan →"
         />
         <KpiCard
           title="Achievement Percentage"
@@ -104,6 +106,8 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
           subtitle="Capaian Aktual Korporat"
           icon={<Target className="w-4 h-4" />}
           tone="success"
+          onClick={() => onNavigate('achievement')}
+          actionHint="Buka Capaian Training →"
         />
         <KpiCard
           title="Training Pending / Berjalan"
@@ -113,6 +117,8 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
           subtitle="Menunggu Penyelesaian"
           icon={<Clock className="w-4 h-4" />}
           tone="orange"
+          onClick={() => onNavigate('achievement')}
+          actionHint="Lihat Program On Going →"
         />
         <KpiCard
           title="Total Manpower Trained"
@@ -123,6 +129,8 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
           subtitle="Personel Tersertifikasi / Lulus"
           icon={<Users className="w-4 h-4" />}
           tone="info"
+          onClick={() => onNavigate('achievement')}
+          actionHint="Lihat Rincian Personel →"
         />
       </div>
 

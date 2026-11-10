@@ -5,7 +5,10 @@ import { BarChart3, TrendingUp, PieChart, CheckCircle2 } from 'lucide-react';
 export const KpiAnalyticsCharts: React.FC = () => {
   const [hoveredQuarter, setHoveredQuarter] = useState<string | null>(null);
 
-  const summary = mockStore.calculateTrainingAchievement({ year: 'ALL' });
+  const summary = mockStore.calculateTrainingAchievement({
+    year: '2026',
+    companyScope: 'INTERNAL_RJS',
+  });
   const activeEmployees = mockStore.employees.filter((e) => e.is_active);
 
   // 1. Dynamic Quarterly Performance Data (Q1..Q4 from actual training items)
@@ -76,17 +79,17 @@ export const KpiAnalyticsCharts: React.FC = () => {
 
   // 4. Dynamic Category Distribution from actual training items
   const categoryDefs = [
-    { key: 'Certification', name: 'Sertifikasi POP / POM & BNSP', color: 'bg-[#E88932]' },
-    { key: 'Safety', name: 'K3LH & Hauling Safety', color: 'bg-[#263640]' },
-    { key: 'Technical', name: 'Technical, Plant & Operations', color: 'bg-[#397C69]' },
-    { key: 'Compliance', name: 'Regulasi & SMKP Minerba', color: 'bg-[#527FA1]' },
-    { key: 'Leadership', name: 'Supervisory & Leadership', color: 'bg-[#C27820]' },
+    { key: 'certification', name: 'Sertifikasi POP / POM & BNSP', color: 'bg-[#E88932]' },
+    { key: 'safety', name: 'K3LH & Hauling Safety', color: 'bg-[#263640]' },
+    { key: 'technical', name: 'Technical, Plant & Operations', color: 'bg-[#397C69]' },
+    { key: 'compliance', name: 'Regulasi & SMKP Minerba', color: 'bg-[#527FA1]' },
+    { key: 'leadership', name: 'Supervisory & Leadership', color: 'bg-[#C27820]' },
   ];
 
   const totalItemsCount = summary.trainingItems.length;
   const categories = categoryDefs.map((cat) => {
-    const count = summary.trainingItems.filter(
-      (i) => i.trainingCategory.toLowerCase() === cat.key.toLowerCase()
+    const count = summary.trainingItems.filter((i) =>
+      i.trainingCategory.toLowerCase().includes(cat.key)
     ).length;
     const pct = totalItemsCount > 0 ? Math.round((count / totalItemsCount) * 100) : 0;
     return {
@@ -275,9 +278,9 @@ export const KpiAnalyticsCharts: React.FC = () => {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#5A6B75]">Realisasi Peserta Dilatih (Manpower):</span>
+              <span className="text-[#5A6B75]">Personel Internal Dilatih (Unik):</span>
               <span className="font-mono font-semibold text-[#397C69] tabular-nums">
-                {summary.totalManpowerTrained} / {summary.totalManpowerPlanned} Peserta
+                {summary.totalManpowerTrained} / {summary.totalManpowerPlanned} Personel
               </span>
             </div>
           </div>

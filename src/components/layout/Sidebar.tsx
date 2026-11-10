@@ -18,6 +18,8 @@ import {
   Tags,
   ClipboardList,
   Truck,
+  Compass,
+  MapPin,
   LogOut,
   X,
 } from 'lucide-react';
@@ -203,7 +205,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               (isAchievementGroup &&
                 (currentTab === 'trainer_activities' ||
                   currentTab === 'activity_technical_training' ||
-                  currentTab === 'skill_audit_refresh_operator')) ||
+                  currentTab === 'skill_audit_refresh_operator' ||
+                  currentTab === 'assessment_cross_skillup' ||
+                  currentTab === 'orientasi_retraining_green')) ||
               (isTrainingGroup && currentTab === 'training_master');
 
             return (
@@ -302,7 +306,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }`}
                     >
                       <CalendarDays className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Activity Technical Training</span>
+                      <span className="truncate">Daily Activity Trainer</span>
                     </button>
 
                     <button
@@ -315,7 +319,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }`}
                     >
                       <Truck className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Program Skill Audit & Refresh Operator</span>
+                      <span className="truncate">Skill Audit & Refresh Operator</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleNavClick('assessment_cross_skillup')}
+                      className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                        currentTab === 'assessment_cross_skillup'
+                          ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                          : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                      }`}
+                    >
+                      <Award className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Assessment, Cross & Skill Up</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleNavClick('orientasi_retraining_green')}
+                      className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                        currentTab === 'orientasi_retraining_green'
+                          ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                          : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                      }`}
+                    >
+                      <Compass className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Orientasi, Re-Training, FGDP & Green Op</span>
                     </button>
                   </div>
                 )}

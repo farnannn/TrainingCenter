@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockStore, TrainingPerformanceItem } from '../../lib/mockStore';
+import {
+  mockStore,
+  TrainingPerformanceItem,
+  CompanyScopeFilter,
+} from '../../lib/mockStore';
+import { operationTrainerStore } from '../../lib/operationTrainerSeedData';
 import {
   getRolePermissions,
   ApplicationStatus,
@@ -34,6 +39,7 @@ import {
   ShieldCheck,
   ClipboardList,
   Calendar,
+  MapPin,
   X,
   AlertCircle,
 } from 'lucide-react';
@@ -78,10 +84,72 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
   const [deptFilter, setDeptFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [companyScopeFilter, setCompanyScopeFilter] =
+    useState<CompanyScopeFilter>('INTERNAL_RJS');
+  const [siteFilter, setSiteFilter] = useState<string>('ALL');
 
   // Weekly Technical Trainer Activity Selector State
   const [selectedActivityMonth, setSelectedActivityMonth] = useState<string>('11');
   const [selectedActivityWeek, setSelectedActivityWeek] = useState<number | 'ALL'>(1);
+
+  // Interactive KPI Card Drill-Down & Auto-Open Triggers
+  const [activeKpiFocus, setActiveKpiFocus] = useState<
+    'PLAN' | 'REALIZATION' | 'PENDING' | 'PERCENTAGE' | 'MANPOWER' | 'HOURS' | 'CANCELLED' | null
+  >(null);
+  const [openProgressTrigger, setOpenProgressTrigger] = useState(0);
+  const [openChartsTrigger, setOpenChartsTrigger] = useState(0);
+  const [openTrendTrigger, setOpenTrendTrigger] = useState(0);
+  const [openDeptTrigger, setOpenDeptTrigger] = useState(0);
+  const [openTableTrigger, setOpenTableTrigger] = useState(0);
+
+  const scrollToElement = (elementId: string) => {
+    setTimeout(() => {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 80);
+  };
+
+  const handleKpiCardClick = (
+    focus: 'PLAN' | 'REALIZATION' | 'PENDING' | 'PERCENTAGE' | 'MANPOWER' | 'HOURS' | 'CANCELLED'
+  ) => {
+    setActiveKpiFocus(focus);
+
+    if (focus === 'PLAN') {
+      setStatusFilter('ALL');
+      setOpenTableTrigger((c) => c + 1);
+      scrollToElement('achievement-kpi-drilldown');
+    } else if (focus === 'REALIZATION') {
+      setStatusFilter('COMPLETED');
+      setOpenTableTrigger((c) => c + 1);
+      scrollToElement('achievement-kpi-drilldown');
+    } else if (focus === 'PENDING') {
+      setStatusFilter('IN_PROGRESS');
+      setOpenTableTrigger((c) => c + 1);
+      scrollToElement('achievement-kpi-drilldown');
+    } else if (focus === 'PERCENTAGE') {
+      setStatusFilter('ALL');
+      setOpenProgressTrigger((c) => c + 1);
+      setOpenChartsTrigger((c) => c + 1);
+      setOpenTrendTrigger((c) => c + 1);
+      scrollToElement('achievement-progress-panel');
+    } else if (focus === 'MANPOWER') {
+      setStatusFilter('ALL');
+      setOpenDeptTrigger((c) => c + 1);
+      setOpenTableTrigger((c) => c + 1);
+      scrollToElement('achievement-kpi-drilldown');
+    } else if (focus === 'HOURS') {
+      setStatusFilter('ALL');
+      setOpenDeptTrigger((c) => c + 1);
+      setOpenTableTrigger((c) => c + 1);
+      scrollToElement('achievement-kpi-drilldown');
+    } else if (focus === 'CANCELLED') {
+      setStatusFilter('CANCELLED');
+      setOpenTableTrigger((c) => c + 1);
+      scrollToElement('achievement-kpi-drilldown');
+    }
+  };
 
   // Modals State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -98,6 +166,17 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
   const [editActualHours, setEditActualHours] = useState(0);
   const [editError, setEditError] = useState<string | null>(null);
 
+  // Compute Base Summary (all statuses) for the 7 Top KPI Cards so clicking a status card doesn't zero out other cards
+  const kpiCardsSummary = mockStore.calculateTrainingAchievement({
+    year: yearFilter,
+    month: monthFilter,
+    departmentId: deptFilter,
+    trainingType: typeFilter,
+    statusCategory: 'ALL',
+    companyScope: companyScopeFilter,
+    site: siteFilter,
+  });
+
   // Compute Achievement Summary dynamically on every render from Main Database
   const summary = mockStore.calculateTrainingAchievement({
     year: yearFilter,
@@ -105,6 +184,8 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
     departmentId: deptFilter,
     trainingType: typeFilter,
     statusCategory: statusFilter,
+    companyScope: companyScopeFilter,
+    site: siteFilter,
   });
 
   // Also compute annual monthly trend dynamically so the 12-month Line Chart updates on any filter/data change
@@ -114,6 +195,8 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
     departmentId: deptFilter,
     trainingType: typeFilter,
     statusCategory: statusFilter,
+    companyScope: companyScopeFilter,
+    site: siteFilter,
   });
 
   const handleResetFilters = () => {
@@ -122,6 +205,9 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
     setDeptFilter('ALL');
     setTypeFilter('ALL');
     setStatusFilter('ALL');
+    setCompanyScopeFilter('INTERNAL_RJS');
+    setSiteFilter('ALL');
+    setActiveKpiFocus(null);
   };
 
   const openEditModal = (item: TrainingPerformanceItem) => {
@@ -155,7 +241,9 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
         proposed_end_date: editEndDate,
         planned_participants: Number(editPlannedParticipants),
         actual_participants:
-          editStatus === 'COMPLETED' ? Number(editActualParticipants) : 0,
+          editStatus === 'COMPLETED' || editStatus === 'IN_PROGRESS'
+            ? Number(editActualParticipants)
+            : 0,
         planned_hours: Number(editPlannedHours),
         actual_hours:
           editStatus === 'COMPLETED' || editStatus === 'IN_PROGRESS'
@@ -350,8 +438,8 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
       </div>
 
       {/* 2. MULTI-DIMENSION FILTER BAR */}
-      <div className="bg-white p-4 sm:p-5 rounded-[12px] border border-[#E2E8E8] shadow-2xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <div className="bg-white p-4 sm:p-5 rounded-[12px] border border-[#E2E8E8] shadow-2xs space-y-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs font-heading font-bold text-[#18232B] uppercase tracking-wider">
             <Filter className="w-4 h-4 text-[#E88932]" />
             <span>Filter Analitik Capaian Training</span>
@@ -365,6 +453,70 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Filter</span>
           </button>
+        </div>
+
+        {/* Quick Scope & Site Pill Selectors */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#E2E8E8]">
+          {/* Lingkup Peserta: Internal PT. RJS vs Subcont */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-mono font-semibold text-[#5A6B75] mr-1 flex items-center gap-1">
+              <Building2 className="w-3.5 h-3.5 text-[#E88932]" />
+              <span>Lingkup Peserta:</span>
+            </span>
+            {(
+              [
+                { code: 'INTERNAL_RJS', label: 'Internal PT. RJS' },
+                { code: 'ALL', label: 'Semua (RJS + Subcont)' },
+                { code: 'SUBCONT', label: 'Mitra / Subcont' },
+              ] as Array<{ code: CompanyScopeFilter; label: string }>
+            ).map((sc) => {
+              const active = companyScopeFilter === sc.code;
+              return (
+                <button
+                  key={sc.code}
+                  type="button"
+                  onClick={() => setCompanyScopeFilter(sc.code)}
+                  className={`px-3 py-1.5 rounded-[8px] text-xs font-heading font-semibold transition-all cursor-pointer border ${
+                    active
+                      ? 'bg-[#18232B] text-white border-[#18232B] shadow-2xs'
+                      : 'bg-[#F4F6F5] text-[#5A6B75] border-[#E2E8E8] hover:bg-slate-200/70 hover:text-[#18232B]'
+                  }`}
+                >
+                  {sc.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Filter Lokasi Site */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-mono font-semibold text-[#5A6B75] mr-1 flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5 text-[#E88932]" />
+              <span>Lokasi Site:</span>
+            </span>
+            {[
+              { code: 'ALL', label: 'Semua Site' },
+              { code: 'Site Tangofa', label: 'Site Tangofa' },
+              { code: 'Site Gemba', label: 'Site Gemba' },
+              { code: 'Site TPM', label: 'Site TPM' },
+            ].map((st) => {
+              const active = siteFilter === st.code;
+              return (
+                <button
+                  key={st.code}
+                  type="button"
+                  onClick={() => setSiteFilter(st.code)}
+                  className={`px-2.5 py-1.5 rounded-[8px] text-xs font-heading font-semibold transition-all cursor-pointer border ${
+                    active
+                      ? 'bg-[#E88932] text-[#18232B] border-[#E88932] shadow-2xs'
+                      : 'bg-[#F4F6F5] text-[#5A6B75] border-[#E2E8E8] hover:bg-slate-200/70 hover:text-[#18232B]'
+                  }`}
+                >
+                  {st.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -468,50 +620,60 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
         </div>
       </div>
 
-      {/* 3. SEVEN CORE ACHIEVEMENT KPI CARDS */}
+      {/* 3. SEVEN CORE ACHIEVEMENT KPI CARDS (INTERACTIVE — CLICK TO DRILL DOWN) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Total Training Plan"
-          value={`${summary.totalPlan} Program`}
-          comparison={`${summary.totalManpowerPlanned} Target Peserta`}
+          value={`${kpiCardsSummary.totalPlan} Program`}
+          comparison={`${kpiCardsSummary.totalManpowerPlanned} Target Personel Unik`}
           trend="neutral"
           subtitle="Rencana Pelatihan Terdaftar"
           icon={<Target className="w-4 h-4" />}
           tone="default"
+          onClick={() => handleKpiCardClick('PLAN')}
+          active={activeKpiFocus === 'PLAN'}
+          actionHint="Lihat Daftar Semua Rencana →"
         />
         <KpiCard
           title="Total Training Realization"
-          value={`${summary.totalRealization} Selesai`}
-          comparison={`Dari ${summary.totalPlan} Rencana`}
+          value={`${kpiCardsSummary.totalRealization} Selesai`}
+          comparison={`Dari ${kpiCardsSummary.totalPlan} Rencana`}
           trend="up"
           trendIsGood={true}
           subtitle="Training Sudah Terlaksana"
           icon={<CheckCircle2 className="w-4 h-4" />}
           tone="success"
+          onClick={() => handleKpiCardClick('REALIZATION')}
+          active={activeKpiFocus === 'REALIZATION'}
+          actionHint="Lihat Program Selesai →"
         />
         <KpiCard
           title="Total Training Pending"
-          value={`${summary.totalPending} Program`}
-          comparison={`${summary.totalInProgress} Sedang Berjalan`}
+          value={`${kpiCardsSummary.totalPending} Program`}
+          comparison={`${kpiCardsSummary.totalInProgress} Sedang Berjalan`}
           trend="neutral"
           subtitle="Terjadwal / Menunggu Eksekusi"
           icon={<Clock className="w-4 h-4" />}
           tone="orange"
+          onClick={() => handleKpiCardClick('PENDING')}
+          active={activeKpiFocus === 'PENDING'}
+          actionHint="Lihat Program On Going →"
         />
         <KpiCard
           title="Achievement Percentage"
           value={
-            summary.achievementPercentage !== null
-              ? `${summary.achievementPercentage}%`
+            kpiCardsSummary.achievementPercentage !== null
+              ? `${kpiCardsSummary.achievementPercentage}%`
               : 'Belum Tersedia'
           }
           comparison={
-            summary.achievementPercentage !== null
-              ? `(${summary.totalRealization} / ${summary.totalPlan}) × 100%`
+            kpiCardsSummary.achievementPercentage !== null
+              ? `(${kpiCardsSummary.totalRealization} / ${kpiCardsSummary.totalPlan}) × 100%`
               : 'Tidak ada data plan pada filter'
           }
           trend={
-            summary.achievementPercentage !== null && summary.achievementPercentage >= 75
+            kpiCardsSummary.achievementPercentage !== null &&
+            kpiCardsSummary.achievementPercentage >= 75
               ? 'up'
               : 'neutral'
           }
@@ -519,40 +681,311 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
           subtitle="Rumus: Realization / Plan"
           icon={<TrendingUp className="w-4 h-4" />}
           tone="info"
+          onClick={() => handleKpiCardClick('PERCENTAGE')}
+          active={activeKpiFocus === 'PERCENTAGE'}
+          actionHint="Buka Grafik & Tren Capaian →"
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KpiCard
           title="Total Manpower Trained"
-          value={`${summary.totalManpowerTrained} Personel`}
-          comparison={`Target: ${summary.totalManpowerPlanned} Peserta`}
+          value={`${kpiCardsSummary.totalManpowerTrained} Personel`}
+          comparison={`Target: ${kpiCardsSummary.totalManpowerPlanned} Personel Unik`}
           trend="up"
           trendIsGood={true}
-          subtitle="Karyawan Telah Dilatih"
+          subtitle={`Personel Unik • ${kpiCardsSummary.totalAttendanceSessions} Sesi Kehadiran`}
           icon={<Users className="w-4 h-4" />}
           tone="success"
+          onClick={() => handleKpiCardClick('MANPOWER')}
+          active={activeKpiFocus === 'MANPOWER'}
+          actionHint="Lihat Rincian Personel Dilatih →"
         />
         <KpiCard
           title="Actual Training Hours"
-          value={`${summary.totalTrainingHours} Jam`}
-          comparison={`Rencana: ${summary.totalPlannedHours} Jam`}
+          value={`${kpiCardsSummary.totalTrainingHours} Jam`}
+          comparison={`Rencana: ${kpiCardsSummary.totalPlannedHours} Jam`}
           trend="up"
           trendIsGood={true}
           subtitle="Akumulasi Jam Pelatihan Aktual"
           icon={<Award className="w-4 h-4" />}
           tone="orange"
+          onClick={() => handleKpiCardClick('HOURS')}
+          active={activeKpiFocus === 'HOURS'}
+          actionHint="Lihat Rincian Jam Pelatihan →"
         />
         <KpiCard
           title="Total Training Cancelled"
-          value={`${summary.totalCancelled} Program`}
+          value={`${kpiCardsSummary.totalCancelled} Program`}
           comparison="Dibatalkan / Ditolak"
           trend="neutral"
           subtitle="Status Cancelled / Rejected"
           icon={<XCircle className="w-4 h-4" />}
           tone="danger"
+          onClick={() => handleKpiCardClick('CANCELLED')}
+          active={activeKpiFocus === 'CANCELLED'}
+          actionHint="Lihat Program Cancelled →"
         />
       </div>
+
+      {/* 3A. INTERACTIVE KPI DRILL-DOWN PANEL (MUNCUL SAAT KARTU KPI DIKLIK) */}
+      {activeKpiFocus && (
+        <div
+          id="achievement-kpi-drilldown"
+          className="bg-white rounded-[14px] border-2 border-[#E88932] shadow-md overflow-hidden scroll-mt-20 transition-all"
+        >
+          <div className="px-5 py-4 bg-[#18232B] bg-topography text-white flex flex-wrap items-center justify-between gap-3 border-b border-[#263640]">
+            <div>
+              <div className="text-[10px] font-mono font-bold text-[#E88932] uppercase tracking-wider">
+                RINCIAN DATA TERKAIT • KLIK KARTU KPI
+              </div>
+              <h3 className="text-sm sm:text-base font-heading font-bold mt-0.5">
+                {activeKpiFocus === 'PLAN' &&
+                  `Rincian Total Training Plan (${kpiCardsSummary.totalPlan} Program • ${kpiCardsSummary.totalManpowerPlanned} Target Peserta)`}
+                {activeKpiFocus === 'REALIZATION' &&
+                  `Rincian Total Training Realization (${kpiCardsSummary.totalRealization} Program Selesai dari ${kpiCardsSummary.totalPlan} Rencana)`}
+                {activeKpiFocus === 'PENDING' &&
+                  `Rincian Total Training Pending / Sedang Berjalan (${kpiCardsSummary.totalPending} Program On Going)`}
+                {activeKpiFocus === 'PERCENTAGE' &&
+                  `Rincian Achievement Percentage (${kpiCardsSummary.achievementPercentage ?? 0}% Realisasi)`}
+                {activeKpiFocus === 'MANPOWER' &&
+                  `Rincian Total Manpower Trained (${kpiCardsSummary.totalManpowerTrained} Personel Telah Dilatih dari ${kpiCardsSummary.totalManpowerPlanned} Target)`}
+                {activeKpiFocus === 'HOURS' &&
+                  `Rincian Actual Training Hours (${kpiCardsSummary.totalTrainingHours} Jam Aktual dari ${kpiCardsSummary.totalPlannedHours} Jam Rencana)`}
+                {activeKpiFocus === 'CANCELLED' &&
+                  `Rincian Total Training Cancelled (${kpiCardsSummary.totalCancelled} Program Dibatalkan)`}
+              </h3>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setOpenTableTrigger((c) => c + 1);
+                  scrollToElement('achievement-detail-table');
+                }}
+              >
+                Lompat ke Tabel Lengkap ↓
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveKpiFocus(null);
+                  setStatusFilter('ALL');
+                }}
+                className="px-2.5 py-1.5 rounded-[8px] bg-white/10 hover:bg-white/20 text-xs font-mono text-white flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Tutup Rincian</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-4 bg-[#FAFBFB]">
+            {/* Ringkasan Sumber Sub-Menu & Pintasan Cepat */}
+            {(() => {
+              const allItems = kpiCardsSummary.trainingItems;
+              const progTechItems = allItems.filter(
+                (i) => i.sourceTab === 'trainer_activities'
+              );
+              const skillAuditItems = allItems.filter(
+                (i) => i.sourceTab === 'skill_audit_refresh_operator'
+              );
+              const assessCrossItems = allItems.filter(
+                (i) => i.sourceTab === 'assessment_cross_skillup'
+              );
+              const oriRetGreenItems = allItems.filter(
+                (i) => i.sourceTab === 'orientasi_retraining_green'
+              );
+
+              const techDailyLogCount =
+                (mockStore.technicalTrainingModule?.dailyTrainerActivities || []).length;
+              const opDailyLogCount =
+                (operationTrainerStore.getState().dailyOperationTrainerLogs || []).length;
+              const sharingBmcCount =
+                (mockStore.technicalTrainingModule?.sharingSessionScheduleRows || []).length;
+              const totalDailyLogs = techDailyLogCount + opDailyLogCount;
+
+              const cards = [
+                {
+                  title: 'Sub-Menu 1: Program Technical Training',
+                  dept: 'PLM • Training Class & OJT BMC',
+                  tab: 'trainer_activities',
+                  metric1Label: 'Program',
+                  metric1Val: `${progTechItems.filter((i) => i.statusCategory === 'COMPLETED').length}/${progTechItems.length}`,
+                  metric2Label: 'Sesi Peserta',
+                  metric2Val: `${progTechItems.reduce((s, i) => s + i.actualParticipants, 0)}x`,
+                  metric3Label: 'Jam Aktual',
+                  metric3Val: `${progTechItems.reduce((s, i) => s + i.actualHours, 0)} Jam`,
+                },
+                {
+                  title: 'Sub-Menu 2: Daily Activity Trainer',
+                  dept: 'PLM & MOD • Log Harian (Bebas Double-Count)',
+                  tab: 'activity_technical_training',
+                  metric1Label: 'Log Harian',
+                  metric1Val: `${totalDailyLogs} Akt`,
+                  metric2Label: 'Sharing BMC',
+                  metric2Val: `${sharingBmcCount} Jadwal`,
+                  metric3Label: 'Status',
+                  metric3Val: 'Non-Duplikat',
+                },
+                {
+                  title: 'Sub-Menu 3: Skill Audit & Refresh Operator',
+                  dept: 'MOD • ADT, Excavator, Doser, DT & Refresh Class',
+                  tab: 'skill_audit_refresh_operator',
+                  metric1Label: 'Program',
+                  metric1Val: `${skillAuditItems.filter((i) => i.statusCategory === 'COMPLETED').length}/${skillAuditItems.length}`,
+                  metric2Label: 'Sesi Peserta',
+                  metric2Val: `${skillAuditItems.reduce((s, i) => s + i.actualParticipants, 0)}x`,
+                  metric3Label: 'Jam Aktual',
+                  metric3Val: `${skillAuditItems.reduce((s, i) => s + i.actualHours, 0)} Jam`,
+                },
+                {
+                  title: 'Sub-Menu 4: Assessment, Cross & Skill Up',
+                  dept: 'MOD & PLM • SIMPER, Cross, Skill Up & Gemba',
+                  tab: 'assessment_cross_skillup',
+                  metric1Label: 'Program',
+                  metric1Val: `${assessCrossItems.filter((i) => i.statusCategory === 'COMPLETED').length}/${assessCrossItems.length}`,
+                  metric2Label: 'Sesi Peserta',
+                  metric2Val: `${assessCrossItems.reduce((s, i) => s + i.actualParticipants, 0)}x`,
+                  metric3Label: 'Jam Aktual',
+                  metric3Val: `${assessCrossItems.reduce((s, i) => s + i.actualHours, 0)} Jam`,
+                },
+                {
+                  title: 'Sub-Menu 5: Orientasi, Re-Training, FGDP & Green Op',
+                  dept: 'MOD & TC • Orientasi, Re-Training, FGDP & ADT VI',
+                  tab: 'orientasi_retraining_green',
+                  metric1Label: 'Program',
+                  metric1Val: `${oriRetGreenItems.filter((i) => i.statusCategory === 'COMPLETED').length}/${oriRetGreenItems.length}`,
+                  metric2Label: 'Sesi Peserta',
+                  metric2Val: `${oriRetGreenItems.reduce((s, i) => s + i.actualParticipants, 0)}x`,
+                  metric3Label: 'Jam Aktual',
+                  metric3Val: `${oriRetGreenItems.reduce((s, i) => s + i.actualHours, 0)} Jam`,
+                },
+              ];
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {cards.map((c) => (
+                    <div
+                      key={c.tab}
+                      className="bg-white rounded-[12px] border border-[#E2E8E8] p-4 flex flex-col justify-between shadow-2xs hover:border-[#E88932] transition-colors"
+                    >
+                      <div>
+                        <div className="text-[10px] font-mono font-bold text-[#E88932] uppercase">
+                          {c.dept}
+                        </div>
+                        <h4 className="text-xs font-heading font-bold text-[#18232B] mt-0.5">
+                          {c.title}
+                        </h4>
+
+                        <div className="mt-3 grid grid-cols-3 gap-2 text-center bg-[#F4F6F5] p-2.5 rounded-[8px] border border-[#E2E8E8]">
+                          <div>
+                            <div className="text-[10px] text-[#5A6B75]">{c.metric1Label}</div>
+                            <div className="text-xs font-mono font-bold text-[#18232B]">
+                              {c.metric1Val}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-[#5A6B75]">{c.metric2Label}</div>
+                            <div className="text-xs font-mono font-bold text-[#397C69]">
+                              {c.metric2Val}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-[#5A6B75]">{c.metric3Label}</div>
+                            <div className="text-xs font-mono font-bold text-[#C66B1A]">
+                              {c.metric3Val}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {onNavigate && (
+                        <button
+                          type="button"
+                          onClick={() => onNavigate(c.tab)}
+                          className="mt-3 w-full py-2 px-3 rounded-[8px] bg-[#18232B] hover:bg-[#263640] text-white text-xs font-heading font-semibold flex items-center justify-between cursor-pointer transition-colors"
+                        >
+                          <span>Buka Sub-Menu Ini</span>
+                          <span className="text-[#E88932] font-mono">→</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* Daftar Program Terkait Sesuai Kartu KPI yang Diklik */}
+            <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
+              <div className="px-4 py-2.5 bg-[#263640] text-white text-xs font-heading font-bold flex items-center justify-between">
+                <span>
+                  Daftar Program Terkait ({summary.trainingItems.length} Program Ditampilkan)
+                </span>
+                <span className="text-[11px] font-mono text-[#E88932]">
+                  Total Peserta Dilatih: {summary.totalManpowerTrained} Personel •{' '}
+                  {summary.totalTrainingHours} Jam
+                </span>
+              </div>
+              {summary.trainingItems.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#5A6B75]">
+                  Tidak ada program pada kategori status ini.
+                </div>
+              ) : (
+                <div className="max-h-72 overflow-y-auto divide-y divide-[#E2E8E8]">
+                  {summary.trainingItems.map((it, i) => (
+                    <div
+                      key={it.id}
+                      className="px-4 py-2.5 hover:bg-[#F4F6F5]/70 flex flex-wrap items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono font-bold text-[11px] text-[#E88932]">
+                            {i + 1}. {it.applicationNumber}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded bg-[#18232B] text-white font-mono text-[10px]">
+                            {it.departmentCode}
+                          </span>
+                          {it.sourceLabel && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onNavigate && it.sourceTab
+                                  ? onNavigate(it.sourceTab)
+                                  : undefined
+                              }
+                              className="px-2 py-0.5 rounded bg-[#E88932]/15 text-[#C66B1A] hover:bg-[#E88932] hover:text-[#18232B] font-mono text-[10px] font-semibold cursor-pointer transition-colors"
+                            >
+                              {it.sourceLabel} →
+                            </button>
+                          )}
+                        </div>
+                        <div className="font-heading font-semibold text-[#18232B] mt-0.5 truncate">
+                          {it.trainingTitle}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0 font-mono">
+                        <div className="text-right">
+                          <div className="font-bold text-[#397C69]">
+                            {it.actualParticipants} / {it.plannedParticipants} Peserta
+                          </div>
+                          <div className="text-[10px] text-[#5A6B75]">
+                            {it.actualHours} / {it.plannedHours} Jam
+                          </div>
+                        </div>
+                        <StatusBadge status={it.status} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3B. LAPORAN WEEKLY — PROGRAM TECHNICAL TRAINING (TERINTEGRASI DARI SUB-SIDEBAR) */}
       <CollapsiblePanel title="Laporan Weekly" subtitle="Rincian aktivitas mingguan Program Technical Training" icon={<Calendar className="w-4 h-4" />}>
@@ -749,7 +1182,13 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
       />
 
       {/* 4. OVERALL ACHIEVEMENT PROGRESS BAR BANNER */}
-      <CollapsiblePanel title="Persentase Capaian Pelaksanaan Training" subtitle="Achievement progress (Realization / Plan)" icon={<TrendingUp className="w-4 h-4" />}>
+      <CollapsiblePanel
+        id="achievement-progress-panel"
+        forceOpenTrigger={openProgressTrigger}
+        title="Persentase Capaian Pelaksanaan Training"
+        subtitle="Achievement progress (Realization / Plan)"
+        icon={<TrendingUp className="w-4 h-4" />}
+      >
       <div className="bg-white p-6 rounded-[12px] border border-[#E2E8E8]">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
           <div>
@@ -843,7 +1282,13 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
       </CollapsiblePanel>
 
       {/* 5. CHARTS GRID: BAR CHART (PLAN VS REALIZATION) & DONUT CHART (STATUS COMPOSITION) */}
-      <CollapsiblePanel title="Grafik Plan vs Realisasi & Komposisi Status" subtitle="Bar chart per jenis training dan donut komposisi status" icon={<BarChart3 className="w-4 h-4" />}>
+      <CollapsiblePanel
+        id="achievement-charts-panel"
+        forceOpenTrigger={openChartsTrigger}
+        title="Grafik Plan vs Realisasi & Komposisi Status"
+        subtitle="Bar chart per jenis training dan donut komposisi status"
+        icon={<BarChart3 className="w-4 h-4" />}
+      >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* BAR CHART: Perbandingan Plan vs Realization per Departemen */}
         <div className="lg:col-span-7 bg-white p-6 rounded-[12px] border border-[#E2E8E8] flex flex-col justify-between">
@@ -1077,7 +1522,13 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
       </CollapsiblePanel>
 
       {/* 6. LINE CHART: TREN CAPAIAN TRAINING BULANAN (JAN - DES) */}
-      <CollapsiblePanel title="Tren Capaian Training Bulanan" subtitle="Grafik tren achievement Januari – Desember" icon={<Activity className="w-4 h-4" />}>
+      <CollapsiblePanel
+        id="achievement-trend-panel"
+        forceOpenTrigger={openTrendTrigger}
+        title="Tren Capaian Training Bulanan"
+        subtitle="Grafik tren achievement Januari – Desember"
+        icon={<Activity className="w-4 h-4" />}
+      >
       <div className="bg-white p-6 rounded-[12px] border border-[#E2E8E8]">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div>
@@ -1181,7 +1632,13 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
       </CollapsiblePanel>
 
       {/* 7. DEPARTMENT ACHIEVEMENT & TRAINING PERFORMANCE */}
-      <CollapsiblePanel title="Capaian per Departemen & Top Training" subtitle="Breakdown capaian setiap departemen dan training dengan realisasi tertinggi" icon={<Building2 className="w-4 h-4" />}>
+      <CollapsiblePanel
+        id="achievement-dept-panel"
+        forceOpenTrigger={openDeptTrigger}
+        title="Capaian per Departemen & Top Training"
+        subtitle="Breakdown capaian setiap departemen dan training dengan realisasi tertinggi"
+        icon={<Building2 className="w-4 h-4" />}
+      >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Department Achievement Breakdown */}
         <div className="lg:col-span-7 bg-white p-6 rounded-[12px] border border-[#E2E8E8]">
@@ -1328,7 +1785,13 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
       </CollapsiblePanel>
 
       {/* 8. TABEL DETAIL DATA CAPAIAN TRAINING & MANAJEMEN TARGET/REALISASI */}
-      <CollapsiblePanel title="Tabel Detail Data Capaian Training" subtitle="Manajemen target, realisasi, edit & hapus data training" icon={<ClipboardList className="w-4 h-4" />}>
+      <CollapsiblePanel
+        id="achievement-detail-table"
+        forceOpenTrigger={openTableTrigger}
+        title="Tabel Detail Data Capaian Training"
+        subtitle="Manajemen target, realisasi, edit & hapus data training"
+        icon={<ClipboardList className="w-4 h-4" />}
+      >
       <div className="bg-white rounded-[12px] border border-[#E2E8E8] overflow-hidden">
         <div className="px-6 py-4 bg-[#F4F6F5] border-b border-[#E2E8E8] flex flex-wrap justify-between items-center gap-3">
           <div>
@@ -1377,14 +1840,54 @@ export const TrainingAchievementView: React.FC<TrainingAchievementViewProps> = (
                 {summary.trainingItems.map((item) => (
                   <tr key={item.id} className="hover:bg-[#F4F6F5]/50 transition-colors">
                     <td className="px-5 py-3.5">
-                      <div className="font-mono text-[11px] font-semibold text-[#E88932]">
-                        {item.applicationNumber}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-mono text-[11px] font-semibold text-[#E88932]">
+                          {item.applicationNumber}
+                        </span>
+                        {item.sourceLabel && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onNavigate && item.sourceTab
+                                ? onNavigate(item.sourceTab)
+                                : undefined
+                            }
+                            className={`px-2 py-0.5 rounded-[5px] text-[10px] font-mono font-semibold border transition-colors ${
+                              onNavigate && item.sourceTab
+                                ? 'cursor-pointer hover:bg-[#18232B] hover:text-[#E88932]'
+                                : ''
+                            } bg-[#18232B]/5 text-[#263640] border-[#E2E8E8]`}
+                            title={
+                              item.sourceTab
+                                ? `Klik untuk membuka ${item.sourceLabel}`
+                                : item.sourceLabel
+                            }
+                          >
+                            {item.sourceLabel}
+                          </button>
+                        )}
                       </div>
                       <div className="font-heading font-semibold text-[#18232B] mt-0.5">
                         {item.trainingTitle}
                       </div>
-                      <div className="text-[11px] text-[#5A6B75]">
-                        {item.trainingCategory} • {item.trainingType}
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#5A6B75] mt-1">
+                        <span>
+                          {item.trainingCategory} • {item.trainingType}
+                        </span>
+                        {item.site && (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[#263640] border border-slate-200 font-mono text-[10px]">
+                            {item.site}
+                          </span>
+                        )}
+                        {item.companyScope === 'SUBCONT' ? (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-mono text-[10px] font-semibold">
+                            Mitra Subcont
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono text-[10px] font-semibold">
+                            Internal PT. RJS
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3.5">

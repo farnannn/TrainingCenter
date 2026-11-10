@@ -105,6 +105,8 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
           subtitle={`${achievement.totalTrainingHours} Jam Pelatihan`}
           icon={<Target className="w-4 h-4" />}
           tone="success"
+          onClick={() => onNavigate('achievement')}
+          actionHint="Buka Capaian Training →"
         />
         <KpiCard
           title="Antrean Review TC"
@@ -114,6 +116,8 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
           subtitle="Dari Seluruh Departemen"
           icon={<Clock className="w-4 h-4" />}
           tone="orange"
+          onClick={() => onNavigate('approval_queue')}
+          actionHint="Buka Antrean Review →"
         />
         <KpiCard
           title="Batch Pelatihan Aktif"
@@ -123,6 +127,8 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
           subtitle="Training Center Site Morowali"
           icon={<CalendarDays className="w-4 h-4" />}
           tone="info"
+          onClick={() => onNavigate('schedules')}
+          actionHint="Buka Jadwal Pelatihan →"
         />
         <KpiCard
           title="Total Sertifikat Diterbitkan"
@@ -133,6 +139,8 @@ export const HodDashboard: React.FC<HodDashboardProps> = ({ onNavigate }) => {
           subtitle="Personel Tersertifikasi"
           icon={<Award className="w-4 h-4" />}
           tone="default"
+          onClick={() => onNavigate('certifications')}
+          actionHint="Buka Sertifikasi →"
         />
       </div>
 

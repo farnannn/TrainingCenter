@@ -88,13 +88,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Total Program Training"
-          value={totalApps}
-          comparison={`${completed} Realisasi Selesai`}
+          value={achievement.totalPlan}
+          comparison={`${achievement.totalRealization} Realisasi Selesai`}
           trend="up"
           trendIsGood={true}
           subtitle="Database Utama THR"
           icon={<FileCheck className="w-4 h-4" />}
           tone="default"
+          onClick={() => onNavigate('achievement')}
+          actionHint="Buka Capaian Training →"
         />
         <KpiCard
           title="Capaian Training 2026"
@@ -109,6 +111,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
           subtitle={`${achievement.totalManpowerTrained} Manpower Trained`}
           icon={<Target className="w-4 h-4" />}
           tone="success"
+          onClick={() => onNavigate('achievement')}
+          actionHint="Lihat Rincian Capaian →"
         />
         <KpiCard
           title="Antrean Verifikasi Aktif"
@@ -118,6 +122,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
           subtitle="Menunggu Keputusan"
           icon={<Clock className="w-4 h-4" />}
           tone="orange"
+          onClick={() => onNavigate('approval_queue')}
+          actionHint="Buka Antrean Review →"
         />
         <KpiCard
           title="Pengajuan Ditolak (Terminal)"
@@ -127,6 +133,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onNavi
           subtitle="Butuh Override Super Admin"
           icon={<XCircle className="w-4 h-4" />}
           tone="danger"
+          onClick={() => onNavigate('applications')}
+          actionHint="Buka Pengajuan Training →"
         />
       </div>
 

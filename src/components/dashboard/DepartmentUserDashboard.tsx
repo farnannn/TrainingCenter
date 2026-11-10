@@ -162,6 +162,8 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
           subtitle={`${achievement.totalManpowerTrained} Manpower Trained`}
           icon={<Target className="w-4 h-4" />}
           tone="success"
+          onClick={() => onNavigate('achievement')}
+          actionHint="Buka Capaian Training →"
         />
         <KpiCard
           title="Total Personel Terdaftar"
@@ -171,6 +173,8 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
           subtitle="Database Karyawan"
           icon={<Users className="w-4 h-4" />}
           tone="default"
+          onClick={() => onNavigate('employees')}
+          actionHint="Buka Data Karyawan →"
         />
         <KpiCard
           title="Dalam Proses Review"
@@ -180,6 +184,8 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
           subtitle={`${approvedCount} Disetujui / Selesai`}
           icon={<Clock className="w-4 h-4" />}
           tone="info"
+          onClick={() => onNavigate('applications')}
+          actionHint="Buka Pengajuan Training →"
         />
         <KpiCard
           title="Sertifikasi Terbit"
@@ -190,6 +196,8 @@ export const DepartmentUserDashboard: React.FC<DepartmentUserDashboardProps> = (
           subtitle="Kompetensi Personel"
           icon={<Award className="w-4 h-4" />}
           tone="orange"
+          onClick={() => onNavigate('certifications')}
+          actionHint="Buka Sertifikasi →"
         />
       </div>
 

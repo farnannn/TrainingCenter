@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { mockStore } from '../../../lib/mockStore';
+import {
+  operationTrainerStore,
+  DailyOperationTrainerLog,
+  TRAINING_SITE_OPTIONS,
+  TrainingSiteName,
+} from '../../../lib/operationTrainerSeedData';
 import {
   TechnicalTrainerDailyActivityItem,
   getRolePermissions,
@@ -23,6 +29,7 @@ import {
   Lock,
   ZoomIn,
   RotateCcw,
+  MapPin,
 } from 'lucide-react';
 import {
   StatCard,
@@ -58,9 +65,31 @@ const MONTH_NAMES: Record<string, string> = {
   '12': 'DECEMBER',
 };
 
+type TrainerStream = 'TECHNICAL' | 'OPERATION';
+
+interface UnifiedDailyRow {
+  id: string;
+  stream: TrainerStream;
+  site: TrainingSiteName;
+  date_label: string;
+  attendents: string;
+  participantCount: number;
+  dept: string;
+  activities: string;
+  remarks: string;
+  photos: string[];
+  week_label: string;
+  year: string;
+  month: string;
+  week_number: number;
+}
+
 const emptyForm = {
+  stream: 'TECHNICAL' as TrainerStream,
+  site: 'Site Tangofa' as TrainingSiteName,
   date_label: '',
   attendents: '',
+  participantCount: 1,
   dept: 'PLM',
   activities: '',
   remarks: 'Done',
@@ -103,14 +132,19 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
   onDone,
   onError,
 }) => {
-  const list = mockStore.technicalTrainingModule.dailyTrainerActivities || [];
+  const [forceTick, setForceTick] = useState(0);
+  const techList = mockStore.technicalTrainingModule.dailyTrainerActivities || [];
+  const opState = useMemo(() => operationTrainerStore.getState(), [forceTick]);
+  const opList: DailyOperationTrainerLog[] = opState.dailyOperationTrainerLogs || [];
+
+  const [streamFilter, setStreamFilter] = useState<'ALL' | TrainerStream>('ALL');
+  const [siteFilter, setSiteFilter] = useState<'ALL' | TrainingSiteName>('ALL');
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [remarkFilter, setRemarkFilter] = useState('ALL');
   const [weekFilter, setWeekFilter] = useState('ALL');
   const [editing, setEditing] = useState<(typeof emptyForm & { id?: string }) | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; caption: string } | null>(null);
-  const [, setForceTick] = useState(0);
 
   // Auto-restore default documentation photos if any default row (dta-1..dta-6) has empty photos
   useEffect(() => {
@@ -126,18 +160,62 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
       mockStore.persistState();
       setForceTick((t) => t + 1);
     }
-  }, [list.length]);
+  }, [techList.length]);
+
+  // Unified Daily Activity Rows (Technical Trainer PLM + Operation Trainer MOD)
+  const unifiedRows: UnifiedDailyRow[] = useMemo(() => {
+    const fromTech: UnifiedDailyRow[] = techList.map((item) => ({
+      id: item.id,
+      stream: 'TECHNICAL',
+      site: ((item as TechnicalTrainerDailyActivityItem & { site?: TrainingSiteName }).site ||
+        'Site Tangofa') as TrainingSiteName,
+      date_label: item.date_label,
+      attendents: item.attendents,
+      participantCount: 1,
+      dept: item.dept,
+      activities: item.activities,
+      remarks: item.remarks,
+      photos: item.photos || [],
+      week_label: item.week_label || 'WEEK 1 NOVEMBER 2026',
+      year: item.year || '2026',
+      month: item.month || '11',
+      week_number: item.week_number || 1,
+    }));
+
+    const fromOp: UnifiedDailyRow[] = opList.map((row) => ({
+      id: row.id,
+      stream: 'OPERATION',
+      site: (row.site || 'Site Tangofa') as TrainingSiteName,
+      date_label: row.date,
+      attendents: row.attendents,
+      participantCount: row.participantCount || 1,
+      dept: row.dept,
+      activities: row.activities,
+      remarks: row.remarks,
+      photos: row.photos || [],
+      week_label: 'WEEK 1 NOVEMBER 2026',
+      year: '2026',
+      month: '11',
+      week_number: 1,
+    }));
+
+    return [...fromTech, ...fromOp];
+  }, [techList, opList]);
 
   const weekOptions = Array.from(
-    new Set(['WEEK 1 NOVEMBER 2026', ...list.map((a) => a.week_label || 'WEEK 1 NOVEMBER 2026')])
+    new Set(['WEEK 1 NOVEMBER 2026', ...unifiedRows.map((a) => a.week_label || 'WEEK 1 NOVEMBER 2026')])
   );
-  const deptOptions = Array.from(new Set(['PLM', 'All dept', ...list.map((a) => a.dept)]));
+  const deptOptions = Array.from(
+    new Set(['PLM', 'MOD', 'All dept', ...unifiedRows.map((a) => a.dept)])
+  );
 
-  const filtered = list.filter((item) => {
+  const filtered = unifiedRows.filter((item) => {
+    if (streamFilter !== 'ALL' && item.stream !== streamFilter) return false;
+    if (siteFilter !== 'ALL' && item.site !== siteFilter) return false;
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
-      (item.date_label + item.attendents + item.dept + item.activities + item.remarks)
+      (item.date_label + item.attendents + item.dept + item.activities + item.remarks + item.site)
         .toLowerCase()
         .includes(q);
     const matchDept = deptFilter === 'ALL' || item.dept === deptFilter;
@@ -147,14 +225,21 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
     return matchSearch && matchDept && matchRemark && matchWeek;
   });
 
-  const doneCount = list.filter((a) => a.remarks.toLowerCase() === 'done').length;
-  const continueCount = list.filter((a) => a.remarks.toLowerCase() === 'continue').length;
-  const totalPhotos = list.reduce((s, a) => s + (a.photos?.length || 0), 0);
+  const doneCount = filtered.filter((a) => a.remarks.toLowerCase() === 'done').length;
+  const continueCount = filtered.filter((a) => a.remarks.toLowerCase() === 'continue').length;
+  const totalPhotos = filtered.reduce((s, a) => s + (a.photos?.length || 0), 0);
+
+  const streamTitle =
+    streamFilter === 'TECHNICAL'
+      ? 'DAILY ACTIVITAS TECHNICAL TRAINER (PLM)'
+      : streamFilter === 'OPERATION'
+      ? 'DAILY ACTIVITAS OPERATION TRAINER (MOD)'
+      : 'GABUNGAN DAILY ACTIVITAS TECHNICAL & OPERATION TRAINER';
 
   const activeBannerTitle =
     weekFilter === 'ALL'
-      ? 'OTHER DAILY ACTIVITAS TECHNICAL TRAINER - WEEK 1 NOVEMBER 2026'
-      : `OTHER DAILY ACTIVITAS TECHNICAL TRAINER - ${weekFilter.toUpperCase()}`;
+      ? `${streamTitle} — WEEK 1 NOVEMBER 2026`
+      : `${streamTitle} — ${weekFilter.toUpperCase()}`;
 
   const handleUploadFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editing || !e.target.files) return;
@@ -175,33 +260,113 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
     e.preventDefault();
     if (!editing) return;
     try {
+      if (editing.stream === 'OPERATION') {
+        operationTrainerStore.updateState((prev) => {
+          const exists = prev.dailyOperationTrainerLogs.some((r) => r.id === editing.id);
+          if (editing.id && exists) {
+            return {
+              ...prev,
+              dailyOperationTrainerLogs: prev.dailyOperationTrainerLogs.map((r) =>
+                r.id === editing.id
+                  ? {
+                      ...r,
+                      site: editing.site,
+                      date: editing.date_label,
+                      attendents: editing.attendents,
+                      participantCount: Number(editing.participantCount) || 1,
+                      dept: editing.dept,
+                      activities: editing.activities,
+                      remarks: (editing.remarks === 'Continue' ? 'Continue' : 'Done') as
+                        | 'Done'
+                        | 'Continue',
+                      photos: editing.photos,
+                    }
+                  : r
+              ),
+            };
+          }
+          return {
+            ...prev,
+            dailyOperationTrainerLogs: [
+              ...prev.dailyOperationTrainerLogs,
+              {
+                id: `dot-${Date.now()}`,
+                no: prev.dailyOperationTrainerLogs.length + 1,
+                site: editing.site,
+                date: editing.date_label,
+                attendents: editing.attendents,
+                participantCount: Number(editing.participantCount) || 1,
+                dept: editing.dept,
+                activities: editing.activities,
+                remarks: (editing.remarks === 'Continue' ? 'Continue' : 'Done') as
+                  | 'Done'
+                  | 'Continue',
+                photos:
+                  editing.photos.length > 0
+                    ? editing.photos
+                    : ['/images/ppt_w1_nov/slide14_row1_a.jpg'],
+              },
+            ],
+          };
+        });
+        setForceTick((t) => t + 1);
+        setEditing(null);
+        onDone('Data Daily Activity Operation Trainer berhasil disimpan.');
+        return;
+      }
+
       const monthName = MONTH_NAMES[editing.month] || 'NOVEMBER';
       const computedWeekLabel =
         editing.week_label.trim() || `WEEK ${editing.week_number} ${monthName} ${editing.year}`;
       mockStore.saveDailyTrainerActivity(userId, {
         ...editing,
         week_label: computedWeekLabel,
-      });
+      } as any);
+      setForceTick((t) => t + 1);
       setEditing(null);
-      onDone('Data Activity Technical Training berhasil disimpan.');
+      onDone('Data Daily Activity Technical Trainer berhasil disimpan.');
     } catch (err: any) {
       onError(err.message || 'Gagal menyimpan data aktivitas.');
     }
   };
 
-  const handleDelete = (item: TechnicalTrainerDailyActivityItem) => {
+  const handleDelete = (item: UnifiedDailyRow) => {
     if (!window.confirm(`Hapus aktivitas tanggal "${item.date_label}" (${item.attendents})?`)) return;
     try {
+      if (item.stream === 'OPERATION') {
+        operationTrainerStore.updateState((prev) => ({
+          ...prev,
+          dailyOperationTrainerLogs: prev.dailyOperationTrainerLogs
+            .filter((r) => r.id !== item.id)
+            .map((r, i) => ({ ...r, no: i + 1 })),
+        }));
+        setForceTick((t) => t + 1);
+        onDone('Data aktivitas Operation Trainer berhasil dihapus.');
+        return;
+      }
       mockStore.deleteDailyTrainerActivity(userId, item.id);
-      onDone('Data aktivitas berhasil dihapus.');
+      setForceTick((t) => t + 1);
+      onDone('Data aktivitas Technical Trainer berhasil dihapus.');
     } catch (err: any) {
       onError(err.message);
     }
   };
 
-  const csvHeaders = ['NO', 'DATE', 'ATTENDENTS', 'DEPT', 'ACTIVITIES', 'REMRKS', 'JUMLAH FOTO'];
+  const csvHeaders = [
+    'NO',
+    'SITE',
+    'KATEGORI TRAINER',
+    'DATE',
+    'ATTENDENTS',
+    'DEPT',
+    'ACTIVITIES',
+    'REMARKS',
+    'JUMLAH FOTO',
+  ];
   const csvRows = filtered.map((item, idx) => [
     idx + 1,
+    item.site,
+    item.stream === 'TECHNICAL' ? 'Technical Trainer (PLM)' : 'Operation Trainer (MOD)',
     item.date_label,
     item.attendents,
     item.dept,
@@ -218,6 +383,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
         (item, idx) => `
         <tr>
           <td style="text-align:center;font-weight:700;">${idx + 1}</td>
+          <td style="text-align:center;white-space:nowrap;">${item.site}</td>
           <td style="text-align:center;white-space:nowrap;">${item.date_label}</td>
           <td style="text-align:center;font-weight:600;">${item.attendents}</td>
           <td style="text-align:center;">${item.dept}</td>
@@ -249,15 +415,16 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
         <thead>
           <tr>
             <th class="dark-hdr" rowspan="2" style="width:42px;">NO.</th>
-            <th class="dark-hdr" colspan="6">${activeBannerTitle}</th>
+            <th class="dark-hdr" colspan="7">${activeBannerTitle}</th>
           </tr>
           <tr>
+            <th class="sub-hdr" style="width:95px;">SITE</th>
             <th class="sub-hdr" style="width:105px;">DATE</th>
-            <th class="sub-hdr" style="width:165px;">ATTENDENTS</th>
-            <th class="sub-hdr" style="width:75px;">DEPT</th>
+            <th class="sub-hdr" style="width:155px;">ATTENDENTS</th>
+            <th class="sub-hdr" style="width:70px;">DEPT</th>
             <th class="sub-hdr">ACTIVITIES</th>
-            <th class="sub-hdr" style="width:85px;">REMRKS</th>
-            <th class="sub-hdr" style="width:210px;">DOKUMENTASI</th>
+            <th class="sub-hdr" style="width:85px;">REMARKS</th>
+            <th class="sub-hdr" style="width:205px;">DOKUMENTASI</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
@@ -271,10 +438,78 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
     <div className="space-y-4">
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Total Aktivitas Harian" value={list.length} unit="Kegiatan" tone="dark" />
+        <StatCard label="Total Aktivitas Harian" value={filtered.length} unit="Kegiatan" tone="dark" />
         <StatCard label="Status Done" value={doneCount} unit="Kegiatan" tone="green" />
         <StatCard label="Status Continue" value={continueCount} unit="Kegiatan" tone="orange" />
         <StatCard label="Total Foto Dokumentasi" value={totalPhotos} unit="Foto" tone="blue" />
+      </div>
+
+      {/* Trainer Category Tabs + Site Filter Bar */}
+      <div className="bg-white rounded-[14px] border border-[#E2E8E8] shadow-xs p-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            {
+              id: 'ALL' as const,
+              label: 'Semua Daily Activity',
+              count: unifiedRows.length,
+            },
+            {
+              id: 'TECHNICAL' as const,
+              label: 'Technical Trainer (PLM)',
+              count: techList.length,
+            },
+            {
+              id: 'OPERATION' as const,
+              label: 'Operation Trainer (MOD)',
+              count: opList.length,
+            },
+          ].map((tab) => {
+            const active = streamFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setStreamFilter(tab.id)}
+                className={`px-3.5 py-2 rounded-[9px] text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                  active
+                    ? 'bg-[#18232B] text-white shadow-xs'
+                    : 'bg-[#F4F6F5] text-[#263640] hover:bg-[#E2E8E8]'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+                    active ? 'bg-[#E88932] text-white' : 'bg-white text-[#18232B]'
+                  }`}
+                >
+                  {tab.count} Kegiatan
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Site Filter Pill Bar */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-[#F4F6F5] p-1 rounded-[10px] border border-[#E2E8E8]">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#5A6B75] px-2 flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-[#E88932]" />
+            Filter Site:
+          </span>
+          {(['ALL', ...TRAINING_SITE_OPTIONS] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSiteFilter(s)}
+              className={`px-2.5 py-1 rounded-[7px] text-[11px] font-semibold transition-all cursor-pointer ${
+                siteFilter === s
+                  ? 'bg-[#18232B] text-white shadow-xs'
+                  : 'text-[#263640] hover:bg-[#E2E8E8]'
+              }`}
+            >
+              {s === 'ALL' ? 'Semua Site' : s}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Filter & Action Toolbar */}
@@ -282,10 +517,10 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm sm:text-base font-heading font-extrabold text-[#18232B]">
-              ACTIVITY TECHNICAL TRAINING
+              DAILY ACTIVITY TECHNICAL & OPERATION TRAINER
             </h3>
             <p className="text-xs text-[#5A6B75]">
-              Rekap aktivitas harian Technical Trainer beserta dokumentasi kegiatan
+              Rekap aktivitas harian Technical Trainer (PLM) dan Operation Trainer (MOD) terpadu per lokasi site
             </p>
           </div>
 
@@ -294,9 +529,9 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
               variant="outline"
               size="sm"
               icon={<Download className="w-3.5 h-3.5" />}
-              onClick={() => exportCsv('Activity_Technical_Training.csv', csvHeaders, csvRows)}
+              onClick={() => exportCsv('Daily_Activity_Trainer.csv', csvHeaders, csvRows)}
             >
-              Excel
+              Export CSV
             </Button>
             <Button
               variant="outline"
@@ -304,7 +539,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
               icon={<Printer className="w-3.5 h-3.5" />}
               onClick={handlePrintWithPhotos}
             >
-              PDF
+              Print / PDF
             </Button>
             {canEdit && (
               <>
@@ -315,6 +550,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                   onClick={() => {
                     try {
                       mockStore.restoreDefaultDailyTrainerPhotos(userId);
+                      setForceTick((t) => t + 1);
                       onDone('Seluruh foto dokumentasi default berhasil dikembalikan.');
                     } catch (err: any) {
                       onError(err.message);
@@ -329,11 +565,14 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                   onClick={() =>
                     setEditing({
                       ...emptyForm,
+                      stream: streamFilter === 'OPERATION' ? 'OPERATION' : 'TECHNICAL',
+                      dept: streamFilter === 'OPERATION' ? 'MOD' : 'PLM',
+                      site: siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa',
                       week_label: weekFilter === 'ALL' ? 'WEEK 1 NOVEMBER 2026' : weekFilter,
                     })
                   }
                 >
-                  Tambah Aktivitas
+                  + Tambah Aktivitas
                 </Button>
               </>
             )}
@@ -389,7 +628,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                   NO.
                 </th>
                 <th
-                  colSpan={canEdit ? 7 : 6}
+                  colSpan={canEdit ? 9 : 8}
                   className="bg-[#18232B] text-white font-heading font-bold text-xs sm:text-sm px-4 py-2.5 border-b border-[#263640] text-center uppercase tracking-wider"
                 >
                   <span className="inline-block w-2 h-2 rounded-full bg-[#E88932] mr-2 align-middle" />
@@ -397,13 +636,15 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                 </th>
               </tr>
               <tr className="bg-[#263640] text-slate-100 font-mono font-bold text-[10px] uppercase tracking-wider">
+                <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-28">SITE</th>
+                <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-28">TRAINER</th>
                 <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-28">DATE</th>
                 <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-44">ATTENDENTS</th>
-                <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-24">DEPT</th>
-                <th className="px-4 py-2.5 border-r border-[#18232B]/50 text-left min-w-[280px]">
+                <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-20">DEPT</th>
+                <th className="px-4 py-2.5 border-r border-[#18232B]/50 text-left min-w-[260px]">
                   ACTIVITIES
                 </th>
-                <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-28">REMRKS</th>
+                <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-24">REMARKS</th>
                 <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-56">DOKUMENTASI</th>
                 {canEdit && (
                   <th className="px-3 py-2.5 text-center w-20">AKSI</th>
@@ -414,7 +655,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={canEdit ? 8 : 7}
+                    colSpan={canEdit ? 10 : 9}
                     className="p-8 text-center text-xs text-[#5A6B75]"
                   >
                     Belum ada data aktivitas harian untuk filter ini.
@@ -425,11 +666,27 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                   const isDone = item.remarks.toLowerCase() === 'done';
                   return (
                     <tr
-                      key={item.id}
+                      key={`${item.stream}-${item.id}`}
                       className="even:bg-[#FAFBFB] odd:bg-white hover:bg-[#F4F6F5]/70 transition-colors"
                     >
                       <td className="px-3 py-3 border-r border-[#E2E8E8] text-center font-mono font-bold text-xs text-[#5A6B75]">
                         {idx + 1}
+                      </td>
+                      <td className="px-3 py-3 border-r border-[#E2E8E8] text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#18232B]/8 text-[#18232B] border border-[#18232B]/15 whitespace-nowrap">
+                          {item.site}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 border-r border-[#E2E8E8] text-center">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold whitespace-nowrap ${
+                            item.stream === 'TECHNICAL'
+                              ? 'bg-[#527FA1]/12 text-[#3D6585]'
+                              : 'bg-[#E88932]/15 text-[#B86318]'
+                          }`}
+                        >
+                          {item.stream === 'TECHNICAL' ? 'Technical' : 'Operation'}
+                        </span>
                       </td>
                       <td className="px-3 py-3 border-r border-[#E2E8E8] text-center font-mono font-semibold text-[#18232B] whitespace-nowrap">
                         {item.date_label}
@@ -438,7 +695,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                         {item.attendents}
                       </td>
                       <td className="px-3 py-3 border-r border-[#E2E8E8] text-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-[6px] bg-[#527FA1]/12 text-[#3D6585] font-mono font-bold text-[10px]">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-[6px] bg-slate-100 text-slate-700 font-mono font-bold text-[10px]">
                           {item.dept}
                         </span>
                       </td>
@@ -466,7 +723,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                                 onClick={() =>
                                   setPreviewPhoto({
                                     url: photoUrl,
-                                    caption: `${item.date_label} — ${item.attendents}: ${item.activities}`,
+                                    caption: `${item.site} • ${item.date_label} — ${item.attendents}: ${item.activities}`,
                                   })
                                 }
                                 className="group relative w-24 h-16 rounded-[6px] overflow-hidden border border-[#E2E8E8] shadow-2xs cursor-pointer bg-[#F4F6F5]"
@@ -497,8 +754,11 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                               onClick={() =>
                                 setEditing({
                                   id: item.id,
+                                  stream: item.stream,
+                                  site: item.site,
                                   date_label: item.date_label,
                                   attendents: item.attendents,
+                                  participantCount: item.participantCount,
                                   dept: item.dept,
                                   activities: item.activities,
                                   remarks: item.remarks,
@@ -535,7 +795,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
         {/* Unified Footer Bar + Quick Add Button */}
         <div className="bg-[#F4F6F5] border-t border-[#E2E8E8] px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] font-mono text-[#5A6B75]">
-            Menampilkan <strong className="text-[#18232B]">{filtered.length}</strong> aktivitas harian Technical Trainer
+            Menampilkan <strong className="text-[#18232B]">{filtered.length}</strong> aktivitas harian (Technical & Operation Trainer)
           </span>
           {canEdit && (
             <Button
@@ -544,6 +804,9 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
               onClick={() =>
                 setEditing({
                   ...emptyForm,
+                  stream: streamFilter === 'OPERATION' ? 'OPERATION' : 'TECHNICAL',
+                  dept: streamFilter === 'OPERATION' ? 'MOD' : 'PLM',
+                  site: siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa',
                   week_label: weekFilter === 'ALL' ? 'WEEK 1 NOVEMBER 2026' : weekFilter,
                 })
               }
@@ -568,38 +831,86 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
         open={!!editing}
         title={
           editing?.id
-            ? 'Edit Activity Technical Training'
-            : 'Tambah Activity Technical Training'
+            ? 'Edit Daily Activity Trainer'
+            : 'Tambah Daily Activity Trainer'
         }
         onClose={() => setEditing(null)}
       >
         {editing && (
           <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
+              <label className={labelCls}>Kategori Trainer *</label>
+              <select
+                className={inputCls}
+                value={editing.stream}
+                disabled={!!editing.id}
+                onChange={(e) => {
+                  const s = e.target.value as TrainerStream;
+                  setEditing({
+                    ...editing,
+                    stream: s,
+                    dept: s === 'OPERATION' ? 'MOD' : 'PLM',
+                  });
+                }}
+              >
+                <option value="TECHNICAL">Technical Trainer (PLM)</option>
+                <option value="OPERATION">Operation Trainer (MOD)</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Lokasi Site *</label>
+              <select
+                className={inputCls}
+                value={editing.site}
+                onChange={(e) =>
+                  setEditing({ ...editing, site: e.target.value as TrainingSiteName })
+                }
+              >
+                {TRAINING_SITE_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className={labelCls}>Tanggal (DATE) *</label>
               <input
                 required
-                placeholder="Contoh: 29 Oct. 2026 / 01-2 Nov. 2026"
+                placeholder="Contoh: 29 Oct. 2026 / 04-Nov-26"
                 className={inputCls}
                 value={editing.date_label}
                 onChange={(e) => setEditing({ ...editing, date_label: e.target.value })}
               />
             </div>
+
             <div>
               <label className={labelCls}>Peserta (ATTENDENTS) *</label>
               <input
                 required
-                placeholder="Contoh: 3x Siswa OJT / 4x FGDP"
+                placeholder="Contoh: 3x Siswa OJT / 20x Siswa Green Operator"
                 className={inputCls}
                 value={editing.attendents}
                 onChange={(e) => setEditing({ ...editing, attendents: e.target.value })}
               />
             </div>
             <div>
+              <label className={labelCls}>Jumlah Peserta (Orang)</label>
+              <input
+                type="number"
+                min={1}
+                className={inputCls}
+                value={editing.participantCount}
+                onChange={(e) =>
+                  setEditing({ ...editing, participantCount: Number(e.target.value) || 1 })
+                }
+              />
+            </div>
+            <div>
               <label className={labelCls}>Departemen (DEPT) *</label>
               <input
                 required
-                placeholder="Contoh: PLM / All dept"
+                placeholder="Contoh: PLM / MOD / All dept"
                 className={inputCls}
                 value={editing.dept}
                 onChange={(e) => setEditing({ ...editing, dept: e.target.value })}
@@ -611,7 +922,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
               <textarea
                 required
                 rows={3}
-                placeholder="Tuliskan rincian aktivitas harian Technical Trainer..."
+                placeholder="Tuliskan rincian aktivitas harian Technical / Operation Trainer..."
                 className={`${inputCls} h-auto py-2`}
                 value={editing.activities}
                 onChange={(e) => setEditing({ ...editing, activities: e.target.value })}
@@ -619,7 +930,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
             </div>
 
             <div>
-              <label className={labelCls}>Status (REMRKS)</label>
+              <label className={labelCls}>Status (REMARKS)</label>
               <select
                 className={inputCls}
                 value={editing.remarks}
@@ -743,7 +1054,7 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
                   {editing.photos.map((photo, i) => (
                     <div
                       key={i}
-                      className="relative w-32 h-22 rounded-[8px] overflow-hidden border border-[#CBD5E1] bg-white group"
+                      className="relative w-32 aspect-[4/3] rounded-[8px] overflow-hidden border border-[#CBD5E1] bg-white group"
                     >
                       <img src={photo} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
                       <button
@@ -777,30 +1088,38 @@ export const ActivityTechnicalTrainingSection: React.FC<SectionProps> = ({
         )}
       </Modal>
 
-      {/* Lightbox Preview Foto Dokumentasi */}
-      <Modal
-        open={!!previewPhoto}
-        title="Preview Dokumentasi Activity Technical Training"
-        onClose={() => setPreviewPhoto(null)}
-      >
-        {previewPhoto && (
-          <div className="space-y-3">
-            <div className="rounded-[10px] overflow-hidden border border-[#E2E8E8] bg-[#18232B] flex items-center justify-center max-h-[65vh]">
-              <img
-                src={previewPhoto.url}
-                alt={previewPhoto.caption}
-                className="max-w-full max-h-[62vh] object-contain"
-              />
-            </div>
-            <p className="text-xs text-[#263640] font-medium">{previewPhoto.caption}</p>
+      {/* Lightbox Zoom (Selaras dengan Assessment, Orientasi & Skill Audit) */}
+      {previewPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewPhoto(null)}
+              className="absolute -top-10 right-0 text-white hover:text-[#E88932] cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={previewPhoto.url}
+              alt={previewPhoto.caption}
+              className="max-w-full max-h-[82vh] rounded-xl object-contain border border-white/20"
+            />
+            {previewPhoto.caption && (
+              <p className="text-xs text-slate-200 font-medium text-center mt-2.5">
+                {previewPhoto.caption}
+              </p>
+            )}
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
     </div>
   );
 };
 
-// Standalone View when accessed directly from Sidebar -> Training Achievement -> Activity Technical Training
+// Standalone View when accessed directly from Sidebar -> Training Achievement -> Daily Activity Trainer
 export const ActivityTechnicalTrainingView: React.FC = () => {
   const { currentUser, refreshState } = useAuth();
   const perms = getRolePermissions(currentUser.role_code);
@@ -813,13 +1132,13 @@ export const ActivityTechnicalTrainingView: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-[#E88932] text-xs font-mono font-semibold uppercase tracking-wider">
             <Calendar className="w-4 h-4" />
-            <span>TRAINING ACHIEVEMENT • ACTIVITY TECHNICAL TRAINING</span>
+            <span>TRAINING ACHIEVEMENT • DAILY ACTIVITY TRAINER</span>
           </div>
           <h2 className="text-lg sm:text-xl font-heading font-bold mt-1">
-            OTHER DAILY ACTIVITAS TECHNICAL TRAINER
+            DAILY ACTIVITY TECHNICAL & OPERATION TRAINER
           </h2>
           <p className="text-xs text-slate-300 mt-0.5">
-            Monitoring aktivitas harian Technical Trainer, peserta, departemen, status pelaksanaan, dan dokumentasi kegiatan.
+            Monitoring terpadu aktivitas harian Technical Trainer (PLM) & Operation Trainer (MOD), lengkap dengan filter lokasi Site dan dokumentasi kegiatan.
           </p>
         </div>
 
@@ -871,4 +1190,3 @@ export const ActivityTechnicalTrainingView: React.FC = () => {
     </div>
   );
 };
-

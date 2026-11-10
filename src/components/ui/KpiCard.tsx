@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, ChevronRight } from 'lucide-react';
 
 export type KpiTone = 'default' | 'orange' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -12,6 +12,9 @@ interface KpiCardProps {
   trendIsGood?: boolean;
   icon?: React.ReactNode;
   tone?: KpiTone;
+  onClick?: () => void;
+  active?: boolean;
+  actionHint?: string;
 }
 
 export const KpiCard: React.FC<KpiCardProps> = ({
@@ -23,6 +26,9 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   trendIsGood = true,
   icon,
   tone = 'default',
+  onClick,
+  active = false,
+  actionHint,
 }) => {
   const iconToneMap: Record<KpiTone, string> = {
     default: 'bg-[#F4F6F5] text-[#263640] border-[#E2E8E8]',
@@ -46,14 +52,35 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   };
 
   return (
-    <div className="bg-white p-5 rounded-[12px] border border-[#E2E8E8] flex flex-col justify-between transition-colors hover:border-[#CBD5D5]">
+    <div
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={`bg-white p-5 rounded-[12px] border flex flex-col justify-between transition-all ${
+        onClick
+          ? active
+            ? 'cursor-pointer border-[#E88932] ring-2 ring-[#E88932]/25 shadow-md -translate-y-0.5 bg-[#FAFBFB]'
+            : 'cursor-pointer border-[#E2E8E8] hover:border-[#E88932] hover:shadow-md hover:-translate-y-0.5 group'
+          : 'border-[#E2E8E8] hover:border-[#CBD5D5]'
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
-        <span className="text-xs font-medium text-[#5A6B75] leading-snug">
+        <span className="text-xs font-medium text-[#5A6B75] leading-snug group-hover:text-[#18232B] transition-colors">
           {title}
         </span>
         {icon && (
           <div
-            className={`w-8 h-8 rounded-[8px] border flex items-center justify-center shrink-0 ${iconToneMap[tone]}`}
+            className={`w-8 h-8 rounded-[8px] border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${iconToneMap[tone]}`}
           >
             {icon}
           </div>
@@ -80,6 +107,19 @@ export const KpiCard: React.FC<KpiCardProps> = ({
             {subtitle && (
               <span className="text-[#5A6B75] leading-tight">{subtitle}</span>
             )}
+          </div>
+        )}
+
+        {onClick && (
+          <div
+            className={`mt-2.5 pt-2 border-t border-[#E2E8E8]/80 flex items-center justify-between text-[10px] font-mono font-semibold transition-colors ${
+              active
+                ? 'text-[#E88932]'
+                : 'text-[#5A6B75] group-hover:text-[#E88932]'
+            }`}
+          >
+            <span>{actionHint || 'Klik untuk lihat rincian terkait'}</span>
+            <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
         )}
       </div>

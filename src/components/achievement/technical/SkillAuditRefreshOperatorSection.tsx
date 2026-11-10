@@ -35,7 +35,14 @@ import {
   Users,
   Filter,
   ArrowUpRight,
+  MapPin,
 } from 'lucide-react';
+import {
+  operationTrainerStore,
+  createInitialOperationTrainerState,
+  TRAINING_SITE_OPTIONS,
+  TrainingSiteName,
+} from '../../../lib/operationTrainerSeedData';
 import {
   Modal,
   DonutChart,
@@ -246,12 +253,61 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
   onDone,
   onError,
 }) => {
+  const [genbaTick, setGenbaTick] = useState(0);
   const mod = mockStore.technicalTrainingModule;
-  const allOperators = mod.skillAuditOperatorRecords || [];
+  const rawOperators = mod.skillAuditOperatorRecords || [];
+  const opTrainerState = useMemo(() => operationTrainerStore.getState(), [genbaTick]);
   const summaryRows = mod.skillAuditSummaryRows || [];
   const photoMap = mod.skillAuditPhotos || {};
 
   const [activeTab, setActiveTab] = useState<ActiveSubTab>('ADT');
+  const [siteFilter, setSiteFilter] = useState<'ALL' | TrainingSiteName>('ALL');
+
+  const combinedRawOperators = useMemo(() => {
+    const tangofaMapped = rawOperators.map((r) => ({
+      ...r,
+      site: ((r as SkillAuditOperatorRecord & { site?: TrainingSiteName }).site ||
+        'Site Tangofa') as TrainingSiteName,
+      _fromGenbaClass: false,
+    }));
+    const gembaMapped = (opTrainerState.genbaClassRecords || []).map((g, idx) => ({
+      id: g.id,
+      no: idx + 1,
+      category: 'DRIVER_DT' as SkillAuditCategoryCode,
+      tanggal: g.tanggal,
+      nama: g.nama,
+      posisi: g.posisi,
+      jenis_unit: g.unit === 'MH' ? 'Manhaul (Gemba)' : 'DT (Gemba)',
+      keterangan: g.activitas,
+      provider: g.provider || 'TC',
+      program: 'Refresh Class',
+      instructor: g.instructor || 'Yusran yusuf',
+      period_label: 'Juli - Oktober 2026',
+      updated_at: '2026-11-04T00:00:00Z',
+      site: (g.site || 'Site Gemba') as TrainingSiteName,
+      _fromGenbaClass: true,
+    }));
+    return [...tangofaMapped, ...gembaMapped];
+  }, [rawOperators, opTrainerState.genbaClassRecords]);
+
+  const allOperators = useMemo(
+    () =>
+      combinedRawOperators.filter((r) => siteFilter === 'ALL' || r.site === siteFilter),
+    [combinedRawOperators, siteFilter]
+  );
+
+  // Auto-switch to DRIVER_DT when selecting Site Gemba if current category has 0 records
+  useEffect(() => {
+    if (
+      siteFilter === 'Site Gemba' &&
+      (activeTab === 'ADT' || activeTab === 'EXCAVATOR' || activeTab === 'DOSER')
+    ) {
+      setActiveTab('DRIVER_DT');
+      setUnitFilter('ALL');
+      setInstructorFilter('ALL');
+    }
+  }, [siteFilter, activeTab]);
+
   const [search, setSearch] = useState('');
   const [unitFilter, setUnitFilter] = useState('ALL');
   const [instructorFilter, setInstructorFilter] = useState('ALL');
@@ -294,6 +350,8 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
 
   const [editOp, setEditOp] = useState<{
     id?: string;
+    site?: TrainingSiteName;
+    _fromGenbaClass?: boolean;
     category: SkillAuditCategoryCode;
     tanggal: string;
     nama: string;
@@ -412,23 +470,26 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
         !r.jenis_unit.toLowerCase().includes('domfeng') &&
         !r.jenis_unit.toLowerCase().includes('hongyan')
     );
-    const rows = [
-      { label: 'Domfeng', filterKey: 'Domfeng', value: domfeng, color: '#E88932' },
-      { label: 'Hongyan', filterKey: 'Hongyan', value: hongyan, color: '#F3C77E' },
-    ];
+    const rows: { label: string; filterKey: string; value: number; color: string }[] = [];
+    if (domfeng > 0 || siteFilter === 'ALL' || siteFilter === 'Site Tangofa') {
+      rows.push({ label: 'Domfeng', filterKey: 'Domfeng', value: domfeng, color: '#E88932' });
+    }
+    if (hongyan > 0 || siteFilter === 'ALL' || siteFilter === 'Site Tangofa') {
+      rows.push({ label: 'Hongyan', filterKey: 'Hongyan', value: hongyan, color: '#F3C77E' });
+    }
     const otherUnits = Array.from(new Set(others.map((o) => o.jenis_unit)));
     otherUnits.forEach((u, idx) => {
       rows.push({
         label: u,
         filterKey: u,
         value: others.filter((o) => o.jenis_unit === u).length,
-        color: palette[(idx + 2) % palette.length],
+        color: palette[(idx + (rows.length > 0 ? 2 : 0)) % palette.length],
       });
     });
     return rows;
   };
 
-  // Upload photo for active category
+  // Upload photo for active category (supports Site Gemba on DRIVER_DT)
   const handleUploadCategoryPhoto = async (
     catKey: string,
     e: React.ChangeEvent<HTMLInputElement>
@@ -437,8 +498,17 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
     const files = Array.from(e.target.files);
     try {
       const dataUrls = await Promise.all(files.map((f) => compressImageFile(f)));
-      const current = photoMap[catKey] || [];
-      mockStore.saveSkillAuditPhotos(userId, catKey, [...current, ...dataUrls]);
+      if (catKey === 'DRIVER_DT' && siteFilter === 'Site Gemba') {
+        operationTrainerStore.updateState((prev) => ({
+          ...prev,
+          genbaClassPhotos: [...dataUrls, ...(prev.genbaClassPhotos || [])],
+        }));
+        setForcePhotoTick((t) => t + 1);
+      } else {
+        const current = photoMap[catKey] || [];
+        mockStore.saveSkillAuditPhotos(userId, catKey, [...current, ...dataUrls]);
+        setForcePhotoTick((t) => t + 1);
+      }
       onDone('Foto dokumentasi berhasil ditambahkan.');
     } catch {
       onError('Gagal mengunggah foto dokumentasi.');
@@ -447,13 +517,56 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
   };
 
   const handleRemoveCategoryPhoto = (catKey: string, idx: number) => {
+    if (catKey === 'DRIVER_DT' && siteFilter === 'Site Gemba') {
+      operationTrainerStore.updateState((prev) => ({
+        ...prev,
+        genbaClassPhotos: (prev.genbaClassPhotos || []).filter((_, i) => i !== idx),
+      }));
+      setForcePhotoTick((t) => t + 1);
+      onDone('Foto dokumentasi berhasil dihapus.');
+      return;
+    }
+
     const current = photoMap[catKey] || [];
+    if (catKey === 'DRIVER_DT' && siteFilter === 'ALL' && idx >= current.length) {
+      const gembaIdx = idx - current.length;
+      operationTrainerStore.updateState((prev) => ({
+        ...prev,
+        genbaClassPhotos: (prev.genbaClassPhotos || []).filter((_, i) => i !== gembaIdx),
+      }));
+      setForcePhotoTick((t) => t + 1);
+      onDone('Foto dokumentasi berhasil dihapus.');
+      return;
+    }
+
     mockStore.saveSkillAuditPhotos(
       userId,
       catKey,
       current.filter((_, i) => i !== idx)
     );
+    setForcePhotoTick((t) => t + 1);
     onDone('Foto dokumentasi berhasil dihapus.');
+  };
+
+  const handleResetCategoryPhotos = (catKey: string, label: string) => {
+    if (catKey === 'DRIVER_DT' && siteFilter === 'Site Gemba') {
+      const defaults = createInitialOperationTrainerState();
+      operationTrainerStore.updateState((prev) => ({
+        ...prev,
+        genbaClassPhotos: defaults.genbaClassPhotos,
+      }));
+    } else if (catKey === 'DRIVER_DT' && siteFilter === 'ALL') {
+      mockStore.restoreDefaultSkillAuditPhotos(userId, catKey);
+      const defaults = createInitialOperationTrainerState();
+      operationTrainerStore.updateState((prev) => ({
+        ...prev,
+        genbaClassPhotos: defaults.genbaClassPhotos,
+      }));
+    } else {
+      mockStore.restoreDefaultSkillAuditPhotos(userId, catKey);
+    }
+    setForcePhotoTick((t) => t + 1);
+    onDone(`Foto dokumentasi default ${label} berhasil dikembalikan.`);
   };
 
   // Switch tab and reset unit/instructor filters
@@ -851,14 +964,31 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
           })}
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] font-mono text-[#296050] bg-[#397C69]/10 px-3 py-1.5 rounded-[8px] border border-[#397C69]/25">
-          <span className="w-2 h-2 rounded-full bg-[#397C69] animate-pulse" />
-          <span>Grafik & Tabel Terhubung Data Aktual ({allOperators.length} Peserta)</span>
+        {/* Site Filter Pill Bar */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-[#F4F6F5] p-1 rounded-[10px] border border-[#E2E8E8]">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#5A6B75] px-2 flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-[#E88932]" />
+            Filter Site:
+          </span>
+          {(['ALL', ...TRAINING_SITE_OPTIONS] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSiteFilter(s)}
+              className={`px-2.5 py-1 rounded-[7px] text-[11px] font-semibold transition-all cursor-pointer ${
+                siteFilter === s
+                  ? 'bg-[#18232B] text-white shadow-xs'
+                  : 'text-[#263640] hover:bg-[#E2E8E8]'
+              }`}
+            >
+              {s === 'ALL' ? 'Semua Site' : s}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* ====================================================================
-          VIEW A: SUMMARY REFRESH HEAVY EQUIPMENT (SLIDE 5 + LIVE SYNC)
+          VIEW A: SUMMARY REFRESH HEAVY EQUIPMENT (LIVE SYNC)
          ==================================================================== */}
       {activeTab === 'SUMMARY' && (
         <div className="space-y-5">
@@ -866,14 +996,14 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
             <div className="px-5 py-4 bg-[#18232B] bg-topography text-white flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm sm:text-base font-heading font-extrabold uppercase">
-                  REFRESH OPERATOR & DRIVER DT DI TANGOFA — UPDATE PROGRAM REFRESH OPERATOR & DRIVER
+                  REFRESH OPERATOR & DRIVER DT — UPDATE PROGRAM REFRESH OPERATOR & DRIVER
                 </h3>
                 <p className="text-xs text-slate-300 mt-0.5">
                   Summary Refresh Heavy Equipment berdasarkan Jabatan — Grafik & Tabel terhubung langsung dengan Data Aktual Peserta
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                {/* Toggle Live Data Aktual vs Baseline Slide */}
+                {/* Toggle Live Data Aktual vs Target Baseline */}
                 <div className="inline-flex rounded-[8px] bg-[#263640] p-1 border border-slate-700 text-[11px]">
                   <button
                     type="button"
@@ -895,7 +1025,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                         : 'text-slate-300 hover:text-white'
                     }`}
                   >
-                    Angka Slide Report
+                    Target Baseline
                   </button>
                 </div>
 
@@ -1193,55 +1323,93 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                 </div>
               </div>
 
-              {/* Right 3 Cols: 4 Field Documentation Photos */}
-              <div className="xl:col-span-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-heading font-bold text-[#18232B] uppercase">
-                    Dokumentasi Refresh ({(photoMap.SUMMARY || []).length})
-                  </h4>
-                  {canEdit && (
-                    <label className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#18232B] text-white text-[10px] font-semibold cursor-pointer hover:bg-[#263640]">
-                      <Upload className="w-3 h-3 text-[#E88932]" />
-                      <span>+ Foto</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={(e) => handleUploadCategoryPhoto('SUMMARY', e)}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 xl:grid-cols-1 gap-2.5">
-                  {(photoMap.SUMMARY || []).map((url, idx) => (
-                    <div
-                      key={idx}
-                      className="relative group rounded-[10px] overflow-hidden border border-[#E2E8E8] bg-[#18232B] h-28 shadow-2xs"
-                    >
-                      <img
-                        src={url}
-                        alt={`Summary Doc ${idx + 1}`}
-                        onClick={() =>
-                          setPreviewPhoto({
-                            url,
-                            caption: `Dokumentasi Refresh Operator & Driver DT #${idx + 1}`,
-                          })
-                        }
-                        className="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
-                      />
-                      {canEdit && (
+              {/* Right 3 Cols: Dokumentasi Kegiatan (Selaras dengan Assessment & Orientasi) */}
+              <div className="xl:col-span-3 bg-white rounded-[12px] border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[#18232B]">
+                        Dokumentasi Kegiatan ({(photoMap.SUMMARY || []).length} Foto)
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Klik foto untuk memperbesar tampilan
+                      </p>
+                    </div>
+                    {canEdit && (
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => handleRemoveCategoryPhoto('SUMMARY', idx)}
-                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 hover:bg-[#B94C45] cursor-pointer transition-opacity"
-                          title="Hapus Foto"
+                          onClick={() => handleResetCategoryPhotos('SUMMARY', 'Summary Refresh')}
+                          title="Kembalikan foto default"
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#18232B] hover:bg-slate-50 cursor-pointer"
                         >
-                          <X className="w-3 h-3" />
+                          <RefreshCw className="w-3.5 h-3.5" />
                         </button>
-                      )}
-                    </div>
-                  ))}
+                        <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#18232B] text-white text-[11px] font-semibold hover:bg-[#263640] cursor-pointer">
+                          <Upload className="w-3 h-3" />
+                          <span>Upload</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) => handleUploadCategoryPhoto('SUMMARY', e)}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1">
+                    {(photoMap.SUMMARY || []).map((url, idx) => (
+                      <div
+                        key={`${url}-${idx}`}
+                        className="group relative aspect-[4/3] rounded-[9px] overflow-hidden border border-slate-200 bg-slate-100"
+                      >
+                        <img
+                          src={url}
+                          alt={`Dokumentasi ${idx + 1}`}
+                          onClick={() =>
+                            setPreviewPhoto({
+                              url,
+                              caption: `Dokumentasi Refresh Operator & Driver DT #${idx + 1}`,
+                            })
+                          }
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPreviewPhoto({
+                              url,
+                              caption: `Dokumentasi Refresh Operator & Driver DT #${idx + 1}`,
+                            })
+                          }
+                          className="absolute bottom-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title="Perbesar Foto"
+                        >
+                          <ZoomIn className="w-3.5 h-3.5" />
+                        </button>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCategoryPhoto('SUMMARY', idx)}
+                            className="absolute top-1.5 right-1.5 p-1 rounded-md bg-red-600/85 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="Hapus Foto"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span>
+                    Lokasi: {siteFilter === 'ALL' ? 'Semua Site' : siteFilter}
+                  </span>
+                  <span className="font-mono text-[#397C69] font-semibold">Verified TC</span>
                 </div>
               </div>
             </div>
@@ -1450,7 +1618,12 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
               // Dynamically compute breakdown from records matching active search/instructor filter!
               const breakdown = getCategoryUnitBreakdown(activeTab, recordsMatchingSearchAndInst);
               const totalCat = breakdown.reduce((s, x) => s + x.value, 0);
-              const photos = photoMap[activeTab] || [];
+              const photos =
+                activeTab === 'DRIVER_DT' && siteFilter === 'Site Gemba'
+                  ? opTrainerState.genbaClassPhotos || []
+                  : activeTab === 'DRIVER_DT' && siteFilter === 'ALL'
+                  ? [...(photoMap[activeTab] || []), ...(opTrainerState.genbaClassPhotos || []).slice(0, 4)]
+                  : photoMap[activeTab] || [];
 
               // Instructor distribution for this category
               const instructorStats = availableInstructorsInTab.map((inst) => ({
@@ -1459,14 +1632,17 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
               }));
 
               return (
-                <div className="bg-white rounded-[14px] border border-[#E2E8E8] shadow-xs overflow-hidden">
-                  <div className="px-5 py-3.5 bg-[#18232B] bg-topography text-white border-b border-[#263640] flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-4">
+                  {/* Context Banner Header */}
+                  <div className="px-5 py-3.5 rounded-[12px] bg-[#18232B] text-white border border-[#263640] flex flex-wrap items-center justify-between gap-2 shadow-xs">
                     <div>
                       <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#E88932]">
-                        PT. RODA JAYA SAKTI - SITE TANGOFA
+                        PT. RODA JAYA SAKTI — {siteFilter === 'ALL' ? 'SEMUA SITE' : siteFilter.toUpperCase()}
                       </div>
                       <h3 className="text-sm sm:text-base font-heading font-bold">
-                        {meta.chartBoxTitle} • PERIOD : {meta.periodLabel}
+                        {siteFilter === 'Site Gemba' && activeTab === 'DRIVER_DT'
+                          ? 'Refresh Training Class Driver DT & Manhaul • PERIOD : Juli - Oktober 2026'
+                          : `${meta.chartBoxTitle} • PERIOD : ${meta.periodLabel}`}
                       </h3>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1485,35 +1661,30 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                     </div>
                   </div>
 
-                  <div className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                    {/* KOTAK 1 (4 Cols): Rincian Unit & Rekap Instructor */}
-                    <div className="lg:col-span-4 bg-[#FAFBFB] rounded-[12px] p-4 border border-[#E2E8E8] flex flex-col justify-between h-full space-y-3">
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-heading font-bold uppercase tracking-wider text-[#18232B]">
-                            RINCIAN UNIT ({totalCat} PESERTA)
-                          </span>
-                          <span className="text-[10px] font-mono text-[#5A6B75]">
-                            Klik baris untuk filter
-                          </span>
+                  {/* BLOK 2: 3 KOTAK RINGKASAN SEJAJAR (SELARAS 100% DENGAN ASSESSMENT & ORIENTASI) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                    {/* KOTAK KIRI (4 Cols): Rincian Unit & Rekap Instructor */}
+                    <div className="lg:col-span-4 bg-white rounded-[12px] border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between h-full">
+                      <div className="space-y-3">
+                        <div>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-[#18232B]">
+                            Rincian Unit ({totalCat} Peserta)
+                          </h3>
+                          <p className="text-[11px] text-slate-500">
+                            Klik baris untuk memfilter tabel peserta di bawah
+                          </p>
                         </div>
 
-                        <div className="rounded-[10px] overflow-hidden border border-[#E2E8E8] bg-white shadow-2xs">
-                          <table className="w-full border-collapse text-xs">
+                        <div className="overflow-hidden rounded-[9px] border border-slate-200">
+                          <table className="w-full text-left border-collapse">
                             <thead>
-                              <tr className="bg-[#18232B] text-white font-mono text-[10px] font-bold uppercase tracking-wider">
-                                <th className="px-3 py-2.5 border-r border-[#263640] text-left">
-                                  Jenis Unit
-                                </th>
-                                <th className="px-3 py-2.5 border-r border-[#263640] text-right w-16">
-                                  TOTAL
-                                </th>
-                                <th className="px-3 py-2.5 text-right w-14">
-                                  %
-                                </th>
+                              <tr className="bg-[#18232B] text-white text-[10px] font-mono uppercase">
+                                <th className="py-2.5 px-3">Jenis Unit</th>
+                                <th className="py-2.5 px-3 text-right">Total</th>
+                                <th className="py-2.5 px-3 text-right">%</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-[#E2E8E8]">
+                            <tbody className="divide-y divide-slate-200 text-xs">
                               {breakdown.map((b) => {
                                 const pct = totalCat > 0 ? Math.round((b.value / totalCat) * 100) : 0;
                                 const isSelected = unitFilter === b.filterKey;
@@ -1525,14 +1696,14 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                                         prev === b.filterKey ? 'ALL' : b.filterKey
                                       )
                                     }
-                                    className={`cursor-pointer transition-colors font-semibold ${
+                                    className={`cursor-pointer transition-colors ${
                                       isSelected
-                                        ? 'bg-[#18232B] text-white'
-                                        : 'even:bg-[#FAFBFB] odd:bg-white text-[#18232B] hover:bg-[#F4F6F5]'
+                                        ? 'bg-[#E88932]/12 font-bold'
+                                        : 'hover:bg-slate-50 font-semibold'
                                     }`}
                                     title={`Klik untuk memfilter tabel hanya unit ${b.label}`}
                                   >
-                                    <td className="px-3 py-2.5 border-r border-[#E2E8E8] flex items-center justify-between gap-2">
+                                    <td className="py-2.5 px-3 flex items-center justify-between gap-2 text-[#18232B]">
                                       <span className="flex items-center gap-2">
                                         <span
                                           className="w-2.5 h-2.5 rounded-xs shrink-0"
@@ -1546,10 +1717,10 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                                         </span>
                                       )}
                                     </td>
-                                    <td className="px-3 py-2.5 border-r border-[#E2E8E8] text-right font-mono font-bold text-sm">
+                                    <td className="py-2.5 px-3 text-right font-mono font-bold text-[#18232B]">
                                       {b.value}
                                     </td>
-                                    <td className="px-3 py-2.5 text-right font-mono font-bold">
+                                    <td className="py-2.5 px-3 text-right font-mono text-slate-500">
                                       {pct}%
                                     </td>
                                   </tr>
@@ -1557,170 +1728,199 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                               })}
                               <tr
                                 onClick={() => setUnitFilter('ALL')}
-                                className="bg-[#263640] text-white font-heading font-bold text-xs cursor-pointer"
+                                className="bg-[#18232B] text-white font-bold text-xs cursor-pointer"
                               >
-                                <td className="px-3 py-2.5 border-r border-[#18232B]/50">
-                                  GRAND TOTAL
-                                </td>
-                                <td className="px-3 py-2.5 border-r border-[#18232B]/50 text-right font-mono text-[#E88932] text-sm">
+                                <td className="py-2.5 px-3">GRAND TOTAL UNIT</td>
+                                <td className="py-2.5 px-3 text-right font-mono text-sm text-[#E88932]">
                                   {totalCat}
                                 </td>
-                                <td className="px-3 py-2.5 text-right font-mono text-[#6CD4B4]">
+                                <td className="py-2.5 px-3 text-right font-mono text-emerald-400">
                                   100%
                                 </td>
                               </tr>
                             </tbody>
                           </table>
                         </div>
+
+                        {/* Live Instructor Breakdown */}
+                        {instructorStats.length > 0 && (
+                          <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                            <div className="text-[10px] font-mono font-bold uppercase text-slate-500 flex items-center justify-between">
+                              <span>Rekap Aktual per Instructor</span>
+                              {instructorFilter !== 'ALL' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setInstructorFilter('ALL')}
+                                  className="text-[#E88932] hover:underline cursor-pointer"
+                                >
+                                  Reset
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {instructorStats.map((st) => {
+                                const activeInst = instructorFilter === st.instructor;
+                                return (
+                                  <button
+                                    key={st.instructor}
+                                    type="button"
+                                    onClick={() =>
+                                      setInstructorFilter((prev) =>
+                                        prev === st.instructor ? 'ALL' : st.instructor
+                                      )
+                                    }
+                                    className={`px-2.5 py-1 rounded-[6px] text-xs font-semibold border transition-all cursor-pointer ${
+                                      activeInst
+                                        ? 'bg-[#18232B] text-white border-[#E88932]'
+                                        : 'bg-slate-50 text-[#18232B] border-slate-200 hover:border-[#18232B]'
+                                    }`}
+                                  >
+                                    {st.instructor}:{' '}
+                                    <strong className="font-mono text-[#C66B1A]">{st.count}x</strong>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Live Instructor Breakdown anchored at bottom */}
-                      <div className="pt-2.5 border-t border-[#E2E8E8] space-y-1.5">
-                        <div className="text-[10px] font-mono font-bold uppercase text-[#5A6B75] flex items-center justify-between">
-                          <span>Rekap Aktual per Instructor</span>
-                          {instructorFilter !== 'ALL' && (
-                            <button
-                              type="button"
-                              onClick={() => setInstructorFilter('ALL')}
-                              className="text-[#E88932] hover:underline cursor-pointer"
-                            >
-                              Reset
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {instructorStats.map((st) => {
-                            const activeInst = instructorFilter === st.instructor;
-                            return (
-                              <button
-                                key={st.instructor}
-                                type="button"
-                                onClick={() =>
-                                  setInstructorFilter((prev) =>
-                                    prev === st.instructor ? 'ALL' : st.instructor
-                                  )
-                                }
-                                className={`px-2.5 py-1 rounded-[6px] text-xs font-semibold border transition-all cursor-pointer ${
-                                  activeInst
-                                    ? 'bg-[#18232B] text-white border-[#E88932]'
-                                    : 'bg-white text-[#18232B] border-[#E2E8E8] hover:border-[#18232B]'
-                                }`}
-                              >
-                                {st.instructor}:{' '}
-                                <strong className="font-mono text-[#C66B1A]">{st.count}x</strong>
-                              </button>
-                            );
-                          })}
-                        </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Departemen: MOD</span>
+                        <span className="font-mono font-semibold text-[#18232B]">
+                          Provider: INTERNAL PT RJS / TC
+                        </span>
                       </div>
                     </div>
 
-                    {/* KOTAK 2 (4 Cols): Interactive Pie Chart */}
-                    <div className="lg:col-span-4 bg-[#FAFBFB] rounded-[12px] p-4 border border-[#E2E8E8] flex flex-col justify-between h-full">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-heading font-bold uppercase tracking-wider text-[#18232B]">
-                          PROPORSI UNIT ({totalCat} PESERTA)
-                        </span>
-                        <span className="text-[10px] font-mono text-[#5A6B75]">
-                          Grafik Interaktif
-                        </span>
+                    {/* KOTAK TENGAH (4 Cols): Grafik Visual Interaktif */}
+                    <div className="lg:col-span-4 bg-white rounded-[12px] border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between h-full">
+                      <div>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#18232B] text-center mb-1">
+                          Proporsi Unit {meta.shortTitle} ({totalCat} Peserta)
+                        </h3>
+                        <p className="text-[11px] text-slate-500 text-center mb-3">
+                          Visualisasi otomatis dari data aktual sesuai filter Site
+                        </p>
                       </div>
-                      <div className="my-auto py-1 flex items-center justify-center">
+
+                      <div className="my-auto flex items-center justify-center">
                         <SlidePieChart
                           segments={breakdown}
                           selectedFilter={unitFilter}
                           onSelectFilter={(fk) => setUnitFilter(fk)}
                         />
                       </div>
-                      <div className="pt-2.5 border-t border-[#E2E8E8] text-[10px] text-[#5A6B75] font-medium text-center">
+
+                      <div className="mt-4 pt-3 border-t border-slate-100 text-center text-[11px] text-slate-500">
                         Klik potongan grafik untuk memfilter tabel peserta di bawah
                       </div>
                     </div>
 
-                    {/* KOTAK 3 (4 Cols): Documentation Photos */}
-                    <div className="lg:col-span-4 bg-[#FAFBFB] rounded-[12px] p-4 border border-[#E2E8E8] flex flex-col justify-between h-full space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-1.5">
-                        <span className="text-xs font-heading font-bold uppercase tracking-wider text-[#18232B]">
-                          DOKUMENTASI ({photos.length} FOTO)
-                        </span>
-                        {canEdit && (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                mockStore.restoreDefaultSkillAuditPhotos(userId, activeTab);
-                                setForcePhotoTick((t) => t + 1);
-                                onDone(
-                                  `Foto dokumentasi default ${meta.shortTitle} berhasil dikembalikan.`
-                                );
-                              }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-[6px] border border-[#E2E8E8] bg-white text-[#18232B] text-[10px] font-semibold cursor-pointer hover:bg-[#F4F6F5]"
-                              title="Kembalikan Foto Default"
-                            >
-                              <RotateCcw className="w-3 h-3 text-[#E88932]" />
-                              <span>Reset</span>
-                            </button>
-                            <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-[#18232B] text-white text-[10px] font-semibold cursor-pointer hover:bg-[#263640]">
-                              <Upload className="w-3 h-3 text-[#E88932]" />
-                              <span>Upload Foto</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={(e) => handleUploadCategoryPhoto(activeTab, e)}
-                                className="hidden"
-                              />
-                            </label>
+                    {/* KOTAK KANAN (4 Cols): Dokumentasi Kegiatan (Identik 100% dengan Assessment & Orientasi) */}
+                    <div className="lg:col-span-4 bg-white rounded-[12px] border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between h-full">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div>
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18232B]">
+                              Dokumentasi Kegiatan ({photos.length} Foto)
+                            </h3>
+                            <p className="text-[11px] text-slate-500">
+                              Klik foto untuk memperbesar tampilan
+                            </p>
                           </div>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-[175px]">
-                        {photos.map((url, idx) => (
-                          <div
-                            key={idx}
-                            className="relative group rounded-[10px] overflow-hidden border border-[#E2E8E8] bg-[#18232B] h-full min-h-[175px] shadow-2xs"
-                          >
-                            <img
-                              src={url}
-                              alt={`${meta.shortTitle} Doc ${idx + 1}`}
-                              onClick={() =>
-                                setPreviewPhoto({
-                                  url,
-                                  caption: `${meta.slideTitle} — Dokumentasi #${idx + 1}`,
-                                })
-                              }
-                              className="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPreviewPhoto({
-                                  url,
-                                  caption: `${meta.slideTitle} — Dokumentasi #${idx + 1}`,
-                                })
-                              }
-                              className="absolute bottom-1.5 right-1.5 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                              title="Perbesar Foto"
-                            >
-                              <ZoomIn className="w-3.5 h-3.5" />
-                            </button>
-                            {canEdit && (
+                          {canEdit && (
+                            <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => handleRemoveCategoryPhoto(activeTab, idx)}
-                                className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 hover:bg-[#B94C45] transition-opacity cursor-pointer"
-                                title="Hapus Foto"
+                                onClick={() =>
+                                  handleResetCategoryPhotos(activeTab, meta.shortTitle)
+                                }
+                                title="Kembalikan foto default"
+                                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#18232B] hover:bg-slate-50 cursor-pointer"
                               >
-                                <X className="w-3 h-3" />
+                                <RefreshCw className="w-3.5 h-3.5" />
                               </button>
-                            )}
-                          </div>
-                        ))}
+                              <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#18232B] text-white text-[11px] font-semibold hover:bg-[#263640] cursor-pointer">
+                                <Upload className="w-3 h-3" />
+                                <span>Upload Foto</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={(e) => handleUploadCategoryPhoto(activeTab, e)}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          )}
+                        </div>
+
+                        <div
+                          className={`grid gap-2 max-h-[250px] overflow-y-auto pr-1 ${
+                            photos.length <= 4
+                              ? 'grid-cols-2'
+                              : photos.length <= 6
+                              ? 'grid-cols-3'
+                              : 'grid-cols-4'
+                          }`}
+                        >
+                          {photos.map((url, idx) => (
+                            <div
+                              key={`${url}-${idx}`}
+                              className="group relative aspect-[4/3] rounded-[9px] overflow-hidden border border-slate-200 bg-slate-100"
+                            >
+                              <img
+                                src={url}
+                                alt={`Dokumentasi ${idx + 1}`}
+                                onClick={() =>
+                                  setPreviewPhoto({
+                                    url,
+                                    caption: `${meta.slideTitle} — Dokumentasi #${idx + 1}`,
+                                  })
+                                }
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewPhoto({
+                                    url,
+                                    caption: `${meta.slideTitle} — Dokumentasi #${idx + 1}`,
+                                  })
+                                }
+                                className="absolute bottom-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                title="Perbesar Foto"
+                              >
+                                <ZoomIn className="w-3.5 h-3.5" />
+                              </button>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCategoryPhoto(activeTab, idx)}
+                                  className="absolute top-1.5 right-1.5 p-1 rounded-md bg-red-600/85 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                  title="Hapus Foto"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
-                      <div className="pt-2.5 border-t border-[#E2E8E8] text-[10px] text-[#5A6B75] font-medium text-center">
-                        Klik pada foto untuk memperbesar tampilan dokumentasi
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>
+                          Lokasi:{' '}
+                          {siteFilter === 'ALL'
+                            ? activeTab === 'DRIVER_DT'
+                              ? 'Site Tangofa & Site Gemba'
+                              : 'Site Tangofa'
+                            : siteFilter}
+                        </span>
+                        <span className="font-mono text-[#397C69] font-semibold">
+                          Verified TC
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1914,11 +2114,11 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-[#18232B] text-white font-heading font-bold text-xs uppercase">
                     <th
-                      colSpan={canEdit ? 11 : 10}
+                      colSpan={canEdit ? 12 : 11}
                       className="py-2.5 px-4 text-center border-b border-[#263640] tracking-wider"
                     >
                       <span className="inline-block w-2 h-2 rounded-full bg-[#E88932] mr-2 align-middle" />
-                      PT. RODA JAYA SAKTI - SITE TANGOFA •{' '}
+                      PT. RODA JAYA SAKTI — {siteFilter === 'ALL' ? 'SEMUA SITE' : siteFilter.toUpperCase()} •{' '}
                       {activeTab === 'ALL_UNITS'
                         ? 'REPORT SKILL AUDIT & REFRESH OPERATOR (ADT, EXCAVATOR, DOSER, DRIVER DT)'
                         : `${CATEGORY_META[activeTab].reportTitle} (${CATEGORY_META[activeTab].periodLabel})`}
@@ -1926,6 +2126,7 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                   </tr>
                   <tr className="bg-[#263640] text-slate-100 font-mono font-bold text-[10px] uppercase tracking-wider">
                     <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-12">No</th>
+                    <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-28">Site</th>
                     <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-28">Tanggal</th>
                     <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-left">Nama</th>
                     <th className="px-3 py-2.5 border-r border-[#18232B]/50 text-center w-24">Posisi</th>
@@ -1951,6 +2152,11 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                 <tbody className="divide-y divide-[#E2E8E8]">
                   {filteredRecords.map((row, idx) => {
                     const catMeta = CATEGORY_META[row.category];
+                    const rowSite =
+                      (row as typeof combinedRawOperators[number]).site || 'Site Tangofa';
+                    const isGenbaRow = Boolean(
+                      (row as typeof combinedRawOperators[number])._fromGenbaClass
+                    );
                     return (
                       <tr
                         key={row.id}
@@ -1958,6 +2164,11 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                       >
                         <td className="px-2.5 py-2.5 border-r border-[#E2E8E8] text-center font-mono font-bold text-[#5A6B75]">
                           {idx + 1}
+                        </td>
+                        <td className="px-3 py-2.5 border-r border-[#E2E8E8] text-center whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#18232B]/8 text-[#18232B] border border-[#18232B]/15">
+                            {rowSite}
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 border-r border-[#E2E8E8] text-center font-mono text-[#18232B] whitespace-nowrap">
                           {row.tanggal}
@@ -2011,6 +2222,8 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                                 onClick={() =>
                                   setEditOp({
                                     id: row.id,
+                                    site: rowSite,
+                                    _fromGenbaClass: isGenbaRow,
                                     category: row.category,
                                     tanggal: row.tanggal,
                                     nama: row.nama,
@@ -2033,7 +2246,17 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                                 type="button"
                                 onClick={() => {
                                   if (!window.confirm(`Hapus data "${row.nama}"?`)) return;
-                                  mockStore.deleteSkillAuditOperatorRecord(userId, row.id);
+                                  if (isGenbaRow) {
+                                    operationTrainerStore.updateState((prev) => ({
+                                      ...prev,
+                                      genbaClassRecords: prev.genbaClassRecords
+                                        .filter((g) => g.id !== row.id)
+                                        .map((g, i) => ({ ...g, no: i + 1 })),
+                                    }));
+                                    setGenbaTick((t) => t + 1);
+                                  } else {
+                                    mockStore.deleteSkillAuditOperatorRecord(userId, row.id);
+                                  }
                                   onDone('Data peserta berhasil dihapus & grafik otomatis diperbarui.');
                                 }}
                                 className="p-1 rounded hover:bg-[#B94C45]/15 text-[#B94C45] cursor-pointer"
@@ -2069,7 +2292,33 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
             onSubmit={(e) => {
               e.preventDefault();
               try {
-                mockStore.saveSkillAuditOperatorRecord(userId, editOp);
+                if (editOp._fromGenbaClass) {
+                  operationTrainerStore.updateState((prev) => ({
+                    ...prev,
+                    genbaClassRecords: prev.genbaClassRecords.map((g) =>
+                      g.id === editOp.id
+                        ? {
+                            ...g,
+                            site: editOp.site || 'Site Gemba',
+                            tanggal: editOp.tanggal,
+                            nama: editOp.nama,
+                            posisi: editOp.posisi,
+                            unit: editOp.jenis_unit.toLowerCase().includes('manhaul')
+                              ? 'MH'
+                              : 'DT',
+                            activitas: editOp.keterangan,
+                            provider: editOp.provider,
+                            instructor: editOp.instructor,
+                          }
+                        : g
+                    ),
+                  }));
+                  setGenbaTick((t) => t + 1);
+                  setEditOp(null);
+                  onDone('Data peserta Training Class berhasil diperbarui.');
+                  return;
+                }
+                mockStore.saveSkillAuditOperatorRecord(userId, editOp as any);
                 setEditOp(null);
                 onDone(
                   'Data peserta Skill Audit & Refresh berhasil disimpan. Seluruh grafik & tabel otomatis terupdate!'
@@ -2080,6 +2329,22 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
             }}
             className="grid grid-cols-2 gap-3"
           >
+            <div className="col-span-2">
+              <label className={labelCls}>Lokasi Site *</label>
+              <select
+                className={inputCls}
+                value={editOp.site || (siteFilter !== 'ALL' ? siteFilter : 'Site Tangofa')}
+                onChange={(e) =>
+                  setEditOp({ ...editOp, site: e.target.value as TrainingSiteName })
+                }
+              >
+                {TRAINING_SITE_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className={labelCls}>Kategori Alat Berat / Unit *</label>
               <select
@@ -2294,25 +2559,33 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
         )}
       </Modal>
 
-      {/* Lightbox Preview Foto Dokumentasi */}
-      <Modal
-        open={!!previewPhoto}
-        title="Preview Dokumentasi Skill Audit & Refresh Operator"
-        onClose={() => setPreviewPhoto(null)}
-      >
-        {previewPhoto && (
-          <div className="space-y-3">
-            <div className="rounded-[10px] overflow-hidden border border-[#E2E8E8] bg-[#18232B] flex items-center justify-center max-h-[65vh]">
-              <img
-                src={previewPhoto.url}
-                alt={previewPhoto.caption}
-                className="max-w-full max-h-[62vh] object-contain"
-              />
-            </div>
-            <p className="text-xs text-[#263640] font-medium">{previewPhoto.caption}</p>
+      {/* Lightbox Zoom (Selaras 100% dengan Assessment & Orientasi) */}
+      {previewPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setPreviewPhoto(null)}
+              className="absolute -top-10 right-0 text-white hover:text-[#E88932] cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={previewPhoto.url}
+              alt={previewPhoto.caption}
+              className="max-w-full max-h-[82vh] rounded-xl object-contain border border-white/20"
+            />
+            {previewPhoto.caption && (
+              <p className="text-xs text-slate-200 font-medium text-center mt-2.5">
+                {previewPhoto.caption}
+              </p>
+            )}
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
     </div>
   );
 };
@@ -2325,32 +2598,48 @@ export const SkillAuditRefreshOperatorView: React.FC = () => {
   const [toast, setToast] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
 
   return (
-    <div className="space-y-5">
-      <div className="bg-[#18232B] bg-topography text-white p-5 rounded-[14px] border border-[#263640] flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-[#E88932] text-xs font-mono font-semibold uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4" />
-            <span>TRAINING ACHIEVEMENT • PROGRAM SKILL AUDIT & REFRESH OPERATOR</span>
+    <div className="space-y-6 pb-10">
+      {/* BLOK 1: DARK SLATE HERO HEADER (#18232B — Selaras dengan Assessment & Orientasi) */}
+      <div className="relative overflow-hidden rounded-[14px] bg-[#18232B] text-white p-6 border border-[#263640] shadow-lg">
+        <div
+          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 15% 20%, #E88932 0%, transparent 50%), radial-gradient(circle at 85% 80%, #397C69 0%, transparent 50%)',
+          }}
+        />
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-[#E88932]/20 text-[#E88932] border border-[#E88932]/40">
+                <ShieldCheck className="w-3 h-3" />
+                Operation Trainer Report
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-300 bg-[#263640] border border-slate-700">
+                <MapPin className="w-3 h-3 text-[#E88932]" />
+                Semua Site (Tangofa • Gemba • TPM) • Tahun 2026
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              Program Skill Audit & Refresh Operator / Driver
+            </h1>
+            <p className="text-xs text-slate-300 mt-1 max-w-3xl">
+              Monitoring & rekapitulasi aktual Refresh Operator ADT, Operator Excavator (Exa), Operator Doser, Driver DT Hauling & Refresh Class Site Gemba, serta Summary Refresh Heavy Equipment.
+            </p>
           </div>
-          <h2 className="text-lg sm:text-xl font-heading font-bold mt-1">
-            PROGRAM SKILL AUDIT & REFRESH OPERATOR
-          </h2>
-          <p className="text-xs text-slate-300 mt-0.5">
-            Monitoring & rekapitulasi aktual Refresh Operator ADT, Operator Excavator (Exa), Operator Doser, Driver DT Hauling, serta Summary Refresh Heavy Equipment Site Tangofa.
-          </p>
-        </div>
 
-        <div>
-          {canEdit ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#397C69]/25 border border-[#397C69]/50 text-[#6CD4B4] text-xs font-mono font-semibold">
-              Mode Akses: EDIT ({currentUser.role_name})
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#263640] border border-slate-700 text-slate-300 text-xs font-mono font-semibold">
-              <Lock className="w-3.5 h-3.5 text-[#E88932]" />
-              <span>VIEW ONLY ({currentUser.role_name})</span>
-            </span>
-          )}
+          <div>
+            {canEdit ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#397C69]/25 border border-[#397C69]/50 text-[#6CD4B4] text-xs font-mono font-semibold">
+                Mode Akses: EDIT ({currentUser.role_name})
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#263640] border border-slate-700 text-slate-300 text-xs font-mono font-semibold">
+                <Lock className="w-3.5 h-3.5 text-[#E88932]" />
+                <span>VIEW ONLY ({currentUser.role_name})</span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
