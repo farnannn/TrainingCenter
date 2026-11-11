@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
 import { TrainingApplication, ApplicationStatus, getRolePermissions } from '../../lib/types';
 import { ApplicationDetailModal } from './ApplicationDetailModal';
 import { CreateApplicationModal } from './CreateApplicationModal';
+import { HodPjoActionModal } from './HodPjoActionModal';
 import { Button } from '../ui/Button';
 import { StatusBadge } from '../ui/StatusBadge';
 import {
@@ -18,6 +19,8 @@ import {
   Save,
   AlertCircle,
   Lock,
+  FileCheck,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface ApplicationListProps {
@@ -36,9 +39,17 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
   const isSuperAdmin = currentUser.role_code === 'SUPER_ADMIN' || perms.canDeleteData;
 
   const [selectedApp, setSelectedApp] = useState<TrainingApplication | null>(null);
+  const [approvalTarget, setApprovalTarget] = useState<{
+    app: TrainingApplication;
+    mode: 'HOD' | 'PJO';
+  } | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(filterStatus || 'ALL');
+
+  useEffect(() => {
+    setStatusFilter(filterStatus || 'ALL');
+  }, [filterStatus]);
   const [confirmDeleteApp, setConfirmDeleteApp] = useState<TrainingApplication | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -199,10 +210,16 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
               className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
                 perms.trainingData === 'EDIT'
                   ? 'bg-[#397C69]/12 text-[#296050] border-[#397C69]/30'
+                  : perms.canApproveFinalPjo
+                  ? 'bg-[#E88932]/15 text-[#B85E12] border-[#E88932]/40'
                   : 'bg-[#D5A33D]/15 text-[#8C6412] border-[#D5A33D]/30'
               }`}
             >
-              {perms.trainingData === 'EDIT' ? 'MODE: EDIT (Input/Edit/Delete)' : 'MODE: VIEW ONLY'}
+              {perms.trainingData === 'EDIT'
+                ? 'MODE: EDIT (Input/Edit/Delete)'
+                : perms.canApproveFinalPjo
+                ? 'MODE: OTORISASI AKHIR PJO'
+                : 'MODE: VIEW ONLY'}
             </span>
           </div>
           <p className="text-xs text-[#5A6B75] mt-0.5">
@@ -244,6 +261,11 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
             >
               Input Data Training Baru
             </Button>
+          ) : perms.canApproveFinalPjo ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[8px] bg-[#E88932]/10 border border-[#E88932]/30 text-[11px] font-mono font-semibold text-[#B85E12]">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#E88932]" />
+              <span>Approval Akhir PJO Aktif ({currentUser.role_name})</span>
+            </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[8px] bg-[#F4F6F5] border border-[#E2E8E8] text-[11px] font-mono text-[#5A6B75]">
               <Lock className="w-3.5 h-3.5 text-[#D5A33D]" />
@@ -338,6 +360,26 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                     </td>
                     <td className="px-6 py-3.5 text-right">
                       <div className="inline-flex items-center gap-1.5">
+                        {app.current_status === 'UNDER_HOD_REVIEW' && perms.canApproveStage1 && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={<FileCheck className="w-3.5 h-3.5" />}
+                            onClick={() => setApprovalTarget({ app, mode: 'HOD' })}
+                          >
+                            Verifikasi TC
+                          </Button>
+                        )}
+                        {app.current_status === 'PENDING_PJO' && perms.canApproveFinalPjo && (
+                          <Button
+                            variant="approve"
+                            size="sm"
+                            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                            onClick={() => setApprovalTarget({ app, mode: 'PJO' })}
+                          >
+                            Approve PJO
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -757,6 +799,17 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
         onCreated={() => {
           refreshState();
           setShowCreateModal(false);
+        }}
+      />
+
+      <HodPjoActionModal
+        isOpen={Boolean(approvalTarget)}
+        application={approvalTarget?.app || null}
+        mode={approvalTarget?.mode || 'PJO'}
+        onClose={() => setApprovalTarget(null)}
+        onSuccess={() => {
+          refreshState();
+          setApprovalTarget(null);
         }}
       />
     </div>

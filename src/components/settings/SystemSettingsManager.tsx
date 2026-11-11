@@ -399,7 +399,79 @@ export const SystemSettingsManager: React.FC = () => {
                 })}
               </tr>
 
-              {/* 8. User Management: Ya / Tidak */}
+              {/* 8. Approval Tahap 1 (Verifikasi TC): Ya / Tidak */}
+              <tr className="bg-[#F4F6F5]/50">
+                <td className="px-5 py-3 font-semibold text-[#18232B]">
+                  <div>Approval Tahap 1 (Verifikasi TC)</div>
+                  <div className="text-[10px] font-normal text-[#5A6B75]">
+                    Review awal pengajuan training (UNDER HOD REVIEW)
+                  </div>
+                </td>
+                {rolesList.map((r) => {
+                  const val = ROLE_PERMISSIONS[r.code].canApproveStage1;
+                  return (
+                    <td key={r.code} className="px-3 py-2.5 text-center">
+                      <select
+                        value={val ? 'YA' : 'TIDAK'}
+                        onChange={(e) =>
+                          handlePermissionChange(
+                            r.code,
+                            r.label,
+                            'canApproveStage1',
+                            e.target.value === 'YA'
+                          )
+                        }
+                        className={`font-mono text-xs font-semibold px-2.5 py-1 rounded-[6px] border cursor-pointer focus:outline-none ${
+                          val
+                            ? 'bg-[#397C69]/12 text-[#296050] border-[#397C69]/30'
+                            : 'bg-[#F4F6F5] text-[#5A6B75] border-[#E2E8E8]'
+                        }`}
+                      >
+                        <option value="YA">Ya</option>
+                        <option value="TIDAK">Tidak</option>
+                      </select>
+                    </td>
+                  );
+                })}
+              </tr>
+
+              {/* 9. Approval Terakhir PJO (Final Stage 2): Ya / Tidak */}
+              <tr>
+                <td className="px-5 py-3 font-semibold text-[#18232B]">
+                  <div>Approval Terakhir PJO (Stage 2 Final)</div>
+                  <div className="text-[10px] font-normal text-[#5A6B75]">
+                    Otorisasi akhir pengajuan training (PENDING PJO → APPROVED)
+                  </div>
+                </td>
+                {rolesList.map((r) => {
+                  const val = ROLE_PERMISSIONS[r.code].canApproveFinalPjo;
+                  return (
+                    <td key={r.code} className="px-3 py-2.5 text-center">
+                      <select
+                        value={val ? 'YA' : 'TIDAK'}
+                        onChange={(e) =>
+                          handlePermissionChange(
+                            r.code,
+                            r.label,
+                            'canApproveFinalPjo',
+                            e.target.value === 'YA'
+                          )
+                        }
+                        className={`font-mono text-xs font-semibold px-2.5 py-1 rounded-[6px] border cursor-pointer focus:outline-none ${
+                          val
+                            ? 'bg-[#E88932]/15 text-[#B85E12] border-[#E88932]/40'
+                            : 'bg-[#F4F6F5] text-[#5A6B75] border-[#E2E8E8]'
+                        }`}
+                      >
+                        <option value="YA">Ya</option>
+                        <option value="TIDAK">Tidak</option>
+                      </select>
+                    </td>
+                  );
+                })}
+              </tr>
+
+              {/* 10. User Management: Ya / Tidak */}
               <tr className="bg-[#F4F6F5]/50">
                 <td className="px-5 py-3 font-semibold text-[#18232B]">User Management</td>
                 {rolesList.map((r) => {

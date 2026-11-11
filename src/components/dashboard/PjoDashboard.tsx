@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
-import { TrainingApplication } from '../../lib/types';
+import { TrainingApplication, getRolePermissions } from '../../lib/types';
 import { ApplicationDetailModal } from '../applications/ApplicationDetailModal';
+import { HodPjoActionModal } from '../applications/HodPjoActionModal';
 import { KpiAnalyticsCharts } from '../charts/KpiAnalyticsCharts';
 import { Button } from '../ui/Button';
 import { KpiCard } from '../ui/KpiCard';
@@ -16,6 +17,7 @@ import {
   Target,
   Eye,
   Lock,
+  ShieldCheck,
   Users,
 } from 'lucide-react';
 
@@ -25,30 +27,62 @@ interface PjoDashboardProps {
 
 export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
   const { currentUser, refreshState } = useAuth();
+  const perms = getRolePermissions(currentUser.role_code);
   const [selectedDetailApp, setSelectedDetailApp] = useState<TrainingApplication | null>(null);
+  const [selectedApproveApp, setSelectedApproveApp] = useState<TrainingApplication | null>(null);
 
   const applications = mockStore.getVisibleApplications(currentUser.id);
+  const pendingPjoApps = applications.filter((a) => a.current_status === 'PENDING_PJO');
   const achievement = mockStore.calculateTrainingAchievement({ year: '2026' });
 
   return (
     <div className="space-y-6">
-      {/* 1. PJO Header Banner with Topographic Pattern */}
+      {/* 1. PJO Header Banner with Dynamic RBAC Status */}
       <div className="bg-[#18232B] bg-topography text-white p-6 rounded-[12px] border border-[#263640]">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
             <div className="flex items-center gap-2 text-[#E88932] text-xs font-mono font-semibold uppercase tracking-wider">
               <UserCheck className="w-4 h-4" />
-              <span>Penanggung Jawab Operasional (PJO) • Executive Monitoring (View Only)</span>
+              <span>
+                Penanggung Jawab Operasional (PJO) •{' '}
+                {perms.canApproveFinalPjo
+                  ? 'Final Approval Authority & Executive Monitoring'
+                  : perms.dashboard === 'FULL' || perms.canEditData
+                  ? 'Executive Operational Access'
+                  : 'Executive Monitoring (View Only)'}
+              </span>
             </div>
             <h2 className="text-xl font-heading font-bold mt-1">
-              Executive Training Achievement & Operational Monitoring
+              Executive Training Achievement & Final Authorization
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Sesuai matriks hak akses RBAC, role PJO memiliki akses <strong>View-Only</strong> untuk memantau Dashboard, Data Training, dan laporan visualisasi <strong>Training Achievement</strong> seluruh departemen tanpa tombol tambah/edit/hapus.
+              {perms.canApproveFinalPjo ? (
+                <>
+                  Role PJO memiliki kewenangan penuh untuk melakukan{' '}
+                  <strong className="text-white">Approval Terakhir (Stage 2 Final Authorization)</strong>{' '}
+                  atas pengajuan training seluruh departemen serta memantau laporan{' '}
+                  <strong>Training Achievement</strong> secara real-time.
+                </>
+              ) : (
+                <>
+                  Memantau Dashboard, Data Training, dan laporan visualisasi{' '}
+                  <strong>Training Achievement</strong> seluruh departemen sesuai matriks RBAC aktif pada System Settings.
+                </>
+              )}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2.5">
+            {perms.canApproveFinalPjo && (
+              <Button
+                variant="approve"
+                size="md"
+                icon={<CheckCircle2 className="w-4 h-4" />}
+                onClick={() => onNavigate('approval_queue')}
+              >
+                Antrean Approval PJO ({pendingPjoApps.length})
+              </Button>
+            )}
             <Button
               variant="primary"
               size="md"
@@ -68,16 +102,131 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* 2. View-Only Policy Notice */}
+      {/* 2. Dynamic RBAC Policy & Live Permissions Notice */}
       <div className="p-4 bg-white rounded-[12px] border border-[#E2E8E8] flex items-start gap-3 text-xs text-[#263640]">
-        <Lock className="w-5 h-5 text-[#E88932] shrink-0 mt-0.5" />
+        {perms.canApproveFinalPjo || perms.canEditData ? (
+          <ShieldCheck className="w-5 h-5 text-[#397C69] shrink-0 mt-0.5" />
+        ) : (
+          <Lock className="w-5 h-5 text-[#E88932] shrink-0 mt-0.5" />
+        )}
         <div>
           <span className="font-heading font-bold text-[#18232B]">
-            Mode Akses Eksekutif PJO (Read-Only):
+            Status Hak Akses PJO (Tersinkronisasi Otomatis dari System Settings):
           </span>{' '}
-          Anda dapat memantau seluruh indikator KPI, grafik capaian bulanan, realisasi per departemen, dan riwayat pelaksanaan training. Perubahan data target/realisasi dikelola oleh Manager TC, Admin TC, Admin, atau Super Admin.
+          Approval Terakhir PJO:{' '}
+          <strong className={perms.canApproveFinalPjo ? 'text-[#296050]' : 'text-[#B94C45]'}>
+            {perms.canApproveFinalPjo ? 'AKTIF (Dapat Approve/Revisi/Reject)' : 'NONAKTIF'}
+          </strong>{' '}
+          • Mode Data Training:{' '}
+          <strong>{perms.trainingData === 'EDIT' && perms.canEditData ? 'EDIT' : 'VIEW'}</strong>{' '}
+          • Mode Training Achievement:{' '}
+          <strong>{perms.trainingAchievement === 'EDIT' && perms.canEditData ? 'EDIT' : 'VIEW'}</strong>.
         </div>
       </div>
+
+      {/* 2B. Antrean Otorisasi Akhir PJO (PENDING_PJO) */}
+      {perms.canApproveFinalPjo && (
+        <div className="bg-white rounded-[12px] border-2 border-[#E88932]/40 overflow-hidden shadow-xs">
+          <div className="px-6 py-4 bg-[#E88932]/10 border-b border-[#E88932]/25 flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h3 className="text-xs font-heading font-bold text-[#18232B] uppercase tracking-wider flex items-center gap-2">
+                <FileCheck className="w-4 h-4 text-[#E88932]" />
+                <span>
+                  Antrean Menunggu Approval Terakhir PJO ({pendingPjoApps.length} Pengajuan)
+                </span>
+              </h3>
+              <p className="text-xs text-[#5A6B75] mt-0.5">
+                Pengajuan pelatihan yang telah lolos verifikasi Training Center (Stage 1) dan menunggu keputusan akhir PJO.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigate('approval_queue')}
+            >
+              Buka Halaman Antrean Penuh
+            </Button>
+          </div>
+
+          {pendingPjoApps.length === 0 ? (
+            <div className="p-5 text-xs text-[#5A6B75] flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#397C69] shrink-0" />
+              <span>
+                Tidak ada pengajuan training yang tertunda pada tahap <strong>PENDING PJO</strong> saat ini.
+              </span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-[#F4F6F5] text-[#5A6B75] font-medium border-b border-[#E2E8E8]">
+                  <tr>
+                    <th className="px-6 py-3">Kode & Judul Pelatihan</th>
+                    <th className="px-6 py-3">Departemen</th>
+                    <th className="px-6 py-3">Jadwal & Anggaran</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3 text-right">Keputusan PJO</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2E8E8]">
+                  {pendingPjoApps.map((app) => (
+                    <tr key={app.id} className="hover:bg-[#F4F6F5]/60 transition-colors">
+                      <td className="px-6 py-3.5">
+                        <div className="font-mono text-[11px] font-semibold text-[#E88932]">
+                          {app.application_number}
+                        </div>
+                        <div className="text-[#18232B] font-heading font-semibold text-xs mt-0.5">
+                          {app.training_title}
+                        </div>
+                        <div className="text-[11px] text-[#5A6B75]">
+                          {app.participants?.length || app.planned_participants || 0} peserta •{' '}
+                          {app.training_type}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="font-medium text-[#18232B]">{app.department_name}</div>
+                        <div className="text-[11px] text-[#5A6B75] font-mono">
+                          Pengaju: {app.submitter_name}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5 font-mono text-[#5A6B75] tabular-nums">
+                        <div>
+                          {app.proposed_start_date} s/d {app.proposed_end_date}
+                        </div>
+                        <div className="text-[11px] text-[#18232B] font-semibold">
+                          IDR {(app.estimated_budget || 0).toLocaleString('id-ID')}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <StatusBadge status={app.current_status} />
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          <Button
+                            variant="approve"
+                            size="sm"
+                            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                            onClick={() => setSelectedApproveApp(app)}
+                          >
+                            Approve / Otorisasi PJO
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<Eye className="w-3.5 h-3.5" />}
+                            onClick={() => setSelectedDetailApp(app)}
+                          >
+                            Detail
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 3. Executive Achievement Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -205,14 +354,26 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
                     <StatusBadge status={app.current_status} />
                   </td>
                   <td className="px-6 py-3.5 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      icon={<Eye className="w-3.5 h-3.5" />}
-                      onClick={() => setSelectedDetailApp(app)}
-                    >
-                      Detail
-                    </Button>
+                    <div className="inline-flex items-center gap-1.5">
+                      {app.current_status === 'PENDING_PJO' && perms.canApproveFinalPjo && (
+                        <Button
+                          variant="approve"
+                          size="sm"
+                          icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                          onClick={() => setSelectedApproveApp(app)}
+                        >
+                          Approve PJO
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<Eye className="w-3.5 h-3.5" />}
+                        onClick={() => setSelectedDetailApp(app)}
+                      >
+                        Detail
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -232,6 +393,18 @@ export const PjoDashboard: React.FC<PjoDashboardProps> = ({ onNavigate }) => {
         onRefresh={() => {
           refreshState();
           setSelectedDetailApp(null);
+        }}
+      />
+
+      {/* Direct Final Authorization Modal for PJO */}
+      <HodPjoActionModal
+        isOpen={Boolean(selectedApproveApp)}
+        application={selectedApproveApp}
+        mode="PJO"
+        onClose={() => setSelectedApproveApp(null)}
+        onSuccess={() => {
+          refreshState();
+          setSelectedApproveApp(null);
         }}
       />
     </div>

@@ -131,26 +131,27 @@ export const App: React.FC = () => {
         return <ApplicationList />;
       case 'training_master':
         return <TrainingCategoryTypeManager />;
-      case 'approval_queue':
+      case 'approval_queue': {
+        const perms = getRolePermissions(currentUser.role_code);
+        const isPjoFinalQueue =
+          currentUser.role_code === 'PJO' ||
+          (perms.canApproveFinalPjo && !perms.canApproveStage1);
         return (
           <ApplicationList
-            filterStatus={
-              currentUser.role_code === 'PJO'
-                ? 'PENDING_PJO'
-                : 'UNDER_HOD_REVIEW'
-            }
+            filterStatus={isPjoFinalQueue ? 'PENDING_PJO' : 'UNDER_HOD_REVIEW'}
             title={
-              currentUser.role_code === 'PJO'
-                ? 'Antrean Review PJO (View Only)'
+              isPjoFinalQueue
+                ? 'Antrean Otorisasi Akhir PJO (Stage 2 Final Approval)'
                 : 'Antrean Verifikasi Training Center (Stage 1)'
             }
             subtitle={
-              currentUser.role_code === 'PJO'
-                ? 'Monitoring berkas pengajuan training yang menunggu verifikasi akhir'
-                : 'Pengajuan pelatihan departemen yang menunggu verifikasi kurikulum & kelayakan oleh Manager TC / Admin TC'
+              isPjoFinalQueue
+                ? 'Klik tombol "Approve PJO" atau buka Detail berkas untuk menyetujui, meminta revisi, atau menolak pengajuan training.'
+                : 'Pengajuan pelatihan departemen yang menunggu verifikasi kurikulum & kelayakan tahap 1 (atau ubah filter Status ke PENDING PJO untuk tahap 2).'
             }
           />
         );
+      }
       case 'schedules':
         return <TrainingScheduleManager />;
       case 'certifications':

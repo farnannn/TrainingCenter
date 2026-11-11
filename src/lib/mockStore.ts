@@ -4469,13 +4469,18 @@ class DataStore {
   }
 
   // ============================================================================
-  // RPC: MASTER TRAINING CATEGORY & TRAINING TYPE (ADMIN & SUPER ADMIN EXCLUSIVE)
+  // RPC: MASTER TRAINING CATEGORY & TRAINING TYPE (DYNAMIC RBAC)
   // ============================================================================
   private assertAdminOrSuperAdmin(callerId: string) {
     const callerRole = this.getUserRole(callerId);
-    if (callerRole !== 'SUPER_ADMIN' && callerRole !== 'ADMIN') {
+    const perms = this.getUserPermissions(callerId);
+    if (
+      callerRole !== 'SUPER_ADMIN' &&
+      callerRole !== 'ADMIN' &&
+      !(perms.trainingData === 'EDIT' && perms.canEditData)
+    ) {
       throw new Error(
-        'PERMISSION_DENIED: Hanya Admin dan Super Admin yang memiliki akses untuk mengelola Master Category & Training Type.'
+        'PERMISSION_DENIED: Role Anda tidak memiliki hak akses Edit Data Training untuk mengelola Master Category & Training Type.'
       );
     }
   }
@@ -4624,19 +4629,17 @@ class DataStore {
   }
 
   // ============================================================================
-  // RPC: MANAGE SITES (ADD, EDIT, DELETE)
+  // RPC: MANAGE SITES (ADD, EDIT, DELETE — DYNAMIC RBAC)
   // ============================================================================
   private assertCanManageSites(callerId: string) {
     const role = this.getUserRole(callerId);
     const perms = this.getUserPermissions(callerId);
     if (
-      !perms.canEditData ||
-      perms.employeeData === 'VIEW' ||
-      role === 'MANAGER_TC' ||
-      role === 'PJO'
+      role !== 'SUPER_ADMIN' &&
+      (!perms.canEditData || perms.employeeData === 'VIEW')
     ) {
       throw new Error(
-        'PERMISSION_DENIED: Hanya Super Admin, Admin, Admin TC, dan Admin HRGA yang dapat mengelola Master Site.'
+        'PERMISSION_DENIED: Role Anda tidak memiliki hak akses Edit Data Karyawan untuk mengelola Master Site.'
       );
     }
   }
@@ -7429,15 +7432,15 @@ class DataStore {
       action_timestamp: new Date().toISOString(),
     });
 
-    const tcManagers = this.users.filter(
-      (u) => (u.role_code === 'MANAGER_TC' || u.role_code === 'ADMIN_TC') && u.is_active
+    const tcReviewers = this.users.filter(
+      (u) => u.is_active && getRolePermissions(u.role_code).canApproveStage1
     );
-    for (const mgr of tcManagers) {
+    for (const mgr of tcReviewers) {
       this.notifications.push({
         id: crypto.randomUUID(),
         user_id: mgr.id,
         title: 'Pengajuan Training Baru',
-        message: `Pengajuan ${app.application_number} menunggu review Training Center.`,
+        message: `Pengajuan ${app.application_number} (${app.training_title}) menunggu verifikasi tahap 1 Training Center.`,
         type: 'HOD_REVIEW',
         reference_id: appId,
         is_read: false,
@@ -7450,7 +7453,7 @@ class DataStore {
   }
 
   // ============================================================================
-  // RPC: MANAGER TC / STAGE 1 REVIEW APPLICATION
+  // RPC: MANAGER TC / STAGE 1 REVIEW APPLICATION (DYNAMIC RBAC)
   // ============================================================================
   hodReviewApplication(
     appId: string,
@@ -7466,12 +7469,11 @@ class DataStore {
     }
 
     const callerRole = this.getUserRole(callerId);
-    if (
-      callerRole !== 'MANAGER_TC' &&
-      callerRole !== 'ADMIN_TC' &&
-      callerRole !== 'SUPER_ADMIN'
-    ) {
-      throw new Error('PERMISSION_DENIED: Hanya Manager TC, Admin TC, atau Super Admin yang dapat melakukan review tahap ini.');
+    const perms = this.getUserPermissions(callerId);
+    if (!perms.canApproveStage1 && callerRole !== 'SUPER_ADMIN') {
+      throw new Error(
+        'PERMISSION_DENIED: Role Anda tidak memiliki hak akses Verifikasi Training Tahap 1. Silakan atur pada System Settings (RBAC).'
+      );
     }
 
     if ((decision === 'RETURN_FOR_REVISION' || decision === 'REJECT') && (!comments || comments.trim() === '')) {
@@ -7511,12 +7513,30 @@ class DataStore {
       action_timestamp: new Date().toISOString(),
     });
 
+    if (newStatus === 'PENDING_PJO') {
+      const finalApprovers = this.users.filter(
+        (u) => u.is_active && getRolePermissions(u.role_code).canApproveFinalPjo
+      );
+      for (const pjoUser of finalApprovers) {
+        this.notifications.push({
+          id: crypto.randomUUID(),
+          user_id: pjoUser.id,
+          title: 'Menunggu Approval Terakhir PJO',
+          message: `Pengajuan ${app.application_number} (${app.training_title}) siap untuk Otorisasi Akhir PJO.`,
+          type: 'PJO_REVIEW',
+          reference_id: appId,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+
     this.persistState();
     return app;
   }
 
   // ============================================================================
-  // RPC: PJO / FINAL AUTHORIZATION REVIEW
+  // RPC: PJO / FINAL AUTHORIZATION REVIEW (DYNAMIC RBAC)
   // ============================================================================
   pjoReviewApplication(
     appId: string,
@@ -7534,12 +7554,11 @@ class DataStore {
     }
 
     const callerRole = this.getUserRole(callerId);
-    if (
-      callerRole !== 'PJO' &&
-      callerRole !== 'MANAGER_TC' &&
-      callerRole !== 'SUPER_ADMIN'
-    ) {
-      throw new Error('PERMISSION_DENIED: Hanya PJO, Manager TC, atau Super Admin yang dapat melakukan otorisasi ini.');
+    const perms = this.getUserPermissions(callerId);
+    if (!perms.canApproveFinalPjo && callerRole !== 'SUPER_ADMIN') {
+      throw new Error(
+        'PERMISSION_DENIED: Role Anda tidak memiliki kewenangan Approval Terakhir PJO. Silakan atur pada System Settings (RBAC).'
+      );
     }
 
     if ((decision === 'RETURN_FOR_REVISION' || decision === 'REJECT') && (!comments || comments.trim() === '')) {
@@ -7579,6 +7598,24 @@ class DataStore {
       action_timestamp: new Date().toISOString(),
     });
 
+    if (app.submitted_by) {
+      this.notifications.push({
+        id: crypto.randomUUID(),
+        user_id: app.submitted_by,
+        title:
+          decision === 'APPROVE'
+            ? 'Pengajuan Training Disetujui PJO'
+            : decision === 'RETURN_FOR_REVISION'
+            ? 'Pengajuan Training Dikembalikan untuk Revisi'
+            : 'Pengajuan Training Ditolak',
+        message: `Pengajuan ${app.application_number} (${app.training_title}) telah diproses pada tahap Approval Akhir PJO: ${newStatus}.`,
+        type: 'APPROVED',
+        reference_id: appId,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+    }
+
     this.persistState();
     return app;
   }
@@ -7617,7 +7654,8 @@ class DataStore {
   // ============================================================================
   superAdminReopenApplication(appId: string, callerId: string, reason: string) {
     const callerRole = this.getUserRole(callerId);
-    if (callerRole !== 'SUPER_ADMIN') {
+    const perms = this.getUserPermissions(callerId);
+    if (callerRole !== 'SUPER_ADMIN' && !perms.canDeleteData) {
       throw new Error('PERMISSION_DENIED: Only Super Admin can reopen a rejected application.');
     }
 

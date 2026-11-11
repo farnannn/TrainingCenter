@@ -18,6 +18,8 @@ export interface RolePermissionMatrix {
   canInputData: boolean;
   canEditData: boolean;
   canDeleteData: boolean;
+  canApproveStage1: boolean;
+  canApproveFinalPjo: boolean;
   canManageUsers: boolean;
   canManageSystemSettings: boolean;
 }
@@ -31,6 +33,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = 
     canInputData: true,
     canEditData: true,
     canDeleteData: true,
+    canApproveStage1: true,
+    canApproveFinalPjo: true,
     canManageUsers: true,
     canManageSystemSettings: true,
   },
@@ -42,6 +46,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = 
     canInputData: true,
     canEditData: true,
     canDeleteData: false,
+    canApproveStage1: true,
+    canApproveFinalPjo: false,
     canManageUsers: false,
     canManageSystemSettings: false,
   },
@@ -53,6 +59,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = 
     canInputData: false,
     canEditData: false,
     canDeleteData: false,
+    canApproveStage1: false,
+    canApproveFinalPjo: true,
     canManageUsers: false,
     canManageSystemSettings: false,
   },
@@ -64,6 +72,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = 
     canInputData: true,
     canEditData: true,
     canDeleteData: false,
+    canApproveStage1: true,
+    canApproveFinalPjo: true,
     canManageUsers: false,
     canManageSystemSettings: false,
   },
@@ -75,6 +85,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = 
     canInputData: true,
     canEditData: true,
     canDeleteData: false,
+    canApproveStage1: true,
+    canApproveFinalPjo: false,
     canManageUsers: false,
     canManageSystemSettings: false,
   },
@@ -86,6 +98,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, RolePermissionMatrix> = 
     canInputData: true,
     canEditData: true,
     canDeleteData: false,
+    canApproveStage1: false,
+    canApproveFinalPjo: false,
     canManageUsers: false,
     canManageSystemSettings: false,
   },
@@ -100,12 +114,19 @@ export function syncRolePermissionsRegistry(
 ) {
   (Object.keys(DEFAULT_ROLE_PERMISSIONS) as RoleCode[]).forEach((code) => {
     const incoming = nextMap?.[code];
+    const defaults = DEFAULT_ROLE_PERMISSIONS[code];
     if (incoming) {
-      ROLE_PERMISSIONS[code] = {
-        ...DEFAULT_ROLE_PERMISSIONS[code],
-        ...ROLE_PERMISSIONS[code],
-        ...incoming,
+      const merged: RolePermissionMatrix = {
+        ...defaults,
       };
+      (Object.keys(defaults) as Array<keyof RolePermissionMatrix>).forEach((key) => {
+        if (incoming[key] !== undefined) {
+          (merged as any)[key] = incoming[key];
+        } else if (ROLE_PERMISSIONS[code]?.[key] !== undefined) {
+          (merged as any)[key] = ROLE_PERMISSIONS[code][key];
+        }
+      });
+      ROLE_PERMISSIONS[code] = merged;
     }
   });
   // Ensure SUPER_ADMIN always keeps System Settings & User Management so they cannot lock themselves out

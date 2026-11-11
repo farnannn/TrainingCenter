@@ -257,76 +257,89 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
           {/* Action Bar Footer */}
           <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2">
             <span className="text-[11px] text-slate-500 font-medium">
-              RBAC Mode: {currentUser.role_name} ({perms.canEditData ? 'Edit Access' : 'View Only'})
+              RBAC Mode: {currentUser.role_name} (
+              {perms.canEditData && perms.canApproveFinalPjo
+                ? 'Edit & Final Approval'
+                : perms.canApproveFinalPjo
+                ? 'Otorisasi Akhir PJO'
+                : perms.canApproveStage1
+                ? 'Edit & Verifikasi TC'
+                : perms.canEditData
+                ? 'Edit Access'
+                : 'View Only'}
+              )
             </span>
 
-            <div className="flex items-center space-x-2">
-              {/* Submit draft button for roles with canEditData */}
-              {perms.canEditData && application.current_status === 'DRAFT' && (
-                <button
-                  onClick={handleDeptSubmit}
-                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Submit to TC Review</span>
-                </button>
-              )}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Submit draft button for roles with canInputData / canEditData */}
+              {(perms.canInputData || perms.canEditData) &&
+                application.current_status === 'DRAFT' && (
+                  <button
+                    onClick={handleDeptSubmit}
+                    className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Kirim ke Review TC (Stage 1)</span>
+                  </button>
+                )}
 
-              {/* Stage 1 Review action for Manager TC / Admin TC / Admin / Super Admin */}
-              {(role === 'MANAGER_TC' || role === 'ADMIN_TC' || role === 'ADMIN' || role === 'SUPER_ADMIN') &&
+              {/* Stage 1 Review action controlled dynamically by perms.canApproveStage1 */}
+              {perms.canApproveStage1 &&
                 application.current_status === 'UNDER_HOD_REVIEW' && (
                   <button
                     onClick={() => setShowHodModal(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer"
                   >
                     <FileCheck className="w-3.5 h-3.5" />
-                    <span>Review Application (Stage 1)</span>
+                    <span>Verifikasi Tahap 1 (Review TC)</span>
                   </button>
                 )}
 
-              {/* Stage 2 Authorization for Manager TC / Admin / Super Admin */}
-              {(role === 'MANAGER_TC' || role === 'ADMIN' || role === 'SUPER_ADMIN') &&
+              {/* Stage 2 Final Authorization controlled dynamically by perms.canApproveFinalPjo (Default ON for PJO, Manager TC, Super Admin) */}
+              {perms.canApproveFinalPjo &&
                 application.current_status === 'PENDING_PJO' && (
                   <button
                     onClick={() => setShowPjoModal(true)}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm"
+                    className="px-4 py-2 bg-[#E88932] hover:bg-[#d47824] text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer"
                   >
                     <FileCheck className="w-3.5 h-3.5" />
-                    <span>Final Authorization (Stage 2)</span>
+                    <span>Approve / Otorisasi Akhir PJO (Stage 2)</span>
                   </button>
                 )}
 
-              {/* Schedule Training action for approved */}
-              {(role === 'MANAGER_TC' || role === 'ADMIN_TC' || role === 'ADMIN' || role === 'SUPER_ADMIN') &&
+              {/* Schedule Training action for approved applications */}
+              {perms.canEditData &&
+                perms.trainingData === 'EDIT' &&
                 application.current_status === 'APPROVED' && (
                   <button
                     onClick={() => {
                       if (onOpenScheduleModal) onOpenScheduleModal(application);
                       onClose();
                     }}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer"
                   >
                     <CalendarPlus className="w-3.5 h-3.5" />
-                    <span>Schedule Training Execution</span>
+                    <span>Jadwalkan Pelaksanaan Training</span>
                   </button>
                 )}
 
-              {/* Super Admin Reopen action for rejected applications */}
-              {role === 'SUPER_ADMIN' && application.current_status === 'REJECTED' && (
-                <button
-                  onClick={() => setShowReopenModal(true)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm"
-                >
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>Super Admin Reopen</span>
-                </button>
-              )}
+              {/* Super Admin / Delete-authorized Reopen action for rejected applications */}
+              {(role === 'SUPER_ADMIN' || perms.canDeleteData) &&
+                application.current_status === 'REJECTED' && (
+                  <button
+                    onClick={() => setShowReopenModal(true)}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-xs flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>Reopen Pengajuan</span>
+                  </button>
+                )}
 
               <button
                 onClick={onClose}
-                className="px-3 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-100"
+                className="px-3 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-100 cursor-pointer"
               >
-                Close
+                Tutup
               </button>
             </div>
           </div>

@@ -1,13 +1,15 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
+import { getRolePermissions } from '../../lib/types';
 import { ShieldCheck, History, ArrowRight } from 'lucide-react';
 
 export const AuditLogViewer: React.FC = () => {
   const { currentUser } = useAuth();
+  const perms = getRolePermissions(currentUser.role_code);
   const logs = mockStore.auditLogs;
 
-  if (currentUser.role_code !== 'SUPER_ADMIN') {
+  if (currentUser.role_code !== 'SUPER_ADMIN' && !perms.canManageSystemSettings) {
     return (
       <div className="p-8 text-center bg-white rounded-xl border border-red-200 text-xs text-red-600">
         Access Denied: Only Super Admin is authorized to view security & compliance audit logs.

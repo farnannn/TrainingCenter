@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { mockStore } from '../../lib/mockStore';
-import { TrainingCategoryOption, TrainingTypeOption, SiteOption } from '../../lib/types';
+import {
+  TrainingCategoryOption,
+  TrainingTypeOption,
+  SiteOption,
+  getRolePermissions,
+} from '../../lib/types';
 import { Button } from '../ui/Button';
 import {
   Tags,
@@ -18,8 +23,11 @@ import {
 
 export const TrainingCategoryTypeManager: React.FC = () => {
   const { currentUser, refreshState } = useAuth();
+  const perms = getRolePermissions(currentUser.role_code);
   const isAllowed =
-    currentUser.role_code === 'SUPER_ADMIN' || currentUser.role_code === 'ADMIN';
+    currentUser.role_code === 'SUPER_ADMIN' ||
+    currentUser.role_code === 'ADMIN' ||
+    (perms.trainingData === 'EDIT' && perms.canEditData);
 
   // Category Modal State
   const [showCatModal, setShowCatModal] = useState(false);

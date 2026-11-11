@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getRolePermissions, RoleCode } from '../../lib/types';
+import { mockStore } from '../../lib/mockStore';
 import { RajaLogo } from '../ui/RajaLogo';
 import {
   LayoutDashboard,
   Target,
   FileText,
+  FileCheck,
   CalendarDays,
   Award,
   BarChart3,
@@ -44,11 +46,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { currentUser, logout } = useAuth();
   const role: RoleCode = currentUser.role_code;
   const perms = getRolePermissions(role);
-  const canManageTrainingMaster = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  const canManageTrainingMaster =
+    role === 'SUPER_ADMIN' ||
+    role === 'ADMIN' ||
+    (perms.trainingData === 'EDIT' && perms.canEditData);
+  const canApproveTraining = perms.canApproveStage1 || perms.canApproveFinalPjo;
+  const hasTrainingSubMenu = canManageTrainingMaster || canApproveTraining;
   const canEditTrainerActivities =
     perms.trainingAchievement === 'EDIT' && perms.canEditData;
   const [achievementSubOpen, setAchievementSubOpen] = useState(true);
   const [trainingSubOpen, setTrainingSubOpen] = useState(true);
+
+  const pendingApprovalCount = mockStore.applications.filter((app) => {
+    if (perms.canApproveFinalPjo && app.current_status === 'PENDING_PJO') return true;
+    if (perms.canApproveStage1 && app.current_status === 'UNDER_HOD_REVIEW') return true;
+    return false;
+  }).length;
 
   const allSixRoles: RoleCode[] = [
     'SUPER_ADMIN',
@@ -208,7 +221,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   currentTab === 'skill_audit_refresh_operator' ||
                   currentTab === 'assessment_cross_skillup' ||
                   currentTab === 'orientasi_retraining_green')) ||
-              (isTrainingGroup && currentTab === 'training_master');
+              (isTrainingGroup &&
+                (currentTab === 'training_master' || currentTab === 'approval_queue'));
 
             return (
               <div key={item.id} className="space-y-1">
@@ -217,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     if (isAchievementGroup && canEditTrainerActivities && !isCollapsed) {
                       setAchievementSubOpen((prev) => !prev);
                     }
-                    if (isTrainingGroup && canManageTrainingMaster && !isCollapsed) {
+                    if (isTrainingGroup && hasTrainingSubMenu && !isCollapsed) {
                       setTrainingSubOpen((prev) => !prev);
                     }
                     handleNavClick(item.id);
@@ -255,12 +269,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                   )}
 
-                  {!isCollapsed && isTrainingGroup && canManageTrainingMaster && (
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
-                        trainingSubOpen ? 'rotate-0' : '-rotate-90'
-                      }`}
-                    />
+                  {!isCollapsed && isTrainingGroup && hasTrainingSubMenu && (
+                    <div className="flex items-center gap-1.5">
+                      {pendingApprovalCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-[#E88932] text-white text-[10px] font-mono font-bold leading-none">
+                          {pendingApprovalCount}
+                        </span>
+                      )}
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                          trainingSubOpen ? 'rotate-0' : '-rotate-90'
+                        }`}
+                      />
+                    </div>
                   )}
                 </button>
 
@@ -350,10 +371,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 )}
 
-                {/* Sub-Sidebar under Data Training (Khusus Admin & Super Admin) */}
+                {/* Sub-Sidebar under Data Training (Dynamic RBAC: Antrean Approval & Master Category/Type) */}
                 {!isCollapsed &&
                   isTrainingGroup &&
-                  canManageTrainingMaster &&
+                  hasTrainingSubMenu &&
                   trainingSubOpen && (
                     <div className="ml-5 pl-3 border-l border-[#263640] space-y-1 py-0.5">
                       <button
@@ -369,18 +390,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <span className="truncate">Daftar Data Training</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleNavClick('training_master')}
-                        className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
-                          currentTab === 'training_master'
-                            ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
-                            : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
-                        }`}
-                      >
-                        <Tags className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">Category & Training Type</span>
-                      </button>
+                      {canApproveTraining && (
+                        <button
+                          type="button"
+                          onClick={() => handleNavClick('approval_queue')}
+                          className={`w-full flex items-center justify-between gap-2 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                            currentTab === 'approval_queue'
+                              ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                              : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5 min-w-0">
+                            <FileCheck className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">
+                              {perms.canApproveFinalPjo && !perms.canApproveStage1
+                                ? 'Approval Akhir PJO'
+                                : 'Antrean Approval'}
+                            </span>
+                          </span>
+                          {pendingApprovalCount > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-[#E88932] text-white text-[10px] font-mono font-bold leading-none shrink-0">
+                              {pendingApprovalCount}
+                            </span>
+                          )}
+                        </button>
+                      )}
+
+                      {canManageTrainingMaster && (
+                        <button
+                          type="button"
+                          onClick={() => handleNavClick('training_master')}
+                          className={`w-full flex items-center gap-2.5 px-2.5 h-[34px] rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
+                            currentTab === 'training_master'
+                              ? 'bg-[#E88932]/15 text-[#E88932] font-semibold'
+                              : 'text-slate-400 hover:text-white hover:bg-[#263640]/40'
+                          }`}
+                        >
+                          <Tags className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Category & Training Type</span>
+                        </button>
+                      )}
                     </div>
                   )}
               </div>
