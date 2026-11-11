@@ -2099,6 +2099,7 @@ class OperationTrainerStore {
           STORAGE_KEY,
           'raja_academy_thr_state_v3',
           'raja_academy_auth_session_v1',
+          'raja_academy_active_tab_v1',
         ]);
         for (let i = window.localStorage.length - 1; i >= 0; i--) {
           const k = window.localStorage.key(i);

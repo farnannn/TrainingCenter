@@ -29,9 +29,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AUTH_SESSION_KEY = 'raja_academy_auth_session_v1';
 
 function readSavedAuthSession(): { isAuthenticated: boolean; currentUserId: string } {
-  if (typeof window !== 'undefined' && window.sessionStorage) {
+  if (typeof window !== 'undefined') {
     try {
-      const raw = window.sessionStorage.getItem(AUTH_SESSION_KEY);
+      const raw =
+        window.localStorage?.getItem(AUTH_SESSION_KEY) ||
+        window.sessionStorage?.getItem(AUTH_SESSION_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed.isAuthenticated === 'boolean' && parsed.currentUserId) {
@@ -49,15 +51,16 @@ function readSavedAuthSession(): { isAuthenticated: boolean; currentUserId: stri
 }
 
 function writeSavedAuthSession(isAuthenticated: boolean, currentUserId: string) {
-  if (typeof window !== 'undefined' && window.sessionStorage) {
+  if (typeof window !== 'undefined') {
     try {
       if (isAuthenticated) {
-        window.sessionStorage.setItem(
-          AUTH_SESSION_KEY,
-          JSON.stringify({ isAuthenticated: true, currentUserId })
-        );
+        const payload = JSON.stringify({ isAuthenticated: true, currentUserId });
+        window.localStorage?.setItem(AUTH_SESSION_KEY, payload);
+        window.sessionStorage?.setItem(AUTH_SESSION_KEY, payload);
       } else {
-        window.sessionStorage.removeItem(AUTH_SESSION_KEY);
+        window.localStorage?.removeItem(AUTH_SESSION_KEY);
+        window.sessionStorage?.removeItem(AUTH_SESSION_KEY);
+        window.localStorage?.removeItem('raja_academy_active_tab_v1');
       }
     } catch {
       // Ignore

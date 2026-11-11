@@ -25,11 +25,33 @@ import { EmployeeRoster } from './components/employees/EmployeeRoster';
 import { KpiOverview } from './components/kpi/KpiOverview';
 import { AuditLogViewer } from './components/audit/AuditLogViewer';
 
+const ACTIVE_TAB_STORAGE_KEY = 'raja_academy_active_tab_v1';
+
 export const App: React.FC = () => {
   const { isAuthenticated, currentUser } = useAuth();
-  const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [currentTab, setCurrentTabState] = useState<string>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        return window.localStorage.getItem(ACTIVE_TAB_STORAGE_KEY) || 'dashboard';
+      } catch {
+        return 'dashboard';
+      }
+    }
+    return 'dashboard';
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+
+  const setCurrentTab = (tab: string) => {
+    setCurrentTabState(tab);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, tab);
+      } catch {
+        // Ignore
+      }
+    }
+  };
 
   // Before login: Visitors see the public Company Profile & KPI landing page (with Visi & Misi)
   if (!isAuthenticated || !currentUser) {

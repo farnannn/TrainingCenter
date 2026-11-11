@@ -2076,6 +2076,7 @@ class DataStore {
           LOCAL_STORAGE_KEY,
           'raja_operation_trainer_module_v4',
           'raja_academy_auth_session_v1',
+          'raja_academy_active_tab_v1',
         ]);
         for (let i = window.localStorage.length - 1; i >= 0; i--) {
           const k = window.localStorage.key(i);
