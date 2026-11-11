@@ -581,31 +581,17 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
     onDone('Foto dokumentasi berhasil dihapus.');
   };
 
-  const handleResetCategoryPhotos = (catKey: string, label: string) => {
-    if (catKey === 'DRIVER_DT' && siteFilter === 'Genba') {
-      const defaults = createInitialOperationTrainerState();
-      operationTrainerStore.updateState(
-        (prev) => ({
-          ...prev,
-          genbaClassPhotos: defaults.genbaClassPhotos,
-        }),
-        { resetPhotoKey: 'OP_genbaClassPhotos' }
-      );
-    } else if (catKey === 'DRIVER_DT' && siteFilter === 'ALL') {
-      mockStore.restoreDefaultSkillAuditPhotos(userId, catKey);
-      const defaults = createInitialOperationTrainerState();
-      operationTrainerStore.updateState(
-        (prev) => ({
-          ...prev,
-          genbaClassPhotos: defaults.genbaClassPhotos,
-        }),
-        { resetPhotoKey: 'OP_genbaClassPhotos' }
-      );
-    } else {
-      mockStore.restoreDefaultSkillAuditPhotos(userId, catKey);
+  const [isSyncingPhotos, setIsSyncingPhotos] = useState(false);
+
+  const handleSyncCategoryPhotos = async (label: string) => {
+    setIsSyncingPhotos(true);
+    try {
+      await mockStore.forcePullFromCloud();
+      setForcePhotoTick((t) => t + 1);
+      onDone(`Foto dokumentasi ${label} berhasil disinkronkan dari Cloud.`);
+    } finally {
+      setIsSyncingPhotos(false);
     }
-    setForcePhotoTick((t) => t + 1);
-    onDone(`Foto dokumentasi default ${label} berhasil dikembalikan.`);
   };
 
   // Switch tab and reset unit/instructor filters
@@ -1374,16 +1360,18 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                         Klik foto untuk memperbesar tampilan
                       </p>
                     </div>
-                    {canEdit && (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleResetCategoryPhotos('SUMMARY', 'Summary Refresh')}
-                          title="Kembalikan foto default"
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#18232B] hover:bg-slate-50 cursor-pointer"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                        </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSyncCategoryPhotos('Summary Refresh')}
+                        title="Sinkronkan foto terbaru dari Cloud"
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#18232B] hover:bg-slate-50 cursor-pointer"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 ${isSyncingPhotos ? 'animate-spin' : ''}`}
+                        />
+                      </button>
+                      {canEdit && (
                         <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#18232B] text-white text-[11px] font-semibold hover:bg-[#263640] cursor-pointer">
                           <Upload className="w-3 h-3" />
                           <span>Upload</span>
@@ -1395,8 +1383,8 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                             className="hidden"
                           />
                         </label>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1">
@@ -1868,18 +1856,18 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                               Klik foto untuk memperbesar tampilan
                             </p>
                           </div>
-                          {canEdit && (
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleResetCategoryPhotos(activeTab, meta.shortTitle)
-                                }
-                                title="Kembalikan foto default"
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#18232B] hover:bg-slate-50 cursor-pointer"
-                              >
-                                <RefreshCw className="w-3.5 h-3.5" />
-                              </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleSyncCategoryPhotos(meta.shortTitle)}
+                              title="Sinkronkan foto terbaru dari Cloud"
+                              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#18232B] hover:bg-slate-50 cursor-pointer"
+                            >
+                              <RefreshCw
+                                className={`w-3.5 h-3.5 ${isSyncingPhotos ? 'animate-spin' : ''}`}
+                              />
+                            </button>
+                            {canEdit && (
                               <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#18232B] text-white text-[11px] font-semibold hover:bg-[#263640] cursor-pointer">
                                 <Upload className="w-3 h-3" />
                                 <span>Upload Foto</span>
@@ -1891,8 +1879,8 @@ export const SkillAuditRefreshOperatorSection: React.FC<SectionProps> = ({
                                   className="hidden"
                                 />
                               </label>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
 
                         <div

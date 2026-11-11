@@ -2065,9 +2065,46 @@ class DataStore {
     return true;
   }
 
+  private saveToLocalStorageSafe(snapshotObj: any) {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const jsonStr = JSON.stringify(snapshotObj);
+    try {
+      window.localStorage.setItem(LOCAL_STORAGE_KEY, jsonStr);
+    } catch {
+      try {
+        const keepKeys = new Set([
+          LOCAL_STORAGE_KEY,
+          'raja_operation_trainer_module_v4',
+          'raja_academy_auth_session_v1',
+        ]);
+        for (let i = window.localStorage.length - 1; i >= 0; i--) {
+          const k = window.localStorage.key(i);
+          if (k && k.startsWith('raja_') && !keepKeys.has(k)) {
+            window.localStorage.removeItem(k);
+          }
+        }
+        window.localStorage.setItem(LOCAL_STORAGE_KEY, jsonStr);
+      } catch {
+        // Ignore quota errors
+      }
+    }
+  }
+
   private loadFromLocalStorage() {
     if (typeof window === 'undefined' || !window.localStorage) return;
     try {
+      // Purge obsolete v1/v2 base64 keys that could exhaust Chrome's 5MB localStorage quota
+      const keepKeys = new Set([
+        LOCAL_STORAGE_KEY,
+        'raja_operation_trainer_module_v4',
+        'raja_academy_auth_session_v1',
+      ]);
+      for (let i = window.localStorage.length - 1; i >= 0; i--) {
+        const k = window.localStorage.key(i);
+        if (k && k.startsWith('raja_') && !keepKeys.has(k)) {
+          window.localStorage.removeItem(k);
+        }
+      }
       const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -2085,13 +2122,7 @@ class DataStore {
     this.pendingResetPhotoKeys.clear();
     this.pendingDeletedPhotoUrls.clear();
 
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
-      } catch {
-        // Ignore quota errors
-      }
-    }
+    this.saveToLocalStorageSafe(snapshot);
 
     this.cloudStatus = 'SYNCING';
     this.isSavingToCloud = true;
@@ -2109,16 +2140,7 @@ class DataStore {
           }
           if (res.data && typeof res.data === 'object' && !isPhotoUploadInProgress()) {
             this.hydrateState(res.data);
-            if (typeof window !== 'undefined' && window.localStorage) {
-              try {
-                window.localStorage.setItem(
-                  LOCAL_STORAGE_KEY,
-                  JSON.stringify(this.serializeState())
-                );
-              } catch {
-                // Ignore
-              }
-            }
+            this.saveToLocalStorageSafe(this.serializeState());
           }
           this.cloudStatus = 'ONLINE_SYNCED';
           this.lastCloudSyncAt = res.syncedAt || res.updatedAt || new Date().toISOString();
@@ -2134,6 +2156,38 @@ class DataStore {
           this.notifyListeners();
         }
       });
+  }
+
+  async forcePullFromCloud(): Promise<boolean> {
+    if (this.isSavingToCloud || isPhotoUploadInProgress()) return false;
+    this.isPullingFromCloud = true;
+    this.cloudStatus = 'SYNCING';
+    this.notifyListeners();
+    try {
+      const res = await fetchCloudDatabaseState();
+      if (
+        res.ok &&
+        res.data &&
+        Array.isArray(res.data.departments) &&
+        res.data.departments.length === 7
+      ) {
+        this.hydrateState(res.data);
+        if (res.rev && res.rev > this.lastCloudRev) {
+          this.lastCloudRev = res.rev;
+        }
+        this.saveToLocalStorageSafe(this.serializeState());
+        this.cloudStatus = 'ONLINE_SYNCED';
+        this.lastCloudSyncAt = res.updatedAt || new Date().toISOString();
+        this.notifyListeners();
+        return true;
+      }
+    } catch {
+      // Ignore
+    } finally {
+      this.isPullingFromCloud = false;
+      this.notifyListeners();
+    }
+    return false;
   }
 
   async pullLatestFromCloud(forceEvenIfEqual = false): Promise<boolean> {
@@ -2173,16 +2227,7 @@ class DataStore {
         if (res.rev && res.rev > this.lastCloudRev) {
           this.lastCloudRev = res.rev;
         }
-        if (typeof window !== 'undefined' && window.localStorage) {
-          try {
-            window.localStorage.setItem(
-              LOCAL_STORAGE_KEY,
-              JSON.stringify(this.serializeState())
-            );
-          } catch {
-            // Ignore
-          }
-        }
+        this.saveToLocalStorageSafe(this.serializeState());
         this.cloudStatus = 'ONLINE_SYNCED';
         this.lastCloudSyncAt = res.updatedAt || new Date().toISOString();
         this.notifyListeners();
@@ -2266,13 +2311,7 @@ class DataStore {
         this.lastCloudRev = res.rev;
       }
       const serialized = this.serializeState();
-      if (typeof window !== 'undefined' && window.localStorage) {
-        try {
-          window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serialized));
-        } catch {
-          // Ignore
-        }
-      }
+      this.saveToLocalStorageSafe(serialized);
       if (missingOpModuleInCloud) {
         const pushRes = await saveCloudDatabaseState(serialized);
         if (pushRes.ok) {

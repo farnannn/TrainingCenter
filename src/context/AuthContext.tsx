@@ -26,10 +26,50 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_SESSION_KEY = 'raja_academy_auth_session_v1';
+
+function readSavedAuthSession(): { isAuthenticated: boolean; currentUserId: string } {
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      const raw = window.sessionStorage.getItem(AUTH_SESSION_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.isAuthenticated === 'boolean' && parsed.currentUserId) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+  return {
+    isAuthenticated: false,
+    currentUserId: '00000000-0000-0000-0000-000000000001',
+  };
+}
+
+function writeSavedAuthSession(isAuthenticated: boolean, currentUserId: string) {
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      if (isAuthenticated) {
+        window.sessionStorage.setItem(
+          AUTH_SESSION_KEY,
+          JSON.stringify({ isAuthenticated: true, currentUserId })
+        );
+      } else {
+        window.sessionStorage.removeItem(AUTH_SESSION_KEY);
+      }
+    } catch {
+      // Ignore
+    }
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Unauthenticated by default: Visitors see the public company profile dashboard first!
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [currentUserId, setCurrentUserId] = useState<string>('00000000-0000-0000-0000-000000000001');
+  // Visitors in a fresh session see the public company profile first; active sessions survive F5 refresh!
+  const initialSession = readSavedAuthSession();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(initialSession.isAuthenticated);
+  const [currentUserId, setCurrentUserId] = useState<string>(initialSession.currentUserId);
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -89,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       setCurrentUserId(user.id);
       setIsAuthenticated(true);
+      writeSavedAuthSession(true, user.id);
       refreshState();
       return true;
     }
@@ -100,16 +141,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       setCurrentUserId(user.id);
       setIsAuthenticated(true);
+      writeSavedAuthSession(true, user.id);
       refreshState();
     }
   };
 
   const logout = () => {
     setIsAuthenticated(false);
+    writeSavedAuthSession(false, currentUserId);
   };
 
   const switchUser = (userId: string) => {
     setCurrentUserId(userId);
+    if (isAuthenticated) {
+      writeSavedAuthSession(true, userId);
+    }
   };
 
   const markNotificationRead = (id: string) => {

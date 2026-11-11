@@ -178,16 +178,13 @@ async function writeImmutableSnapshot(dataPayload, existingItems, supabaseUrl, h
   return { rev, updatedAt: nowIso, fileName };
 }
 
-function mergePhotoArrays(cloudArr, incomingArr, deletedSet, resetCategoriesSet, categoryKey) {
+function mergePhotoArrays(cloudArr, incomingArr, deletedSet) {
   const incoming = Array.isArray(incomingArr) ? incomingArr : [];
-  if (categoryKey && resetCategoriesSet.has(categoryKey)) {
-    return incoming.filter((u) => !deletedSet.has(u));
-  }
   const cloud = Array.isArray(cloudArr) ? cloudArr : [];
   const cloudCustom = cloud.filter((u) => isCustomUploadedPhoto(u) && !deletedSet.has(u));
   const incomingClean = incoming.filter((u) => !deletedSet.has(u));
   const extraCloudCustom = cloudCustom.filter((cUrl) => !incomingClean.includes(cUrl));
-  // Prepend custom uploaded photos from any device to Slot #1 so they stay permanently visible
+  // Always preserve custom uploaded photos at Slot #1 unless explicitly deleted via single-photo X button
   return [...extraCloudCustom, ...incomingClean];
 }
 

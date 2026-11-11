@@ -2090,10 +2090,26 @@ class OperationTrainerStore {
 
   private save(): void {
     if (typeof window === 'undefined') return;
+    const jsonStr = JSON.stringify(this.state);
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      window.localStorage.setItem(STORAGE_KEY, jsonStr);
     } catch {
-      // ignore storage quota errors
+      try {
+        const keepKeys = new Set([
+          STORAGE_KEY,
+          'raja_academy_thr_state_v3',
+          'raja_academy_auth_session_v1',
+        ]);
+        for (let i = window.localStorage.length - 1; i >= 0; i--) {
+          const k = window.localStorage.key(i);
+          if (k && k.startsWith('raja_') && !keepKeys.has(k)) {
+            window.localStorage.removeItem(k);
+          }
+        }
+        window.localStorage.setItem(STORAGE_KEY, jsonStr);
+      } catch {
+        // ignore storage quota errors
+      }
     }
   }
 

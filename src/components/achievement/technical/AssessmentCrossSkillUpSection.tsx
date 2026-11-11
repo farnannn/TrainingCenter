@@ -250,30 +250,16 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
     bump();
   };
 
-  const handleResetPhotos = () => {
-    const resetPhotoKey =
-      activeTab === 'SIMPER'
-        ? 'OP_simperPhotos'
-        : activeTab === 'CROSS_TRAINING'
-        ? 'OP_crossPhotos'
-        : 'OP_skillUpPhotos';
-    operationTrainerStore.updateState(
-      (prev) => {
-        if (activeTab === 'SIMPER') {
-          return {
-            ...prev,
-            simperPhotos: [...INITIAL_SIMPER_PHOTOS],
-            genbaAssessmentPhotos: [...INITIAL_GENBA_ASSESSMENT_PHOTOS],
-          };
-        }
-        if (activeTab === 'CROSS_TRAINING') {
-          return { ...prev, crossPhotos: [...INITIAL_CROSS_PHOTOS] };
-        }
-        return { ...prev, skillUpPhotos: [...INITIAL_SKILL_UP_PHOTOS] };
-      },
-      { resetPhotoKey }
-    );
-    bump();
+  const [isSyncingPhotos, setIsSyncingPhotos] = useState(false);
+
+  const handleSyncPhotos = async () => {
+    setIsSyncingPhotos(true);
+    try {
+      await mockStore.forcePullFromCloud();
+      bump();
+    } finally {
+      setIsSyncingPhotos(false);
+    }
   };
 
   // Unified Assessment Rows (Tangofa SIMPER + Genba 157x Assessment, Orientasi & Refresh)
@@ -1322,16 +1308,16 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
                 </h3>
                 <p className="text-[11px] text-slate-500">Klik foto untuk memperbesar tampilan</p>
               </div>
-              {canEdit && (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleResetPhotos}
-                    title="Kembalikan foto default"
-                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#18232B] hover:bg-slate-50 cursor-pointer"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleSyncPhotos}
+                  title="Sinkronkan foto terbaru dari Cloud"
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-[#18232B] hover:bg-slate-50 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingPhotos ? 'animate-spin' : ''}`} />
+                </button>
+                {canEdit && (
                   <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#18232B] text-white text-[11px] font-semibold hover:bg-[#263640] cursor-pointer">
                     <Upload className="w-3 h-3" />
                     <span>Upload Foto</span>
@@ -1342,8 +1328,8 @@ export const AssessmentCrossSkillUpView: React.FC = () => {
                       className="hidden"
                     />
                   </label>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             <div
